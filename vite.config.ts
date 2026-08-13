@@ -64,7 +64,7 @@ export default defineConfig({
       // see ../Backend). Path is forwarded as-is (e.g. /api/auth/login,
       // /api/users, /api/audit-log) — no prefix stripped.
       '/api': {
-        target: process.env.BACKEND_URL || 'http://localhost:4040',
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:4040',
         changeOrigin: true,
       },
     },
