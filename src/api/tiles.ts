@@ -68,6 +68,7 @@ export async function streamDashboardTiles(
   const token = getToken();
   const res = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}/stream${buildQuery(params)}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
     signal,
   });
 
@@ -136,7 +137,7 @@ export async function fetchTile<T = Record<string, unknown>>(
   const token = getToken();
   const res = await fetch(
     `${API_BASE_URL}/api/dashboards/${dashboardId}/tiles/${tileId}${buildQuery(params)}`,
-    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+    { headers: token ? { Authorization: `Bearer ${token}` } : {}, credentials: 'include' }
   );
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
