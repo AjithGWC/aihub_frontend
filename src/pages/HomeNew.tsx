@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { DashboardMeta } from '../api/client';
+import { DashboardMeta } from '@/api';
 import { useAuth } from '../auth/AuthContext';
 import {
   Crown,

@@ -16,21 +16,19 @@ import {
   DashboardMeta,
   ManagedUser,
   UserAccessGrant,
-  deleteUser,
-  getDashboards,
-  getUserAccess,
-  grantAccess,
-  revokeAccess,
-  updateUser,
-} from '../api/client';
-import {
   ScopeDimension,
   UserScopeResponse,
+  deleteUser,
+  getDashboards,
   getScopeOptions,
+  getUserAccess,
   getUserDetail,
   getUserScope,
+  grantAccess,
+  revokeAccess,
   saveUserScope,
-} from '../api/requests';
+  updateUser,
+} from '@/api';
 import { useAuth } from '../auth/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

@@ -1,16 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { API_BASE_URL } from '@/lib/apiBase';
+import { type SessionUser, getSession, sessionLogin, sessionLogout } from '@/api';
 
-export interface SessionUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  roleLabel: string;
-  department: string;
-  isSystemAdmin: boolean;
-  canAccessAdminPortal: boolean;
-}
+export type { SessionUser };
 
 export type SessionStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -30,23 +21,12 @@ const SessionContext = createContext<SessionState>({
   logout: async () => {},
 });
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}/api${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: init.body ? { 'Content-Type': 'application/json' } : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-  return data as T;
-}
-
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [status, setStatus] = useState<SessionStatus>('loading');
 
   useEffect(() => {
-    request<{ user: SessionUser }>('/auth/me')
+    getSession()
       .then(({ user }) => {
         setUser(user);
         setStatus('authenticated');
@@ -58,17 +38,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { user } = await request<{ user: SessionUser }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
+    const { user } = await sessionLogin(email, password);
     setUser(user);
     setStatus('authenticated');
     return user;
   };
 
   const logout = async () => {
-    await request('/auth/logout', { method: 'POST' }).catch(() => {});
+    await sessionLogout().catch(() => {});
     setUser(null);
     setStatus('unauthenticated');
   };

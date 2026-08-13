@@ -8,9 +8,11 @@ import {
   ShieldCheck,
   Boxes,
   ScrollText,
+  LogOut,
   type LucideIcon,
 } from "lucide-react";
 import { COLOR, SECTOR_COLOR, FONT_HEADING, FONT_BODY, type SectorTone } from "./atlasTheme";
+import { useSession } from "../auth/SessionContext";
 import AihDashboard from "../ai-access-hub/pages/Dashboard";
 import AihUsersRoles from "../ai-access-hub/pages/UsersRoles";
 import AihApiKeys from "../ai-access-hub/pages/ApiKeys";
@@ -163,6 +165,7 @@ export interface AtlasHubProps {
 const HUB_RETURN_MS = 1200;
 
 export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: AtlasHubProps) {
+  const { logout } = useSession();
   const fitRef = React.useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -696,6 +699,15 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
               Team
             </div>
           </div>
+
+          <button
+            onClick={() => logout()}
+            className="absolute z-10 flex items-center gap-2 px-4 py-[9px] rounded-full text-[12px] uppercase transition-colors"
+            style={{ right: 24, top: 48, letterSpacing: ".06em", background: "#ffffff", border: "1px solid rgba(15,23,42,.12)", color: COLOR.neutral300, boxShadow: "0 1px 4px rgba(15,23,42,.06)" }}
+          >
+            <LogOut size={14} />
+            Logout
+          </button>
         </div>
       </div>
     </div>

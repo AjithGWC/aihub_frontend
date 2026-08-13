@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { TriangleAlert, UserPlus } from 'lucide-react';
-import { createUser } from '@/api/client';
+import { createUser } from '@/api';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
-import { api } from '../api/client'
+import { api } from '@/api'
 import type { AuditLogEntry } from '../types'
 import { Pagination } from '../components/Pagination'
 import { Badge } from '@/components/ui/badge'

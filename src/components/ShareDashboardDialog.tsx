@@ -8,7 +8,7 @@ import {
   type AccessGrant,
   type AccessLevel,
   type UserOption,
-} from '@/api/client';
+} from '@/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

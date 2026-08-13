@@ -8,8 +8,7 @@ import {
   ShieldCheck,
   TriangleAlert,
 } from 'lucide-react';
-import { changePassword, getStoredUser, storeUser } from '@/api/client';
-import { MyProfile, getMyProfile } from '@/api/requests';
+import { changePassword, getStoredUser, storeUser, MyProfile, getMyProfile } from '@/api';
 import { useAuth } from '@/auth/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';

@@ -34,7 +34,7 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import { DashboardMeta } from '../api/client';
+import { DashboardMeta } from '@/api';
 import {
   Crown,
   TrendingUp,

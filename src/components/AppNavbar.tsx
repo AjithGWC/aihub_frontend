@@ -6,7 +6,7 @@ import {
   MoonIcon,
   SunIcon,
 } from 'lucide-react';
-import { DashboardMeta } from '../api/client';
+import { DashboardMeta } from '@/api';
 import { useAuth } from '../auth/AuthContext';
 import DashboardSearch from './DashboardSearch';
 import { Button } from '@/components/ui/button';

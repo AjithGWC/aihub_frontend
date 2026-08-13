@@ -16,7 +16,7 @@ import {
   type TileMeta,
   type TileParams,
   type TileResult,
-} from '../api/tiles';
+} from '@/api';
 
 export type TileStatus = 'loading' | 'ready' | 'error';
 

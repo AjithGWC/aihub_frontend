@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { DashboardMeta, getDashboards } from '../api/client';
+import { DashboardMeta, getDashboards } from '@/api';
 import { RequireAdmin } from '../auth/RouteGuards';
 
 /**

@@ -9,7 +9,7 @@ import {
   Trash2,
   UserPlus,
 } from 'lucide-react';
-import { ManagedUser, deleteUser, getUsers, updateUser } from '../api/client';
+import { ManagedUser, deleteUser, getUsers, updateUser } from '@/api';
 import { useAuth } from '../auth/AuthContext';
 import OnboardUserDialog from '@/components/OnboardUserDialog';
 import { Badge } from '@/components/ui/badge';

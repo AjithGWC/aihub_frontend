@@ -1,5 +1,5 @@
 import { useOutletContext } from 'react-router-dom';
-import { DashboardMeta } from '../api/client';
+import { DashboardMeta } from '@/api';
 import HexagonHub from '../components/HexagonHub';
 
 export default function Home() {

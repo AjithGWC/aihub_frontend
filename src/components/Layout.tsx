@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import AppSidebar from './Sidebar';
 import AppNavbar from './AppNavbar';
-import { DashboardMeta, getDashboards } from '../api/client';
+import { DashboardMeta, getDashboards } from '@/api';
 import { useAuth } from '../auth/AuthContext';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 

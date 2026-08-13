@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Check, X } from 'lucide-react'
-import { api } from '../api/client'
+import { api } from '@/api'
 import type { PermissionAction, PermissionMatrix as MatrixType, RoleRecord } from '../types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

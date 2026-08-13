@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { changePassword, getStoredUser, storeUser } from '../api/client';
+import { changePassword, getStoredUser, storeUser } from '@/api';
 import { useAuth } from '../auth/AuthContext';
 
 export default function ChangePassword() {

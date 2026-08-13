@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChartColumnIcon, SearchIcon } from 'lucide-react';
-import { DashboardMeta } from '../api/client';
+import { DashboardMeta } from '@/api';
 import {
   Command,
   CommandEmpty,

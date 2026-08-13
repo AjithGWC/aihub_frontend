@@ -6,7 +6,7 @@ import {
   UserOption,
   getUserOptions,
   grantAccess,
-} from '../api/client';
+} from '@/api';
 import { useAuth } from '../auth/AuthContext';
 import { loadDashboard } from '../dashboards/registry';
 

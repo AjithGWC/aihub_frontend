@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { User, login as apiLogin, storeSession, clearSession, getStoredUser } from '../api/client';
+import { User, login as apiLogin, storeSession, clearSession, getStoredUser } from '@/api';
 
 interface AuthState {
   user: User | null;

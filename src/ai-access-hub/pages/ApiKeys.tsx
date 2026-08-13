@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { KeyRound } from 'lucide-react'
-import { api } from '../api/client'
+import { api } from '@/api'
 import type { AppUser, ApiKeyRecord } from '../types'
 import { Pagination } from '../components/Pagination'
 import { Badge } from '@/components/ui/badge'
