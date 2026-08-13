@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AETHER COMMAND - Authentication</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Geist:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary-container": "#d6a9ff",
+                      "on-surface-variant": "#bec8d2",
+                      "on-secondary-fixed-variant": "#6900b3",
+                      "outline-variant": "#3e4850",
+                      "on-error-container": "#ffdad6",
+                      "surface-container": "#171f33",
+                      "surface-container-highest": "#2d3449",
+                      "on-primary": "#00344d",
+                      "outline": "#88929b",
+                      "primary-fixed-dim": "#89ceff",
+                      "on-primary-container": "#003751",
+                      "surface-container-low": "#131b2e",
+                      "tertiary-fixed": "#ffddb8",
+                      "on-tertiary-fixed-variant": "#653e00",
+                      "primary-fixed": "#c9e6ff",
+                      "surface-bright": "#31394d",
+                      "on-tertiary-container": "#4a2c00",
+                      "secondary-fixed-dim": "#ddb7ff",
+                      "background": "#0b1326",
+                      "primary-container": "#0ea5e9",
+                      "on-background": "#dae2fd",
+                      "tertiary-container": "#d88a00",
+                      "on-primary-fixed-variant": "#004c6e",
+                      "primary": "#89ceff",
+                      "error": "#ffb4ab",
+                      "inverse-on-surface": "#283044",
+                      "on-surface": "#dae2fd",
+                      "secondary-fixed": "#f0dbff",
+                      "surface": "#0b1326",
+                      "inverse-surface": "#dae2fd",
+                      "tertiary-fixed-dim": "#ffb95f",
+                      "on-tertiary-fixed": "#2a1700",
+                      "surface-variant": "#2d3449",
+                      "tertiary": "#ffb95f",
+                      "on-secondary-fixed": "#2c0051",
+                      "error-container": "#93000a",
+                      "secondary-container": "#6f00be",
+                      "on-error": "#690005",
+                      "inverse-primary": "#006591",
+                      "secondary": "#ddb7ff",
+                      "surface-container-lowest": "#060e20",
+                      "surface-container-high": "#222a3d",
+                      "surface-dim": "#0b1326",
+                      "on-tertiary": "#472a00",
+                      "on-primary-fixed": "#001e2f",
+                      "surface-tint": "#89ceff",
+                      "on-secondary": "#490080"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "gutter": "24px",
+                      "hex-inner-padding": "32px",
+                      "margin-safe": "40px"
+              },
+              "fontFamily": {
+                      "display-lg": [
+                              "Space Grotesk"
+                      ],
+                      "headline-lg": [
+                              "Space Grotesk"
+                      ],
+                      "headline-lg-mobile": [
+                              "Space Grotesk"
+                      ],
+                      "label-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "body-md": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-mono": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.1em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        /* Hexagonal mask for subtle accents */
+        .clip-hex {
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+        
+        /* Grid background pattern */
+        .bg-grid-pattern {
+            background-image: linear-gradient(to right, rgba(137, 206, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(137, 206, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* Subtle glowing orbit animation */
+        @keyframes orbit {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .orbit-slow {
+            animation: orbit 60s linear infinite;
+        }
+        .orbit-fast {
+            animation: orbit 30s linear reverse infinite;
+        }
+
+        /* Input field specific styling */
+        .tech-input:-webkit-autofill,
+        .tech-input:-webkit-autofill:hover, 
+        .tech-input:-webkit-autofill:focus, 
+        .tech-input:-webkit-autofill:active{
+            -webkit-box-shadow: 0 0 0 30px #131b2e inset !important;
+            -webkit-text-fill-color: #dae2fd !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+        
+        /* Custom scrollbar for modern feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b1326; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3e4850; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #88929b; 
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex items-center justify-center overflow-hidden relative selection:bg-tertiary-container selection:text-on-tertiary-container">
+<!-- Background Layer (Pure Graphic, No Text) -->
+<div class="fixed inset-0 z-0 bg-grid-pattern opacity-30 pointer-events-none"></div>
+<!-- Central Hub Graphic Approximation -->
+<div class="fixed inset-0 z-0 flex items-center justify-center pointer-events-none opacity-40">
+<!-- Outer Orbit -->
+<div class="absolute w-[800px] h-[800px] rounded-full border border-outline-variant/20 orbit-slow">
+<div class="absolute top-0 left-1/2 w-2 h-2 -ml-1 -mt-1 bg-tertiary rounded-full shadow-[0_0_10px_#ffb95f]"></div>
+<div class="absolute bottom-1/4 right-0 w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_#89ceff]"></div>
+</div>
+<!-- Inner Orbit -->
+<div class="absolute w-[500px] h-[500px] rounded-full border border-tertiary/10 border-dashed orbit-fast">
+<div class="absolute bottom-0 left-1/4 w-3 h-3 bg-secondary rounded-full shadow-[0_0_12px_#ddb7ff] clip-hex"></div>
+</div>
+<!-- Core Glow -->
+<div class="absolute w-96 h-96 bg-tertiary/5 rounded-full blur-[100px]"></div>
+</div>
+<!-- Main Login Container (Glassmorphism + Technical Minimalist) -->
+<main class="relative z-10 w-full max-w-md mx-auto p-gutter sm:p-hex-inner-padding">
+<div class="relative bg-surface-container-low/80 backdrop-blur-xl border border-outline-variant/30 rounded-xl shadow-[0_0_40px_rgba(255,185,95,0.05)] overflow-hidden group">
+<!-- Technical accents -->
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-tertiary to-transparent opacity-50"></div>
+<div class="absolute top-0 left-0 w-8 h-8 border-t border-l border-tertiary/50 -translate-x-1 -translate-y-1 transition-transform group-hover:translate-x-0 group-hover:translate-y-0"></div>
+<div class="absolute bottom-0 right-0 w-8 h-8 border-b border-r border-tertiary/50 translate-x-1 translate-y-1 transition-transform group-hover:translate-x-0 group-hover:translate-y-0"></div>
+<div class="p-8">
+<!-- Branding/Iconography Anchor -->
+<div class="flex flex-col items-center mb-8">
+<div class="w-16 h-16 bg-surface-container flex items-center justify-center clip-hex mb-4 border border-tertiary/20 shadow-[inset_0_0_15px_rgba(255,185,95,0.1)]">
+<span class="material-symbols-outlined text-tertiary text-3xl" style="font-variation-settings: 'FILL' 1;">
+                            memory
+                        </span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold tracking-tighter text-on-background uppercase text-center mb-1">
+                        Atlas Orchestrator
+                    </h1>
+<p class="font-label-mono text-label-mono text-tertiary tracking-[0.2em] uppercase">
+                        Authentication Required
+                    </p>
+</div>
+<!-- Form Canvas -->
+<form class="space-y-6" onsubmit="event.preventDefault();">
+<!-- Username/Email Field -->
+<div class="relative">
+<label class="sr-only" for="username">Operator ID / Email</label>
+<div class="flex items-center border-b border-outline-variant focus-within:border-tertiary transition-colors group/input">
+<span class="material-symbols-outlined text-outline-variant group-focus-within/input:text-tertiary mr-3 pb-2 transition-colors">
+                                badge
+                            </span>
+<input class="tech-input w-full bg-transparent border-none p-0 pb-2 text-on-surface font-label-mono text-sm focus:ring-0 placeholder:text-outline-variant placeholder:font-label-mono transition-colors" id="username" name="username" placeholder="OPERATOR_ID" required="" type="text"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="relative">
+<label class="sr-only" for="password">Security Key</label>
+<div class="flex items-center border-b border-outline-variant focus-within:border-tertiary transition-colors group/input">
+<span class="material-symbols-outlined text-outline-variant group-focus-within/input:text-tertiary mr-3 pb-2 transition-colors">
+                                lock
+                            </span>
+<input class="tech-input w-full bg-transparent border-none p-0 pb-2 text-on-surface font-label-mono text-sm focus:ring-0 placeholder:text-outline-variant placeholder:font-label-mono transition-colors" id="password" name="password" placeholder="SECURITY_KEY" required="" type="password"/>
+<button class="text-outline-variant hover:text-on-surface pb-2 transition-colors focus:outline-none focus:text-tertiary" type="button">
+<span class="material-symbols-outlined text-sm">visibility</span>
+</button>
+</div>
+</div>
+<!-- Additional Options -->
+<div class="flex items-center justify-between pt-2">
+<div class="flex items-center">
+<input class="h-4 w-4 rounded-sm border-outline-variant bg-surface-container-highest text-tertiary focus:ring-tertiary focus:ring-offset-surface-container-low" id="remember-me" name="remember-me" type="checkbox"/>
+<label class="ml-2 block font-label-mono text-label-mono text-on-surface-variant hover:text-on-surface cursor-pointer" for="remember-me">
+                                Keep session active
+                            </label>
+</div>
+<div class="text-sm">
+<a class="font-label-mono text-label-mono text-tertiary hover:text-tertiary-fixed transition-colors underline decoration-tertiary/30 underline-offset-4" href="#">
+                                Forgot Key?
+                            </a>
+</div>
+</div>
+<!-- Primary Action -->
+<div class="pt-6">
+<button class="w-full flex justify-center py-3 px-4 border border-tertiary/50 rounded text-sm font-label-mono font-medium text-tertiary-fixed bg-tertiary/10 hover:bg-tertiary/20 hover:border-tertiary hover:shadow-[0_0_15px_rgba(255,185,95,0.2)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface focus:ring-tertiary transition-all duration-300 relative overflow-hidden group" type="submit">
+<!-- Glow effect on hover -->
+<span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-tertiary/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></span>
+<span class="relative flex items-center justify-center gap-2">
+                                INITIALIZE UPLINK
+                                <span class="material-symbols-outlined text-sm">login</span>
+</span>
+</button>
+</div>
+</form>
+</div>
+<!-- Decorative Data Line -->
+<div class="absolute bottom-0 w-full flex justify-center">
+<div class="w-1/2 h-[1px] bg-gradient-to-r from-transparent via-tertiary/40 to-transparent"></div>
+</div>
+</div>
+<!-- Footer / System Status -->
+<div class="mt-8 text-center flex flex-col items-center gap-2">
+<div class="flex items-center gap-2 font-label-mono text-label-mono text-outline">
+<span class="w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_5px_#89ceff]"></span>
+                SYSTEM STATUS: OPTIMAL
+            </div>
+<p class="font-label-mono text-[10px] text-outline-variant/50 uppercase tracking-widest">
+                © 2124 NEXUS SYSTEMS INTERACTIVE. SECURE CONNECTION.
+            </p>
+</div>
+</main>
+<style>
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</body></html>
