@@ -8,7 +8,8 @@ import {
   ShieldCheck,
   TriangleAlert,
 } from 'lucide-react';
-import { changePassword, getStoredUser, getToken, storeUser } from '@/api/client';
+import { changePassword, getStoredUser, storeUser } from '@/api/client';
+import { MyProfile, getMyProfile } from '@/api/requests';
 import { useAuth } from '@/auth/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -24,33 +25,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-
-/**
- * `GET /api/auth/me` — the signed-in user's own profile. There is no helper for
- * this in `api/client.ts` (shared file, owned elsewhere), so the call lives here.
- */
-export interface MyProfile {
-  id: number;
-  username: string;
-  role: 'admin' | 'user';
-  mustChangePassword: boolean;
-  createdAt: string | null;
-  dashboardCount: number;
-  /** dimension -> allowed values. Empty/absent means "no restriction". */
-  scopes: Partial<Record<'site' | 'division' | string, string[]>>;
-}
-
-async function fetchMyProfile(): Promise<MyProfile> {
-  const token = getToken();
-  const res = await fetch('/api/auth/me', {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(body.error || `Could not load your profile (${res.status})`);
-  }
-  return (await res.json()) as MyProfile;
-}
 
 const SCOPE_LABELS: Record<string, string> = {
   site: 'Sites / stores',
@@ -114,7 +88,7 @@ export default function Profile() {
     let cancelled = false;
     setLoading(true);
     setLoadError('');
-    fetchMyProfile()
+    getMyProfile()
       .then((p) => {
         if (!cancelled) setProfile(p);
       })

@@ -9,6 +9,7 @@
  * string, where it leaks into server logs and browser history.
  */
 import { getToken } from './client';
+import { API_BASE_URL } from '@/lib/apiBase';
 
 export interface TileMeta {
   id: string;
@@ -65,7 +66,7 @@ export async function streamDashboardTiles(
   signal?: AbortSignal
 ): Promise<void> {
   const token = getToken();
-  const res = await fetch(`/api/dashboards/${dashboardId}/stream${buildQuery(params)}`, {
+  const res = await fetch(`${API_BASE_URL}/api/dashboards/${dashboardId}/stream${buildQuery(params)}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     signal,
   });
@@ -134,7 +135,7 @@ export async function fetchTile<T = Record<string, unknown>>(
 ): Promise<TileResult<T>> {
   const token = getToken();
   const res = await fetch(
-    `/api/dashboards/${dashboardId}/tiles/${tileId}${buildQuery(params)}`,
+    `${API_BASE_URL}/api/dashboards/${dashboardId}/tiles/${tileId}${buildQuery(params)}`,
     { headers: token ? { Authorization: `Bearer ${token}` } : {} }
   );
   if (!res.ok) {

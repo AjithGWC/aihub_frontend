@@ -1,8 +1,9 @@
 // Minimal axios-compatible shim over fetch — avoids adding axios as a new
-// dependency just to reuse AI-Access-Hub's pages verbatim. Proxied to
-// AI-Access-Hub's own backend; see AIH_BACKEND_URL in vite.config.ts.
+// dependency just to reuse AI-Access-Hub's pages verbatim.
 
-const BASE_URL = '/api'
+import { API_BASE_URL } from '@/lib/apiBase'
+
+const BASE_URL = `${API_BASE_URL}/api`
 
 interface RequestOpts {
   params?: Record<string, unknown>

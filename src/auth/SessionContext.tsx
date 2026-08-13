@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { API_BASE_URL } from '@/lib/apiBase';
 
 export interface SessionUser {
   id: string;
@@ -30,7 +31,7 @@ const SessionContext = createContext<SessionState>({
 });
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${API_BASE_URL}/api${path}`, {
     ...init,
     credentials: 'include',
     headers: init.body ? { 'Content-Type': 'application/json' } : undefined,

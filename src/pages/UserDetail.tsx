@@ -18,12 +18,19 @@ import {
   UserAccessGrant,
   deleteUser,
   getDashboards,
-  getToken,
   getUserAccess,
   grantAccess,
   revokeAccess,
   updateUser,
 } from '../api/client';
+import {
+  ScopeDimension,
+  UserScopeResponse,
+  getScopeOptions,
+  getUserDetail,
+  getUserScope,
+  saveUserScope,
+} from '../api/requests';
 import { useAuth } from '../auth/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -79,46 +86,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const LEVELS: AccessLevel[] = ['view', 'share', 'developer', 'admin'];
 const NO_ACCESS = 'none';
 
-interface ScopeOptionValue {
-  value: string;
-  label: string;
-}
-
-interface ScopeDimension {
-  dimension: string;
-  label: string;
-  values: ScopeOptionValue[];
-}
-
-interface UserScopeResponse {
-  userId: number;
-  scopes: Record<string, string[]>;
-  enforced: boolean;
-}
-
 type ScopeMap = Record<string, string[]>;
-
-/**
- * client.ts has no helper for GET /api/users/:id or the scope endpoints and is
- * off-limits for edits, so this page carries its own small authed fetch.
- */
-async function authFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    ...(init.headers as Record<string, string> | undefined),
-  };
-  const token = getToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  if (typeof init.body === 'string') headers['Content-Type'] = 'application/json';
-
-  const res = await fetch(path, { ...init, headers });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({ error: res.statusText }))) as {
-      error?: string;
-    };
-    throw new Error(body.error || `Request failed (${res.status})`);
-  }
-  return res.json() as Promise<T>;
-}
 
 function formatDate(value: string | undefined): string {
   if (!value) return '—';
@@ -201,7 +169,7 @@ export default function UserDetail() {
       return;
     }
     setUserLoading(true);
-    authFetch<ManagedUser>(`/api/users/${userId}`)
+    getUserDetail(userId)
       .then((u) => {
         setUser(u);
         setUserError('');
@@ -230,10 +198,7 @@ export default function UserDetail() {
   const loadScope = useCallback(() => {
     if (!validId) return;
     setScopeLoading(true);
-    Promise.all([
-      authFetch<ScopeDimension[]>('/api/users/scope-options'),
-      authFetch<UserScopeResponse>(`/api/users/${userId}/scope`),
-    ])
+    Promise.all([getScopeOptions(), getUserScope(userId)])
       .then(([opts, current]) => {
         // Labels come straight from the data schema and can be null — never
         // call string methods on them without normalising first.
@@ -399,10 +364,7 @@ export default function UserDetail() {
     try {
       const payload: ScopeMap = {};
       for (const d of dimensions) payload[d.dimension] = scopes[d.dimension] ?? [];
-      const res = await authFetch<{ ok: boolean; enforced?: boolean }>(
-        `/api/users/${userId}/scope`,
-        { method: 'PUT', body: JSON.stringify({ scopes: payload }) }
-      );
+      const res = await saveUserScope(userId, payload);
       setSavedScopes(payload);
       if (typeof res.enforced === 'boolean') setScopeEnforced(res.enforced);
       flash('Data scope saved (configuration only — not applied to queries yet).');
