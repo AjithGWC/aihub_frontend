@@ -21,7 +21,7 @@ export default function LayoutHome() {
 
   return (
     <RequireAdmin>
-      <div className="w-full h-screen overflow-y-auto">
+      <div className="w-full h-screen overflow-hidden">
         <Outlet context={{ dashboards, loading }} />
       </div>
     </RequireAdmin>
