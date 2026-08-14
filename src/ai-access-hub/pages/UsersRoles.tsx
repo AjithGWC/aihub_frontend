@@ -1,11 +1,31 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { UserPlus } from 'lucide-react'
+import { useEffect, useState, useRef, type FormEvent } from 'react'
+import {
+  UserPlus,
+  Users,
+  ShieldAlert,
+  ShieldCheck,
+  Search,
+  Edit3,
+  UserX,
+  UserCheck,
+  Trash2,
+  Building2,
+  Mail,
+  Crown,
+  RefreshCw,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+  LayoutGrid,
+  Eye,
+  Pause,
+  Play
+} from 'lucide-react'
 import { api } from '@/api'
-import type { AppUser, Role, RoleRecord } from '../types'
-import { Pagination } from '../components/Pagination'
+import type { AppUser } from '../types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogClose,
@@ -16,328 +36,588 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Pagination } from '../components/Pagination'
 
-const PAGE_SIZE = 10
-
-function labelFor(roles: RoleRecord[], key: string) {
-  return roles.find((r) => r.key === key)?.label ?? key
+const PAGE_SIZE = 12
+const ROLE_COLORS: Record<string, { color: string; bg: string; border: string }> = {
+  admin: { color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.4)' },
+  owner: { color: '#f97316', bg: 'rgba(249,115,22,0.15)', border: 'rgba(249,115,22,0.4)' },
+  viewer: { color: '#06b6d4', bg: 'rgba(6,182,212,0.15)', border: 'rgba(6,182,212,0.4)' },
+  editor: { color: '#22c55e', bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.4)' },
 }
 
-export default function UsersRoles() {
-  const [users, setUsers] = useState<AppUser[]>([])
-  const [roles, setRoles] = useState<RoleRecord[]>([])
-  const [total, setTotal] = useState(0)
-  const [offset, setOffset] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [showCreate, setShowCreate] = useState(false)
-  const [editingUser, setEditingUser] = useState<AppUser | null>(null)
+function getAvatarGradient(name: string): { gradient: string; glow: string; color: string } {
+  const hues = [210, 170, 270, 30, 140, 320]
+  const idx = (name?.charCodeAt(0) || 65) % hues.length
+  const h = hues[idx]
+  return {
+    gradient: `linear-gradient(135deg, hsl(${h},80%,40%), hsl(${h + 40},90%,60%))`,
+    glow: `hsla(${h},80%,60%,0.5)`,
+    color: `hsl(${h},80%,60%)`
+  }
+}
 
-  async function load() {
-    setLoading(true)
-    const [u, r] = await Promise.all([api.get('/users', { params: { offset, limit: PAGE_SIZE } }), api.get('/roles')])
-    setUsers(u.data.users)
-    setTotal(u.data.total)
-    setRoles(r.data.roles)
-    setLoading(false)
-  }
+function getInitials(name: string): string {
+  if (!name) return '?'
+  const parts = name.trim().split(/\s+/)
+  return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : parts[0].slice(0, 2).toUpperCase()
+}
 
-  useEffect(() => {
-    load()
-  }, [offset])
+const ROLES = ['admin', 'editor', 'viewer', 'owner'] as const
 
-  async function handleAction(fn: () => Promise<unknown>) {
-    setError('')
-    try {
-      await fn()
-      await load()
-    } catch (err: any) {
-      setError(err?.response?.data?.error ?? 'Action failed')
-    }
-  }
-
-  async function changeRole(id: string, role: Role) {
-    await handleAction(() => api.patch(`/users/${id}`, { role }))
-  }
-  async function toggleStatus(u: AppUser) {
-    await handleAction(() => api.patch(`/users/${u.id}`, { status: u.status === 'active' ? 'inactive' : 'active' }))
-  }
-  async function removeUser(id: string) {
-    if (!confirm('Delete this user permanently?')) return
-    await handleAction(() => api.delete(`/users/${id}`))
-  }
+/* ── Clean Static User Identity Card ── */
+function UserCard({ user, onEdit, onToggle, onDelete, index }: {
+  user: AppUser
+  onEdit: (u: AppUser) => void
+  onToggle: (u: AppUser) => void
+  onDelete: (u: AppUser) => void
+  index: number
+}) {
+  const { gradient, glow, color } = getAvatarGradient(user.name || user.email)
+  const initials = getInitials(user.name || user.email)
+  const roleConf = ROLE_COLORS[user.role?.toLowerCase() || ''] || { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.3)' }
+  const isActive = user.status === 'active'
 
   return (
-    <div className="page">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[23px] font-semibold tracking-tight text-foreground">Users &amp; roles</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Roles are enforced server-side, never trusted from the client.</p>
+    <div
+      className="sector-card spotlight-card card-hover-lift rounded-2xl p-5 flex flex-col items-center justify-between gap-3 relative overflow-hidden animate-slide-left group border-slate-200"
+      style={{
+        animationDelay: `${index * 50}ms`,
+        background: `radial-gradient(circle at 50% 0%, rgba(6,182,212,0.1), transparent 70%), linear-gradient(135deg, #ffffff, #f8fafc)`,
+        boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)',
+        minHeight: '260px'
+      }}
+    >
+      {/* Avatar with status dot */}
+      <div className="relative flex items-center justify-center mt-1">
+        <svg width="74" height="74" className="absolute -rotate-90 pointer-events-none">
+          <circle
+            cx="37" cy="37" r="34"
+            fill="none"
+            stroke={color}
+            strokeWidth="1.5"
+            strokeDasharray="4 5"
+            opacity="0.35"
+            className="animate-spin"
+            style={{ animationDuration: '14s' }}
+          />
+        </svg>
+        <div
+          className="size-15 rounded-full flex items-center justify-center text-lg font-extrabold text-white select-none transition-transform group-hover:scale-105"
+          style={{ background: gradient, boxShadow: `0 0 18px ${glow}, 0 0 0 3px rgba(255,255,255,0.2)` }}
+        >
+          {initials}
         </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <UserPlus className="size-4" />
-          Create user
-        </Button>
-      </header>
-
-      {error && <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
-
-      <Card className="bg-[var(--panel-2)]">
-        <CardHeader>
-          <CardTitle>Directory</CardTitle>
-          <CardDescription>{loading ? 'Loading…' : `${total} user${total === 1 ? '' : 's'}`}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="h-8 w-full" />
-              ))}
-            </div>
-          ) : users.length === 0 ? (
-            <p className="py-6 text-sm text-muted-foreground">No users yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell>
-                      <div className="font-medium text-foreground">
-                        {u.name} {u.isSystemAdmin && <span className="ml-1 text-xs font-normal text-muted-foreground">(super admin)</span>}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{u.email}</div>
-                    </TableCell>
-                    <TableCell>
-                      {u.isSystemAdmin ? (
-                        <Badge>{labelFor(roles, u.role)}</Badge>
-                      ) : (
-                        <Select value={u.role} onValueChange={(v) => changeRole(u.id, v)}>
-                          <SelectTrigger size="sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {roles.map((r) => (
-                              <SelectItem key={r.key} value={r.key}>
-                                {r.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{u.department}</TableCell>
-                    <TableCell>
-                      <Badge variant={u.status === 'active' ? 'default' : 'secondary'}>{u.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {!u.isSystemAdmin && (
-                        <div className="flex justify-end gap-1.5">
-                          <Button variant="ghost" size="sm" onClick={() => setEditingUser(u)}>
-                            Edit
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => toggleStatus(u)}>
-                            {u.status === 'active' ? 'Deactivate' : 'Reactivate'}
-                          </Button>
-                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => removeUser(u.id)}>
-                            Delete
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="mt-3">
-        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={setOffset} />
+        <span
+          className="absolute bottom-0.5 right-0.5 size-3.5 rounded-full border-2 border-white"
+          style={{ background: isActive ? '#22c55e' : '#64748b', boxShadow: isActive ? '0 0 8px #22c55e' : 'none' }}
+        />
       </div>
 
-      {showCreate && <CreateUserDialog roles={roles} onClose={() => setShowCreate(false)} onCreated={load} />}
-      {editingUser && <EditUserDialog roles={roles} user={editingUser} onClose={() => setEditingUser(null)} onSaved={load} />}
+      {/* User Information */}
+      <div className="text-center min-w-0 w-full space-y-0.5">
+        <p className="text-sm font-extrabold text-slate-900 group-hover:text-[#0891b2] transition-colors truncate">
+          {user.name || '—'}
+        </p>
+        <p className="text-[11px] font-medium text-slate-600 truncate font-mono">
+          {user.email}
+        </p>
+        {user.department && (
+          <p className="text-[10px] text-slate-500 font-medium truncate flex items-center justify-center gap-1 mt-1">
+            <Building2 className="size-3 text-[#06b6d4]" />
+            {user.department}
+          </p>
+        )}
+      </div>
+
+      {/* Badges row */}
+      <div className="flex items-center gap-1.5 flex-wrap justify-center">
+        {user.role && (
+          <Badge variant="outline" className="text-[10px] px-2 py-0.5 capitalize font-bold" style={{ color: roleConf.color, borderColor: roleConf.border, background: roleConf.bg }}>
+            {user.role === 'admin' && <Crown className="size-2.5 mr-1" />}
+            {user.role}
+          </Badge>
+        )}
+        <Badge variant="outline" className="text-[10px] px-2 py-0.5 capitalize font-bold" style={{ color: isActive ? '#16a34a' : '#64748b', borderColor: isActive ? 'rgba(34,197,94,0.4)' : 'rgba(100,116,139,0.4)', background: isActive ? 'rgba(34,197,94,0.12)' : 'rgba(100,116,139,0.12)' }}>
+          {isActive ? '● Active' : '○ Inactive'}
+        </Badge>
+      </div>
+
+      {/* Actions buttons strip */}
+      <div className="grid grid-cols-3 gap-1.5 w-full pt-2 border-t border-slate-200 mt-1">
+        <button
+          onClick={() => onEdit(user)}
+          className="magnetic-btn flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-[#06b6d4]/10 border border-[#06b6d4]/40 hover:bg-[#06b6d4]/20 transition-all text-[10px] font-bold text-[#0891b2]"
+          title="Edit Member"
+        >
+          <Edit3 className="size-3 icon-spring" />Edit
+        </button>
+        <button
+          onClick={() => onToggle(user)}
+          className={`magnetic-btn flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg transition-all text-[10px] font-bold ${
+            isActive
+              ? 'bg-amber-500/10 border border-amber-500/40 hover:bg-amber-500/20 text-amber-700'
+              : 'bg-green-500/10 border border-green-500/40 hover:bg-green-500/20 text-green-700'
+          }`}
+          title={isActive ? 'Disable Member' : 'Enable Member'}
+        >
+          {isActive ? <UserX className="size-3 icon-spring" /> : <UserCheck className="size-3 icon-spring" />}
+          {isActive ? 'Disable' : 'Enable'}
+        </button>
+        <button
+          onClick={() => onDelete(user)}
+          className="magnetic-btn flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-red-500/10 border border-red-500/40 hover:bg-red-500/20 transition-all text-[10px] font-bold text-red-600"
+          title="Remove Member"
+        >
+          <Trash2 className="size-3 icon-spring" />Delete
+        </button>
+      </div>
     </div>
   )
 }
 
-function CreateUserDialog({ roles, onClose, onCreated }: { roles: RoleRecord[]; onClose: () => void; onCreated: () => void }) {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [department, setDepartment] = useState('')
-  const [role, setRole] = useState<Role>(roles[0]?.key ?? '')
-  const [error, setError] = useState('')
+export default function UsersRoles() {
+  const [users, setUsers] = useState<AppUser[]>([])
+  const [total, setTotal] = useState(0)
+  const [offset, setOffset] = useState(0)
+  const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [editUser, setEditUser] = useState<AppUser | null>(null)
+  const [deleteUser, setDeleteUser] = useState<AppUser | null>(null)
+  const [form, setForm] = useState({ name: '', email: '', role: '', department: '', status: 'active' as 'active' | 'inactive' })
   const [submitting, setSubmitting] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setError('')
-    setSubmitting(true)
-    try {
-      await api.post('/users', { name, email, password, role, department })
-      onCreated()
-      onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.error ?? 'Could not create user')
-    } finally {
-      setSubmitting(false)
+  const [viewMode, setViewMode] = useState<'carousel' | 'grid'>('carousel')
+  const [isPlaying, setIsPlaying] = useState(true)
+  const [activeDot, setActiveDot] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [startX, setStartX] = useState(0)
+  const [scrollLeftState, setScrollLeftState] = useState(0)
+  const carouselRef = useRef<HTMLDivElement>(null)
+
+  function handleScroll() {
+    if (carouselRef.current && safeUsers.length > 0) {
+      const { scrollLeft } = carouselRef.current
+      const rawIndex = Math.round(scrollLeft / 280)
+      setActiveDot(rawIndex % safeUsers.length)
     }
   }
 
-  return (
-    <Dialog open onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Create user</DialogTitle>
-        </DialogHeader>
-        <form id="create-user-form" className="grid gap-4" onSubmit={handleSubmit} noValidate>
-          <div className="space-y-1.5">
-            <Label htmlFor="cu-name">Full name</Label>
-            <Input id="cu-name" required value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cu-email">Email</Label>
-            <Input id="cu-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cu-password">Password</Label>
-            <Input id="cu-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cu-department">Department</Label>
-            <Input id="cu-department" value={department} onChange={(e) => setDepartment(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="cu-role">Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v)}>
-              <SelectTrigger id="cu-role" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((r) => (
-                  <SelectItem key={r.key} value={r.key}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {error && <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-        </form>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline" disabled={submitting}>
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button type="submit" form="create-user-form" disabled={submitting}>
-            {submitting ? 'Creating…' : 'Create user'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+  function handleMouseDown(e: React.MouseEvent) {
+    if (!carouselRef.current) return
+    setIsDragging(true)
+    setStartX(e.pageX - carouselRef.current.offsetLeft)
+    setScrollLeftState(carouselRef.current.scrollLeft)
+  }
+
+  function handleMouseLeave() {
+    setIsDragging(false)
+  }
+
+  function handleMouseUp() {
+    setIsDragging(false)
+  }
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (!isDragging || !carouselRef.current) return
+    e.preventDefault()
+    const x = e.pageX - carouselRef.current.offsetLeft
+    const walk = (x - startX) * 1.8
+    carouselRef.current.scrollLeft = scrollLeftState - walk
+  }
+
+  useEffect(() => {
+    if (!isPlaying || viewMode !== 'carousel' || isDragging) return
+    const interval = setInterval(() => {
+      if (carouselRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current
+        if (scrollLeft + clientWidth >= scrollWidth - 30) {
+          carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' })
+        } else {
+          carouselRef.current.scrollBy({ left: 280, behavior: 'smooth' })
+        }
+      }
+    }, 3500)
+    return () => clearInterval(interval)
+  }, [isPlaying, viewMode, isDragging])
+
+  function scrollCarousel(dir: 'left' | 'right') {
+    if (carouselRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current
+      if (dir === 'right') {
+        if (scrollLeft + clientWidth >= scrollWidth - 30) {
+          carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' })
+        } else {
+          carouselRef.current.scrollBy({ left: 280, behavior: 'smooth' })
+        }
+      } else {
+        if (scrollLeft <= 10) {
+          carouselRef.current.scrollTo({ left: scrollWidth - clientWidth, behavior: 'smooth' })
+        } else {
+          carouselRef.current.scrollBy({ left: -280, behavior: 'smooth' })
+        }
+      }
+    }
+  }
+
+  function scrollToDot(idx: number) {
+    if (carouselRef.current) {
+      carouselRef.current.scrollTo({ left: idx * 280, behavior: 'smooth' })
+    }
+  }
+
+  async function loadData(q: string, off: number) {
+    setLoading(true)
+    setError(null)
+    try {
+      const { data } = await api.get('/users', { params: { q: q || undefined, offset: off, limit: PAGE_SIZE } })
+      const loaded = data?.users ?? (Array.isArray(data) ? data : [])
+      setUsers(loaded)
+      setTotal(data?.total ?? loaded.length)
+    } catch {
+      setError('Failed to load users. Check your backend connection.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { loadData('', 0) }, [])
+  useEffect(() => {
+    const t = setTimeout(() => { setOffset(0); loadData(query, 0) }, 300)
+    return () => clearTimeout(t)
+  }, [query])
+
+  function openEdit(u: AppUser) {
+    setEditUser(u)
+    setForm({ name: u.name || '', email: u.email, role: u.role || '', department: u.department || '', status: u.status as 'active' | 'inactive' })
+  }
+
+  async function handleSubmitEdit(e: FormEvent) {
+    e.preventDefault()
+    if (!editUser) return
+    setSubmitting(true)
+    try {
+      await api.patch(`/users/${editUser.id}`, form)
+      setEditUser(null)
+      loadData(query, offset)
+    } catch { setError('Failed to update user.') }
+    finally { setSubmitting(false) }
+  }
+
+  async function handleCreate(e: FormEvent) {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      await api.post('/users', form)
+      setShowCreate(false)
+      loadData(query, offset)
+    } catch { setError('Failed to create user.') }
+    finally { setSubmitting(false) }
+  }
+
+  async function handleToggle(u: AppUser) {
+    const next = u.status === 'active' ? 'inactive' : 'active'
+    try {
+      await api.patch(`/users/${u.id}`, { status: next })
+      loadData(query, offset)
+    } catch { setError('Failed to update user status.') }
+  }
+
+  async function handleDelete(u: AppUser) {
+    setSubmitting(true)
+    try {
+      await api.delete(`/users/${u.id}`)
+      setDeleteUser(null)
+      loadData(query, offset)
+    } catch { setError('Failed to delete user.') }
+    finally { setSubmitting(false) }
+  }
+
+  const safeUsers = Array.isArray(users) ? users : []
+  const activeCount = safeUsers.filter((u) => u.status === 'active').length
+  const adminCount = safeUsers.filter((u) => u.role === 'admin').length
+
+  const UserFormFields = ({ onSubmit }: { onSubmit: (e: FormEvent) => Promise<void> }) => (
+    <form onSubmit={onSubmit} className="space-y-4 py-2">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-bold text-slate-700">Full Name</Label>
+          <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Alice Chen" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-bold text-slate-700">Email</Label>
+          <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="alice@co.com" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-bold text-slate-700">Role</Label>
+          <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v }))}>
+            <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs"><SelectValue placeholder="Select role" /></SelectTrigger>
+            <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl">
+              {ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize text-slate-900 font-medium">{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-bold text-slate-700">Department</Label>
+          <Input value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} placeholder="Engineering" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white" />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs font-bold text-slate-700">Status</Label>
+        <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as 'active' | 'inactive' }))}>
+          <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl">
+            <SelectItem value="active" className="text-slate-900 font-medium">● Active</SelectItem>
+            <SelectItem value="inactive" className="text-slate-900 font-medium">○ Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <DialogFooter className="pt-2">
+        <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-bold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200">Cancel</Button></DialogClose>
+        <Button type="submit" size="sm" className="text-xs font-extrabold text-white shadow-md" disabled={submitting} style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}>
+          {submitting ? <RefreshCw className="size-3 animate-spin mr-1" /> : null}Save
+        </Button>
+      </DialogFooter>
+    </form>
   )
-}
-
-function EditUserDialog({
-  roles,
-  user,
-  onClose,
-  onSaved,
-}: {
-  roles: RoleRecord[]
-  user: AppUser
-  onClose: () => void
-  onSaved: () => void
-}) {
-  const [name, setName] = useState(user.name)
-  const [email, setEmail] = useState(user.email)
-  const [department, setDepartment] = useState(user.department)
-  const [role, setRole] = useState<Role>(user.role)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setError('')
-    setSubmitting(true)
-    try {
-      await api.patch(`/users/${user.id}`, { name, email, department, role, ...(password ? { password } : {}) })
-      onSaved()
-      onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.error ?? 'Could not update user')
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
   return (
-    <Dialog open onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit user</DialogTitle>
-        </DialogHeader>
-        <form id="edit-user-form" className="grid gap-4" onSubmit={handleSubmit} noValidate>
-          <div className="space-y-1.5">
-            <Label htmlFor="eu-name">Full name</Label>
-            <Input id="eu-name" required value={name} onChange={(e) => setName(e.target.value)} />
+    <div className="page sector-cyan space-y-6 animate-slide-up">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#06b6d4]/30 pb-5">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <span className="cyber-pulse-dot cyber-pulse-dot-blue" />
+            <h1 className="text-2xl font-bold tracking-tight sector-header-title">Identity Directory</h1>
+            <Badge variant="outline" className="sector-badge text-xs font-mono">{total} Members</Badge>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="eu-email">Email</Label>
-            <Input id="eu-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <p className="mt-1 text-sm text-muted-foreground">Manage user identities, roles, and access levels.</p>
+        </div>
+        <Button onClick={() => { setShowCreate(true); setForm({ name: '', email: '', role: '', department: '', status: 'active' }) }} size="sm" className="gap-2 text-xs font-bold magnetic-btn" style={{ background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', boxShadow: '0 0 20px rgba(6,182,212,0.3)' }}>
+          <UserPlus className="size-3.5" />Invite Member
+        </Button>
+      </header>
+
+      {error && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+          <ShieldAlert className="size-4 flex-none" /><span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)}><X className="size-3.5" /></button>
+        </div>
+      )}
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Total Members', value: total, icon: Users, color: '#06b6d4' },
+          { label: 'Active Now', value: activeCount, icon: UserCheck, color: '#22c55e' },
+          { label: 'Admins', value: adminCount, icon: ShieldAlert, color: '#8b5cf6' },
+        ].map(({ label, value, icon: Icon, color }, i) => (
+          <div key={label} className="sector-card spotlight-card card-hover-lift p-4 flex items-center gap-3 rounded-xl animate-stagger-1 group border-slate-200" style={{ animationDelay: `${i * 80}ms`, background: `radial-gradient(circle at 50% 0%, ${color}12, transparent 70%), linear-gradient(135deg, #ffffff, #f8fafc)`, borderTop: `3.5px solid ${color}`, boxShadow: '0 6px 18px rgba(15, 23, 42, 0.06)' }}>
+            <div className="p-2.5 rounded-lg flex-none transition-transform group-hover:scale-110" style={{ background: `${color}18`, border: `1px solid ${color}35` }}><Icon className="size-5 icon-spring" style={{ color }} /></div>
+            <div>
+              <p className="text-2xl font-extrabold font-mono text-slate-900">{value}</p>
+              <p className="text-[10px] text-slate-600 font-extrabold uppercase tracking-wider">{label}</p>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="eu-department">Department</Label>
-            <Input id="eu-department" value={department} onChange={(e) => setDepartment(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="eu-role">Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v)}>
-              <SelectTrigger id="eu-role" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((r) => (
-                  <SelectItem key={r.key} value={r.key}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="eu-password">New password (optional)</Label>
-            <Input id="eu-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Leave blank to keep current password" />
-          </div>
-          {error && <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
-        </form>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline" disabled={submitting}>
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button type="submit" form="edit-user-form" disabled={submitting}>
-            {submitting ? 'Saving…' : 'Save changes'}
+        ))}
+      </div>
+
+      {/* Control bar: Search + Layout Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or email…" className="pl-9 bg-white border-[#06b6d4]/50 text-slate-900 font-semibold placeholder:text-slate-400 text-sm shadow-sm" />
+          {query && <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X className="size-3.5 text-slate-400 hover:text-slate-700" /></button>}
+        </div>
+
+        {/* Layout Switcher buttons */}
+        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200 flex-none">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setViewMode('carousel')}
+            className={`gap-1.5 text-xs font-bold transition-all ${
+              viewMode === 'carousel'
+                ? 'bg-white text-[#0891b2] border border-[#06b6d4]/40 shadow-sm font-extrabold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <SlidersHorizontal className="size-3.5" /> Card Carousel
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setViewMode('grid')}
+            className={`gap-1.5 text-xs font-bold transition-all ${
+              viewMode === 'grid'
+                ? 'bg-white text-[#0891b2] border border-[#06b6d4]/40 shadow-sm font-extrabold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <LayoutGrid className="size-3.5" /> Matrix Grid
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {Array.from({ length: 10 }).map((_, i) => <div key={i} className="h-[260px] rounded-2xl bg-white/5 animate-pulse" style={{ animationDelay: `${i * 40}ms` }} />)}
+        </div>
+      ) : safeUsers.length === 0 ? (
+        <div className="py-16 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+          <Users className="size-8 text-muted-foreground/30" />No members found.
+        </div>
+      ) : viewMode === 'carousel' ? (
+        /* Smooth Infinite Card Carousel Slider Track with 3D Depth & Edge Vignette */
+        <div className="relative sector-card p-5 rounded-2xl overflow-hidden space-y-4 shadow-xl border-[#06b6d4]/40" style={{ background: 'linear-gradient(135deg, #ffffff, #f8fafc)' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-[#06b6d4] animate-ping" />
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Users</span>
+              <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-700 border-slate-300">
+                {activeDot + 1} / {safeUsers.length}
+              </Badge>
+            </div>
+
+            {/* Slider Navigation controls */}
+            <div className="flex items-center gap-2">
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={() => setIsPlaying((p) => !p)}
+                className="size-7 rounded-full border-[#06b6d4]/40 bg-[#06b6d4]/10 hover:bg-[#06b6d4]/30 text-white"
+                title={isPlaying ? 'Pause Auto Scroll' : 'Play Auto Scroll'}
+              >
+                {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={() => scrollCarousel('left')}
+                className="size-7 rounded-full border-[#06b6d4]/40 bg-[#06b6d4]/10 hover:bg-[#06b6d4]/30 text-white magnetic-btn"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={() => scrollCarousel('right')}
+                className="size-7 rounded-full border-[#06b6d4]/40 bg-[#06b6d4]/10 hover:bg-[#06b6d4]/30 text-white magnetic-btn"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Smooth Horizontal Scroll Track with Edge Fade Vignette Mask & Drag Physics */}
+          <div
+            ref={carouselRef}
+            onScroll={handleScroll}
+            onMouseDown={handleMouseDown}
+            onMouseLeave={handleMouseLeave}
+            onMouseUp={handleMouseUp}
+            onMouseMove={handleMouseMove}
+            className={`flex gap-4 overflow-x-auto scrollbar-none py-3 px-2 scroll-smooth select-none ${
+              isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)',
+              maskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)'
+            }}
+          >
+            {(safeUsers.length <= 6 ? [...safeUsers, ...safeUsers] : safeUsers).map((user, i) => {
+              const realIdx = i % (safeUsers.length || 1)
+              const isFocused = realIdx === activeDot
+              return (
+                <div
+                  key={`${user.id}-${i}`}
+                  className="flex-none w-[260px] rounded-2xl"
+                  style={{
+                    transform: isFocused ? 'scale(1.04) translateZ(0)' : 'scale(0.96)',
+                    border: isFocused ? '2.5px solid #06b6d4' : '1.5px solid rgba(6, 182, 212, 0.2)',
+                    boxShadow: isFocused ? '0 0 30px rgba(6, 182, 212, 0.55), 0 12px 36px rgba(0,0,0,0.5)' : '0 4px 15px rgba(0,0,0,0.3)',
+                    transition: 'all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                  }}
+                >
+                  <UserCard user={user} onEdit={openEdit} onToggle={handleToggle} onDelete={setDeleteUser} index={realIdx} />
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Active Page Indicator Dots Bar */}
+          <div className="flex items-center justify-center gap-1.5 pt-1">
+            {safeUsers.map((_, dotIdx) => (
+              <button
+                key={dotIdx}
+                onClick={() => scrollToDot(dotIdx)}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  dotIdx === activeDot
+                    ? 'w-6 bg-[#06b6d4] shadow-[0_0_10px_#06b6d4]'
+                    : 'w-2 bg-white/20 hover:bg-white/40'
+                }`}
+                title={`Go to member ${dotIdx + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        /* Matrix Grid View */
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {safeUsers.map((user, i) => (
+            <UserCard key={user.id} user={user} onEdit={openEdit} onToggle={handleToggle} onDelete={setDeleteUser} index={i} />
+          ))}
+        </div>
+      )}
+
+      <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={(off) => { setOffset(off); loadData(query, off) }} />
+
+      {/* Edit User Modal */}
+      {editUser && (
+        <Dialog open onOpenChange={(n) => !n && setEditUser(null)}>
+          <DialogContent className="sm:max-w-lg sector-card">
+            <DialogHeader><DialogTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900"><Edit3 className="size-4 text-[#06b6d4]" />Edit Member — {editUser.name || editUser.email}</DialogTitle></DialogHeader>
+            <UserFormFields onSubmit={handleSubmitEdit} />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Create User Modal */}
+      {showCreate && (
+        <Dialog open onOpenChange={(n) => !n && setShowCreate(false)}>
+          <DialogContent className="sm:max-w-lg sector-card">
+            <DialogHeader><DialogTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900"><UserPlus className="size-4 text-[#06b6d4]" />Invite New Member</DialogTitle></DialogHeader>
+            <UserFormFields onSubmit={handleCreate} />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete User Modal */}
+      {deleteUser && (
+        <Dialog open onOpenChange={(n) => !n && setDeleteUser(null)}>
+          <DialogContent className="sm:max-w-sm sector-card">
+            <DialogHeader><DialogTitle className="flex items-center gap-2 text-base font-extrabold text-red-600"><Trash2 className="size-4" />Remove Member</DialogTitle></DialogHeader>
+            <p className="text-sm text-slate-700 py-2 font-medium">Permanently remove <span className="font-extrabold text-slate-900">{deleteUser.name || deleteUser.email}</span>?</p>
+            <DialogFooter>
+              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-bold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200">Cancel</Button></DialogClose>
+              <Button variant="destructive" size="sm" className="text-xs font-bold" disabled={submitting} onClick={() => handleDelete(deleteUser)}>
+                {submitting ? <RefreshCw className="size-3 animate-spin mr-1" /> : <Trash2 className="size-3 mr-1" />}Remove
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   )
 }
