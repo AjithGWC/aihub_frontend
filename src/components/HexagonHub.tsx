@@ -352,13 +352,13 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
       });
     } else if (focused) {
       const trunk = "M 160 530 L 236 530";
-      const branchToPanel = "M 364 530 L 424 530 L 424 140 L 444 140";
+      const branchToPanel = "M 364 530 L 424 530 L 424 198 L 444 198";
       traces.push({ d: trunk, color: tone.trace, w: 2.4, op: 0.95, transition: "opacity .3s ease .05s" });
       traces.push({ d: branchToPanel, color: tone.ring, w: 2.4, op: 0.95, transition: "opacity .3s ease .05s" });
       flows.push({ d: trunk, color: tone.ring, dur: 4.5 });
       flows.push({ d: branchToPanel, color: tone.ring, dur: 3.5 });
       pads.push({ x: 296.5, y: 526.5, color: tone.ring, op: 1, transition: "opacity .3s ease .05s" });
-      pads.push({ x: 420.5, y: 136.5, color: tone.ring, op: 1, transition: "opacity .3s ease .05s" });
+      pads.push({ x: 420.5, y: 194.5, color: tone.ring, op: 1, transition: "opacity .3s ease .05s" });
     }
 
     // While going home, other sector hexes should animate in slowly, not be hidden instantly.
@@ -731,7 +731,7 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
                   <div className="relative flex items-center justify-center flex-none">
                     {/* Shockwave expanding aura triggered upon connector arrival */}
                     <span
-                      className="absolute rounded-full arrival-ripple-ring pointer-events-none"
+                      className="absolute z-[5] rounded-full arrival-ripple-ring pointer-events-none"
                       style={{
                         width: 70,
                         height: 70,

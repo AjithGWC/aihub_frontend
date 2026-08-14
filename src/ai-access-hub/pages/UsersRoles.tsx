@@ -588,14 +588,17 @@ export default function UsersRoles() {
             onMouseLeave={handleMouseLeave}
             onMouseUp={handleMouseUp}
             onMouseMove={handleMouseMove}
-            className={`flex gap-4 overflow-x-auto scrollbar-none py-3 px-2 scroll-smooth select-none ${
+            className={`flex gap-4 overflow-x-auto scrollbar-none py-3 px-6 scroll-smooth select-none ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
             }`}
             style={{
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
-              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)',
-              maskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)'
+              // Fade width matches the px-6 (24px) padding exactly, in fixed pixels rather than a
+              // percentage of track width — otherwise on wide viewports the percentage-based fade
+              // zone grows past the padding and eats into the first/last card itself.
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0, black 24px, black calc(100% - 24px), transparent 100%)',
+              maskImage: 'linear-gradient(to right, transparent 0, black 24px, black calc(100% - 24px), transparent 100%)',
             }}
           >
             {(safeUsers.length <= 6 ? [...safeUsers, ...safeUsers] : safeUsers).map((user, i, list) => {
