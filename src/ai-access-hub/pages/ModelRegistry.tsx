@@ -16,7 +16,8 @@ import {
   MemoryStick,
   X,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  ArrowLeft
 } from 'lucide-react'
 import { api } from '@/api'
 import type { ModelRecord } from '../types'
@@ -83,9 +84,9 @@ function ContextRing({ context, color, glow, size = 65, delay = 0 }: { context: 
         {/* Spinning dashed orbit ring */}
         <circle
           cx={center} cy={center} r={r + 6}
-          fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="3 5" opacity="0.35" className="animate-spin" style={{ animationDuration: '10s' }}
+          fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="3 5" opacity="0.4" className="animate-spin" style={{ animationDuration: '10s' }}
         />
-        <circle cx={center} cy={center} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="5" />
+        <circle cx={center} cy={center} r={r} fill="none" stroke="rgba(226, 232, 240, 0.9)" strokeWidth="5" />
         <circle cx={center} cy={center} r={r} fill="none" stroke={color} strokeWidth="5" strokeLinecap="round"
           strokeDasharray={circumference} strokeDashoffset={drawn ? offset : circumference}
           style={{ transition: `stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`, filter: `drop-shadow(0 0 6px ${glow})` }}
@@ -123,29 +124,35 @@ function ModelCard({ model, onSetKey, onDelete, index }: { model: ModelRecord; o
 
   return (
     <div
-      className="spotlight-card sector-card card-hover-lift rounded-2xl p-5 flex flex-col gap-4 animate-slide-left group shadow-lg border-slate-200"
+      className="spotlight-card sector-card rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden animate-slide-left group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-amber-400/60 cursor-pointer"
       style={{
         animationDelay: `${index * 60}ms`,
-        background: `radial-gradient(circle at 50% 0%, ${provMeta.color}10, transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc)`,
-        border: `1.5px solid ${provMeta.color}35`,
+        background: `radial-gradient(circle at 50% 0%, ${provMeta.color}15, transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc)`,
+        border: `1.5px solid ${provMeta.color}40`,
         boxShadow: `0 8px 24px rgba(15, 23, 42, 0.06)`
       }}
     >
+      {/* Provider watermark */}
+      <div className="absolute top-0 right-0 text-[85px] font-extrabold leading-none select-none pointer-events-none opacity-[0.05] group-hover:opacity-[0.14] transition-opacity duration-300" style={{ color: provMeta.color, top: '-12px', right: '10px' }}>
+        {provMeta.symbol}
+      </div>
+
       {/* Header */}
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 z-10">
         <ContextRing context={model.context || '0'} color={provMeta.color} glow={provMeta.glow} delay={index * 60} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <p className="text-sm font-extrabold text-slate-900 group-hover:text-[#d97706] transition-colors truncate">{model.name}</p>
-            <Badge variant="outline" className="text-[10px] px-2 py-0.5 capitalize font-extrabold shadow-sm" style={{ color: statusColor, borderColor: `${statusColor}66`, background: `${statusColor}18` }}>
+            <Badge variant="outline" className="text-[10px] px-2 py-0.5 capitalize font-extrabold shadow-xs flex items-center gap-1" style={{ color: statusColor, borderColor: `${statusColor}66`, background: `${statusColor}18` }}>
+              <span className="size-1.5 rounded-full animate-ping" style={{ background: statusColor }} />
               {model.status}
             </Badge>
           </div>
           <div className="flex items-center gap-2 mt-1.5">
-            <div className="size-5 rounded flex items-center justify-center text-[9px] font-black text-white flex-none shadow-sm" style={{ background: provMeta.gradient, boxShadow: `0 0 8px ${provMeta.glow}` }}>
+            <div className="size-5 rounded flex items-center justify-center text-[9px] font-black text-white flex-none shadow-sm transition-transform duration-300 group-hover:scale-110" style={{ background: provMeta.gradient, boxShadow: `0 0 10px ${provMeta.glow}` }}>
               {provMeta.symbol}
             </div>
-            <span className="text-[11px] text-slate-700 font-bold capitalize">{model.backend}</span>
+            <span className="text-[11px] text-slate-800 font-bold capitalize">{model.backend}</span>
             <span className="text-slate-400">·</span>
             <DeployIcon className="size-3.5 flex-none" style={{ color: model.isCloud ? '#2563eb' : '#16a34a' }} />
             <span className="text-[11px] text-slate-700 font-bold">{model.isCloud ? 'Cloud' : 'Local'}</span>
@@ -155,20 +162,20 @@ function ModelCard({ model, onSetKey, onDelete, index }: { model: ModelRecord; o
 
       {/* Context label */}
       {model.context && (
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-300 font-medium">
-          <MemoryStick className="size-3.5 text-[#f59e0b]" />
-          <span className="font-mono font-extrabold text-white">{model.context}</span>
-          <span>context window</span>
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-700 font-semibold z-10 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 w-fit">
+          <MemoryStick className="size-3.5 text-[#d97706]" />
+          <span className="font-mono font-extrabold text-slate-900">{model.context}</span>
+          <span className="text-slate-600 font-medium">context window</span>
         </div>
       )}
 
       {/* Task badges */}
       {model.tasks && model.tasks.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 z-10">
           {model.tasks.map((t) => {
-            const tc = TASK_COLORS[t?.toLowerCase()] || { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)' }
+            const tc = TASK_COLORS[t?.toLowerCase()] || { color: '#64748b', bg: 'rgba(100,116,139,0.15)' }
             return (
-              <span key={t} className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide shadow-sm" style={{ color: tc.color, background: tc.bg, border: `1px solid ${tc.color}40` }}>
+              <span key={t} className="px-2.5 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wide shadow-xs transition-transform hover:scale-105" style={{ color: tc.color, background: tc.bg, border: `1px solid ${tc.color}45` }}>
                 {t}
               </span>
             )
@@ -178,28 +185,28 @@ function ModelCard({ model, onSetKey, onDelete, index }: { model: ModelRecord; o
 
       {/* Allowed roles */}
       {model.allowedRoles && model.allowedRoles.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5 z-10">
           {model.allowedRoles.map((r) => (
-            <span key={r} className="px-2 py-0.5 rounded text-[9px] font-mono capitalize bg-black/40 text-slate-300 border border-white/10">{r}</span>
+            <span key={r} className="px-2 py-0.5 rounded text-[10px] font-mono capitalize bg-slate-100 text-slate-800 border border-slate-200 font-extrabold shadow-2xs">{r}</span>
           ))}
         </div>
       )}
 
       {/* API key status */}
-      <div className="flex items-center gap-1.5 text-[11px] bg-black/40 p-2 rounded-lg border border-white/10">
-        <Key className="size-3.5" style={{ color: model.apiKeyMasked ? '#22c55e' : '#64748b' }} />
-        <span className="text-slate-300 font-medium">API Key:</span>
-        <span className="font-mono font-extrabold" style={{ color: model.apiKeyMasked ? '#22c55e' : '#f43f5e' }}>
+      <div className="flex items-center gap-2 text-[11px] bg-slate-50 p-2.5 rounded-xl border border-slate-200 group-hover:border-slate-300 transition-colors z-10">
+        <Key className="size-3.5 flex-none" style={{ color: model.apiKeyMasked ? '#16a34a' : '#dc2626' }} />
+        <span className="text-slate-600 font-extrabold">API Key:</span>
+        <span className="font-mono font-extrabold truncate" style={{ color: model.apiKeyMasked ? '#16a34a' : '#dc2626' }}>
           {model.apiKeyMasked ? model.apiKeyMasked : 'Not set'}
         </span>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 mt-auto pt-1">
-        <button onClick={() => onSetKey(model)} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-extrabold transition-all hover:scale-105" style={{ background: `${provMeta.color}22`, border: `1px solid ${provMeta.color}44`, color: provMeta.color }}>
+      <div className="flex items-center gap-2 mt-auto pt-1 z-10">
+        <button onClick={() => onSetKey(model)} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-extrabold transition-all duration-200 hover:scale-[1.02] cursor-pointer shadow-xs" style={{ background: `${provMeta.color}18`, border: `1.5px solid ${provMeta.color}50`, color: provMeta.color }}>
           <Key className="size-3.5 icon-spring" />Set Key
         </button>
-        <button onClick={() => onDelete(model)} className="flex items-center justify-center gap-1 px-2.5 py-2 rounded-xl text-[10px] text-red-400 bg-red-500/15 border border-red-500/30 hover:bg-red-500/30 transition-all">
+        <button onClick={() => onDelete(model)} className="flex items-center justify-center gap-1 p-2 rounded-xl text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 transition-all cursor-pointer shadow-xs" title="Delete Model">
           <Trash2 className="size-3.5 icon-spring" />
         </button>
       </div>
@@ -293,9 +300,21 @@ export default function ModelRegistry() {
           </div>
           <p className="mt-1 text-sm text-muted-foreground">Centralized AI model inventory with provider routing, context windows, and access roles.</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', boxShadow: '0 0 20px rgba(245,158,11,0.3)' }}>
-          <Plus className="size-3.5" />Register Model
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
+            className="border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 font-extrabold shadow-sm cursor-pointer"
+          >
+            <ArrowLeft className="size-3.5 mr-1" />
+            All Sectors
+          </Button>
+          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', boxShadow: '0 0 20px rgba(245,158,11,0.3)' }}>
+            <Plus className="size-3.5" />Register Model
+          </Button>
+        </div>
       </header>
 
       {error && (
@@ -305,17 +324,63 @@ export default function ModelRegistry() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Total Models', value: total, icon: Boxes, color: '#f59e0b' },
-          { label: 'Cloud Hosted', value: cloudCount, icon: Cloud, color: '#3b82f6' },
-          { label: 'Backends', value: backendSet.size, icon: Zap, color: '#8b5cf6' },
-        ].map(({ label, value, icon: Icon, color }, i) => (
-          <div key={label} className="sector-card spotlight-card card-hover-lift p-4 flex items-center gap-3 rounded-xl animate-stagger-1 group border-slate-200" style={{ animationDelay: `${i * 80}ms`, background: `radial-gradient(circle at 50% 0%, ${color}12, transparent 70%), linear-gradient(135deg, #ffffff, #f8fafc)`, borderTop: `3.5px solid ${color}`, boxShadow: '0 6px 18px rgba(15, 23, 42, 0.06)' }}>
-            <div className="p-2.5 rounded-lg flex-none transition-transform group-hover:scale-110" style={{ background: `${color}18`, border: `1px solid ${color}35` }}><Icon className="size-5 icon-spring" style={{ color }} /></div>
-            <div>
-              <p className="text-2xl font-extrabold font-mono text-slate-900">{value}</p>
-              <p className="text-[10px] text-slate-600 font-extrabold uppercase tracking-wider">{label}</p>
+          { label: 'Registered Models', value: total, icon: Boxes, color: '#f59e0b', chip: 'Registry', glow: 'rgba(245,158,11,0.45)' },
+          { label: 'Cloud-Hosted Instances', value: cloudCount, icon: Cloud, color: '#3b82f6', chip: 'Cloud ML', glow: 'rgba(59,130,246,0.45)' },
+          { label: 'Inference Providers', value: backendSet.size, icon: Zap, color: '#8b5cf6', chip: 'Active Routers', glow: 'rgba(139,92,246,0.45)' },
+        ].map(({ label, value, icon: Icon, color, chip, glow }, i) => (
+          <div
+            key={label}
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+              e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+            }}
+            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+            style={{
+              animationDelay: `${i * 80}ms`,
+              background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
+              border: `1.5px solid ${color}50`,
+              borderTop: `4px solid ${color}`,
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+            }}
+          >
+            {/* Ambient Corner Energy Glow */}
+            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+
+            {/* Shimmer sweep effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+
+            <div className="flex items-center gap-3.5 z-10">
+              <div className="relative flex items-center justify-center">
+                {/* Inner spinning dashed orbit */}
+                <svg width="52" height="52" className="absolute -rotate-90 pointer-events-none">
+                  <circle
+                    cx="26" cy="26" r="23"
+                    fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 5" opacity="0.6" className="animate-spin" style={{ animationDuration: '10s' }}
+                  />
+                  <circle
+                    cx="26" cy="26" r="18"
+                    fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.35" className="animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}
+                  />
+                </svg>
+                <div className="size-11 rounded-xl flex items-center justify-center text-white flex-none transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md" style={{ background: color, boxShadow: `0 0 20px ${glow}` }}>
+                  <Icon className="size-5 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-black font-mono text-slate-900 tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5">{value}</p>
+                <p className="text-[11px] font-black uppercase tracking-widest text-slate-600 mt-0.5">{label}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end gap-1.5 z-10">
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-xs flex items-center gap-1.5 border transition-all duration-300 group-hover:scale-105" style={{ color, background: `${color}18`, borderColor: `${color}45` }}>
+                <span className="size-1.5 rounded-full animate-ping" style={{ background: color }} />
+                {chip}
+              </span>
             </div>
           </div>
         ))}
@@ -345,63 +410,70 @@ export default function ModelRegistry() {
 
       {showCreate && (
         <Dialog open onOpenChange={(n) => !n && setShowCreate(false)}>
-          <DialogContent className="sm:max-w-lg sector-card animate-vault-open">
-            <DialogHeader><DialogTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900"><Boxes className="size-4 text-[#d97706]" />Register New Model</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-lg border-t-4 border-t-[#f59e0b] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-900 tracking-tight">
+                <div className="size-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center flex-none">
+                  <Boxes className="size-4 text-[#d97706]" />
+                </div>
+                Register New Model
+              </DialogTitle>
+            </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">Model Name</Label>
-                  <Input value={createForm.name} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))} placeholder="gpt-4o" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs font-mono shadow-xs focus:bg-white" />
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Model Name</Label>
+                  <Input value={createForm.name} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))} placeholder="gpt-4o" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs font-mono shadow-xs focus:bg-white focus:border-[#f59e0b] focus:ring-2 focus:ring-[#f59e0b]/20 transition-all rounded-xl" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">Backend Provider</Label>
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Backend Provider</Label>
                   <Select value={createForm.backend} onValueChange={(v) => setCreateForm((f) => ({ ...f, backend: v }))}>
-                    <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl">
+                    <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#f59e0b] focus:ring-2 focus:ring-[#f59e0b]/20 transition-all rounded-xl"><SelectValue placeholder="Select provider" /></SelectTrigger>
+                    <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl rounded-xl">
                       {['openai', 'anthropic', 'azure', 'google', 'cohere', 'mistral'].map((p) => (
-                        <SelectItem key={p} value={p} className="capitalize text-slate-900 font-medium">{p}</SelectItem>
+                        <SelectItem key={p} value={p} className="capitalize text-slate-900 font-medium cursor-pointer">{p}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">Deployment</Label>
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Deployment</Label>
                   <Select value={createForm.isCloud ? 'cloud' : 'local'} onValueChange={(v) => setCreateForm((f) => ({ ...f, isCloud: v === 'cloud' }))}>
-                    <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl">
-                      <SelectItem value="cloud" className="text-slate-900 font-medium">Cloud</SelectItem>
-                      <SelectItem value="local" className="text-slate-900 font-medium">Local / On-prem</SelectItem>
+                    <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#f59e0b] focus:ring-2 focus:ring-[#f59e0b]/20 transition-all rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl rounded-xl">
+                      <SelectItem value="cloud" className="text-slate-900 font-medium cursor-pointer">Cloud</SelectItem>
+                      <SelectItem value="local" className="text-slate-900 font-medium cursor-pointer">Local / On-prem</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">Context Window</Label>
-                  <Input value={createForm.context} onChange={(e) => setCreateForm((f) => ({ ...f, context: e.target.value }))} placeholder="128k" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs font-mono shadow-xs focus:bg-white" />
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Context Window</Label>
+                  <Input value={createForm.context} onChange={(e) => setCreateForm((f) => ({ ...f, context: e.target.value }))} placeholder="128k" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs font-mono shadow-xs focus:bg-white focus:border-[#f59e0b] focus:ring-2 focus:ring-[#f59e0b]/20 transition-all rounded-xl" />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Task Types (comma-separated)</Label>
-                <Input value={createForm.tasks} onChange={(e) => setCreateForm((f) => ({ ...f, tasks: e.target.value }))} placeholder="chat, code, reasoning" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs font-mono shadow-xs focus:bg-white" />
+                <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Task Types (comma-separated)</Label>
+                <Input value={createForm.tasks} onChange={(e) => setCreateForm((f) => ({ ...f, tasks: e.target.value }))} placeholder="chat, code, reasoning" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs font-mono shadow-xs focus:bg-white focus:border-[#f59e0b] focus:ring-2 focus:ring-[#f59e0b]/20 transition-all rounded-xl" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Allowed Roles (comma-separated)</Label>
-                <Input value={createForm.allowedRoles} onChange={(e) => setCreateForm((f) => ({ ...f, allowedRoles: e.target.value }))} placeholder="admin, editor" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs font-mono shadow-xs focus:bg-white" />
+                <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Allowed Roles (comma-separated)</Label>
+                <Input value={createForm.allowedRoles} onChange={(e) => setCreateForm((f) => ({ ...f, allowedRoles: e.target.value }))} placeholder="admin, editor" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs font-mono shadow-xs focus:bg-white focus:border-[#f59e0b] focus:ring-2 focus:ring-[#f59e0b]/20 transition-all rounded-xl" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Status</Label>
+                <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Status</Label>
                 <Select value={createForm.status} onValueChange={(v) => setCreateForm((f) => ({ ...f, status: v as 'active' | 'staging' | 'inactive' }))}>
-                  <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl">
-                    <SelectItem value="active" className="text-slate-900 font-medium">Active</SelectItem>
-                    <SelectItem value="staging" className="text-slate-900 font-medium">Staging</SelectItem>
-                    <SelectItem value="inactive" className="text-slate-900 font-medium">Inactive</SelectItem>
+                  <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#f59e0b] focus:ring-2 focus:ring-[#f59e0b]/20 transition-all rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl rounded-xl">
+                    <SelectItem value="active" className="text-slate-900 font-medium cursor-pointer">Active</SelectItem>
+                    <SelectItem value="staging" className="text-slate-900 font-medium cursor-pointer">Staging</SelectItem>
+                    <SelectItem value="inactive" className="text-slate-900 font-medium cursor-pointer">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <DialogFooter className="pt-2">
-                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-bold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200">Cancel</Button></DialogClose>
-                <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-white shadow-md" style={{ background: 'linear-gradient(135deg, #d97706, #b45309)' }}>
-                  <ChevronRight className="size-3 mr-1" />Register
+              <DialogFooter className="pt-3 gap-2">
+                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
+                <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-xl px-5" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                  <ChevronRight className="size-3.5 mr-1" />Register Model
                 </Button>
               </DialogFooter>
             </form>
@@ -411,17 +483,24 @@ export default function ModelRegistry() {
 
       {setKeyModel && (
         <Dialog open onOpenChange={(n) => !n && setSetKeyModel(null)}>
-          <DialogContent className="sm:max-w-sm sector-card">
-            <DialogHeader><DialogTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900"><Lock className="size-4 text-[#d97706]" />Assign API Key — {setKeyModel.name}</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-md border-t-4 border-t-[#f59e0b] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2.5 text-base font-black text-slate-900 tracking-tight">
+                <div className="size-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center flex-none">
+                  <Lock className="size-4 text-[#d97706]" />
+                </div>
+                Assign API Key — {setKeyModel.name}
+              </DialogTitle>
+            </DialogHeader>
             <form onSubmit={handleSetKey} className="space-y-4 py-2">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">API Key Secret</Label>
-                <Input type="password" value={keyValue} onChange={(e) => setKeyValue(e.target.value)} placeholder="sk-..." required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold font-mono text-xs shadow-xs focus:bg-white" />
+                <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">API Key Secret</Label>
+                <Input type="password" value={keyValue} onChange={(e) => setKeyValue(e.target.value)} placeholder="sk-..." required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold font-mono text-xs shadow-xs focus:bg-white focus:border-[#f59e0b] focus:ring-2 focus:ring-[#f59e0b]/20 transition-all rounded-xl" />
               </div>
-              <DialogFooter className="pt-2">
-                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-bold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200">Cancel</Button></DialogClose>
-                <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-white shadow-md" style={{ background: 'linear-gradient(135deg, #d97706, #b45309)' }}>
-                  <Key className="size-3 mr-1" />Save Key
+              <DialogFooter className="pt-3 gap-2">
+                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
+                <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-xl px-5" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                  <Key className="size-3.5 mr-1" />Save Key
                 </Button>
               </DialogFooter>
             </form>
@@ -431,16 +510,23 @@ export default function ModelRegistry() {
 
       {deleteModel && (
         <Dialog open onOpenChange={(n) => !n && setDeleteModel(null)}>
-          <DialogContent className="sm:max-w-sm sector-card">
-            <DialogHeader><DialogTitle className="text-base font-extrabold text-red-600 flex items-center gap-2"><Trash2 className="size-4" />Remove Model</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-md border-t-4 border-t-red-500 shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="text-base font-black text-red-600 flex items-center gap-2.5">
+                <div className="size-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center flex-none">
+                  <Trash2 className="size-4 text-red-600" />
+                </div>
+                Remove Model
+              </DialogTitle>
+            </DialogHeader>
             <p className="text-sm text-slate-700 py-2 font-medium">Remove <span className="font-extrabold text-slate-900">{deleteModel.name}</span> from the registry?</p>
-            <div className="flex items-center gap-1.5 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold">
-              <AlertCircle className="size-3.5 flex-none text-amber-600" />Active routes using this model will be immediately disabled.
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold">
+              <AlertCircle className="size-4 flex-none text-amber-600" />Active routes using this model will be immediately disabled.
             </div>
-            <DialogFooter className="mt-2">
-              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-bold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200">Cancel</Button></DialogClose>
-              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleDelete(deleteModel)} className="text-xs font-bold">
-                <Trash2 className="size-3 mr-1" />Remove
+            <DialogFooter className="mt-4 gap-2">
+              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
+              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleDelete(deleteModel)} className="text-xs font-extrabold cursor-pointer rounded-xl px-5 shadow-md hover:shadow-lg">
+                <Trash2 className="size-3.5 mr-1" />Remove Model
               </Button>
             </DialogFooter>
           </DialogContent>

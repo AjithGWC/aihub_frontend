@@ -16,7 +16,9 @@ import {
   Plus,
   Vault,
   X,
-  ShieldAlert
+  ShieldAlert,
+  ArrowLeft,
+  Sparkles
 } from 'lucide-react'
 import { api } from '@/api'
 import type { ApiKeyRecord } from '../types'
@@ -107,16 +109,16 @@ function VaultCard({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete
 
   return (
     <div
-      className="spotlight-card sector-card card-hover-lift rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden animate-slide-left group shadow-lg border-slate-200"
+      className="spotlight-card sector-card rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden animate-slide-left group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-orange-400/60 cursor-pointer"
       style={{
         animationDelay: `${index * 60}ms`,
-        background: `radial-gradient(circle at 50% 0%, ${meta.color}10, transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc)`,
-        border: `1.5px solid ${meta.color}35`,
+        background: `radial-gradient(circle at 50% 0%, ${meta.color}15, transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc)`,
+        border: `1.5px solid ${meta.color}40`,
         boxShadow: `0 8px 24px rgba(15, 23, 42, 0.06)`
       }}
     >
       {/* Provider watermark */}
-      <div className="absolute top-0 right-0 text-[85px] font-extrabold leading-none select-none pointer-events-none opacity-[0.05]" style={{ color: meta.color, top: '-12px', right: '10px' }}>
+      <div className="absolute top-0 right-0 text-[85px] font-extrabold leading-none select-none pointer-events-none opacity-[0.05] group-hover:opacity-[0.12] transition-opacity duration-300" style={{ color: meta.color, top: '-12px', right: '10px' }}>
         {meta.symbol}
       </div>
 
@@ -128,10 +130,10 @@ function VaultCard({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete
             <svg width="50" height="50" className="absolute -rotate-90 pointer-events-none">
               <circle
                 cx="25" cy="25" r="23"
-                fill="none" stroke={meta.color} strokeWidth="1.5" strokeDasharray="3 4" opacity="0.4" className="animate-spin" style={{ animationDuration: '10s' }}
+                fill="none" stroke={meta.color} strokeWidth="1.5" strokeDasharray="3 4" opacity="0.5" className="animate-spin" style={{ animationDuration: '10s' }}
               />
             </svg>
-            <div className="size-10 rounded-xl flex items-center justify-center text-xs font-black text-white flex-none transition-transform group-hover:scale-105" style={{ background: meta.gradient, boxShadow: `0 0 16px ${meta.glow}` }}>
+            <div className="size-10 rounded-xl flex items-center justify-center text-xs font-black text-white flex-none transition-transform duration-300 group-hover:scale-110 shadow-md" style={{ background: meta.gradient, boxShadow: `0 0 18px ${meta.glow}` }}>
               {meta.symbol}
             </div>
           </div>
@@ -142,20 +144,20 @@ function VaultCard({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-sm" style={{ background: isActive ? 'rgba(34,197,94,0.12)' : 'rgba(244,63,94,0.12)', borderColor: isActive ? 'rgba(34,197,94,0.35)' : 'rgba(244,63,94,0.35)' }}>
-          <span className="size-2 rounded-full" style={{ background: isActive ? '#22c55e' : '#f43f5e', boxShadow: isActive ? '0 0 8px #22c55e' : '0 0 8px #f43f5e' }} />
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-sm" style={{ background: isActive ? 'rgba(34,197,94,0.12)' : 'rgba(244,63,94,0.12)', borderColor: isActive ? 'rgba(34,197,94,0.4)' : 'rgba(244,63,94,0.4)' }}>
+          <span className="size-2 rounded-full animate-ping opacity-75" style={{ background: isActive ? '#22c55e' : '#f43f5e' }} />
           <span className="text-[10px] font-extrabold" style={{ color: isActive ? '#16a34a' : '#dc2626' }}>{isActive ? 'Active' : 'Revoked'}</span>
         </div>
       </div>
 
       {/* Key display */}
-      <div className="rounded-xl px-3.5 py-2.5 font-mono text-[11px] text-slate-900 flex items-center justify-between gap-2 z-10 bg-slate-50 border border-slate-200">
+      <div className="rounded-xl px-3.5 py-2.5 font-mono text-[11px] text-slate-900 flex items-center justify-between gap-2 z-10 bg-slate-50 border border-slate-200 group-hover:border-slate-300 transition-colors">
         <span className="truncate tracking-wide font-semibold">{revealed ? apiKey.masked : '••••••••••••••••••'}</span>
         <div className="flex items-center gap-1 flex-none">
-          <button onClick={() => setRevealed(!revealed)} className="p-1.5 rounded hover:bg-slate-200 transition-colors">
+          <button onClick={() => setRevealed(!revealed)} className="p-1.5 rounded hover:bg-slate-200 transition-colors cursor-pointer" title={revealed ? 'Hide Secret' : 'Reveal Secret'}>
             {revealed ? <EyeOff className="size-3.5 text-slate-600" /> : <Eye className="size-3.5 text-slate-600" />}
           </button>
-          <button onClick={handleCopy} className="p-1.5 rounded hover:bg-slate-200 transition-colors">
+          <button onClick={handleCopy} className="p-1.5 rounded hover:bg-slate-200 transition-colors cursor-pointer" title="Copy Key">
             {copied ? <Check className="size-3.5 text-[#16a34a]" /> : <Copy className="size-3.5 text-slate-600" />}
           </button>
         </div>
@@ -180,7 +182,7 @@ function VaultCard({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete
 
       {/* Delete */}
       <div className="flex justify-end mt-auto z-10">
-        <button onClick={() => onDelete(apiKey)} className="magnetic-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[11px] font-extrabold text-red-300 bg-red-500/20 border border-red-500/50 hover:bg-red-500/35 transition-all shadow-sm">
+        <button onClick={() => onDelete(apiKey)} className="magnetic-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[11px] font-extrabold text-red-300 bg-red-500/20 border border-red-500/50 hover:bg-red-500/35 transition-all shadow-sm cursor-pointer">
           <Trash2 className="size-3.5 icon-spring" />Revoke
         </button>
       </div>
@@ -255,9 +257,23 @@ export default function ApiKeys() {
           </div>
           <p className="mt-1 text-sm text-muted-foreground">Manage provider credentials across inference routes. Keys are AES-256 encrypted.</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold" style={{ background: 'linear-gradient(135deg, #f97316, #b45309)', boxShadow: '0 0 20px rgba(249,115,22,0.3)' }}>
-          <Plus className="size-3.5" />Add API Key
-        </Button>
+
+        <div className="flex items-center gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
+            className="border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 font-extrabold shadow-sm cursor-pointer"
+          >
+            <ArrowLeft className="size-3.5 mr-1" />
+            All Sectors
+          </Button>
+
+          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold magnetic-btn cursor-pointer" style={{ background: 'linear-gradient(135deg, #f97316, #b45309)', boxShadow: '0 0 20px rgba(249,115,22,0.3)' }}>
+            <Plus className="size-3.5" />Add API Key
+          </Button>
+        </div>
       </header>
 
       {error && (
@@ -267,31 +283,79 @@ export default function ApiKeys() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Total Keys', value: total, icon: KeyRound, color: '#f97316' },
-          { label: 'Active Keys', value: activeCount, icon: ShieldCheck, color: '#22c55e' },
-          { label: 'Providers', value: providerSet.size, icon: Zap, color: '#8b5cf6' },
-        ].map(({ label, value, icon: Icon, color }, i) => (
-          <div key={label} className="sector-card spotlight-card card-hover-lift p-4 flex items-center gap-3 rounded-xl animate-stagger-1 group border-slate-200" style={{ animationDelay: `${i * 80}ms`, background: `radial-gradient(circle at 50% 0%, ${color}12, transparent 70%), linear-gradient(135deg, #ffffff, #f8fafc)`, borderTop: `3.5px solid ${color}`, boxShadow: '0 6px 18px rgba(15, 23, 42, 0.06)' }}>
-            <div className="p-2.5 rounded-lg flex-none transition-transform group-hover:scale-110" style={{ background: `${color}18`, border: `1px solid ${color}35` }}><Icon className="size-5 icon-spring" style={{ color }} /></div>
-            <div>
-              <p className="text-2xl font-extrabold font-mono text-slate-900">{value}</p>
-              <p className="text-[10px] text-slate-600 font-extrabold uppercase tracking-wider">{label}</p>
+          { label: 'Total Vault Keys', value: total, icon: KeyRound, color: '#f97316', chip: 'AES-256', glow: 'rgba(249,115,22,0.45)' },
+          { label: 'Active Credentials', value: activeCount, icon: ShieldCheck, color: '#22c55e', chip: 'Healthy', glow: 'rgba(34,197,94,0.45)' },
+          { label: 'Connected LLMs', value: providerSet.size, icon: Zap, color: '#8b5cf6', chip: 'Live Providers', glow: 'rgba(139,92,246,0.45)' },
+        ].map(({ label, value, icon: Icon, color, chip, glow }, i) => (
+          <div
+            key={label}
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+              e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+            }}
+            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+            style={{
+              animationDelay: `${i * 80}ms`,
+              background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
+              border: `1.5px solid ${color}50`,
+              borderTop: `4px solid ${color}`,
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+            }}
+          >
+            {/* Ambient Corner Energy Glow */}
+            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+
+            {/* Shimmer sweep effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+
+            <div className="flex items-center gap-3.5 z-10">
+              <div className="relative flex items-center justify-center">
+                {/* Inner spinning dashed orbit */}
+                <svg width="52" height="52" className="absolute -rotate-90 pointer-events-none">
+                  <circle
+                    cx="26" cy="26" r="23"
+                    fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 5" opacity="0.6" className="animate-spin" style={{ animationDuration: '10s' }}
+                  />
+                  <circle
+                    cx="26" cy="26" r="18"
+                    fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.35" className="animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}
+                  />
+                </svg>
+                <div className="size-11 rounded-xl flex items-center justify-center text-white flex-none transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md" style={{ background: color, boxShadow: `0 0 20px ${glow}` }}>
+                  <Icon className="size-5 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-black font-mono text-slate-900 tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5">{value}</p>
+                <p className="text-[11px] font-black uppercase tracking-widest text-slate-600 mt-0.5">{label}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end gap-1.5 z-10">
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-xs flex items-center gap-1.5 border transition-all duration-300 group-hover:scale-105" style={{ color, background: `${color}18`, borderColor: `${color}45` }}>
+                <span className="size-1.5 rounded-full animate-ping" style={{ background: color }} />
+                {chip}
+              </span>
             </div>
           </div>
         ))}
       </div>
 
       {total > 0 && (
-        <div className="sector-card rounded-xl p-4 space-y-2 border-slate-200" style={{ background: 'linear-gradient(135deg, #ffffff, #f8fafc)', boxShadow: '0 6px 18px rgba(15, 23, 42, 0.06)' }}>
+        <div className="sector-card rounded-xl p-4 space-y-2 border-slate-200 relative overflow-hidden group shadow-md" style={{ background: 'linear-gradient(135deg, #ffffff, #f8fafc)' }}>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-800 font-extrabold flex items-center gap-1.5"><Vault className="size-3.5 text-[#ea580c]" /> Vault Capacity</span>
-            <span className="font-mono font-bold text-slate-900">{activeCount}/{total} active</span>
+            <span className="text-slate-800 font-extrabold flex items-center gap-1.5"><Vault className="size-3.5 text-[#ea580c] animate-pulse" /> Vault Capacity</span>
+            <span className="font-mono font-extrabold text-[#ea580c]">{activeCount}/{total} active</span>
           </div>
-          <div className="h-2 rounded-full bg-slate-100 border border-slate-300 overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: 0, background: 'linear-gradient(90deg, #ea580c, #f59e0b)', boxShadow: '0 0 8px rgba(234,88,12,0.4)', transition: 'width 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s' }}
-              ref={(el) => { if (el) setTimeout(() => { el.style.width = `${(activeCount / total) * 100}%` }, 50) }} />
+          <div className="h-2.5 rounded-full bg-slate-100 border border-slate-300 overflow-hidden relative">
+            <div className="h-full rounded-full transition-all duration-1000 relative overflow-hidden" style={{ width: 0, background: 'linear-gradient(90deg, #ea580c, #f59e0b, #fb923c)', boxShadow: '0 0 12px rgba(234,88,12,0.5)' }}
+              ref={(el) => { if (el) setTimeout(() => { el.style.width = `${(activeCount / total) * 100}%` }, 50) }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-pulse" />
+            </div>
           </div>
         </div>
       )}
@@ -320,44 +384,51 @@ export default function ApiKeys() {
 
       {showCreate && (
         <Dialog open onOpenChange={(n) => !n && setShowCreate(false)}>
-          <DialogContent className="sm:max-w-lg sector-card animate-vault-open">
-            <DialogHeader><DialogTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900"><KeyRound className="size-4 text-[#ea580c]" />Add API Key to Vault</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-lg border-t-4 border-t-[#f97316] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-900 tracking-tight">
+                <div className="size-8 rounded-lg bg-orange-500/15 border border-orange-500/30 flex items-center justify-center flex-none">
+                  <KeyRound className="size-4 text-[#ea580c]" />
+                </div>
+                Add API Key to Vault
+              </DialogTitle>
+            </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">Key Label</Label>
-                  <Input value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} placeholder="Production OpenAI" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white" />
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Key Label</Label>
+                  <Input value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} placeholder="Production OpenAI" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-all rounded-xl" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">Provider (LLM Name)</Label>
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Provider (LLM Name)</Label>
                   <Select value={form.llmName} onValueChange={(v) => setForm((f) => ({ ...f, llmName: v }))}>
-                    <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl">
+                    <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-all rounded-xl"><SelectValue placeholder="Select provider" /></SelectTrigger>
+                    <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl rounded-xl">
                       {['openai', 'anthropic', 'azure', 'cohere', 'google', 'mistral'].map((p) => (
-                        <SelectItem key={p} value={p} className="capitalize text-slate-900 font-medium">{p}</SelectItem>
+                        <SelectItem key={p} value={p} className="capitalize text-slate-900 font-medium cursor-pointer">{p}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">API Key Secret</Label>
-                <Input type="password" value={form.key} onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))} placeholder="sk-..." required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold font-mono text-xs shadow-xs focus:bg-white" />
+                <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">API Key Secret</Label>
+                <Input type="password" value={form.key} onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))} placeholder="sk-..." required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold font-mono text-xs shadow-xs focus:bg-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-all rounded-xl" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">Assigned User</Label>
-                  <Input value={form.user} onChange={(e) => setForm((f) => ({ ...f, user: e.target.value }))} placeholder="alice@co.com" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white" />
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Assigned User</Label>
+                  <Input value={form.user} onChange={(e) => setForm((f) => ({ ...f, user: e.target.value }))} placeholder="alice@co.com" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-all rounded-xl" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">Expires At</Label>
-                  <Input type="date" value={form.expiresAt} onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))} className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white" />
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Expires At</Label>
+                  <Input type="date" value={form.expiresAt} onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))} className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-all rounded-xl" />
                 </div>
               </div>
-              <DialogFooter className="pt-2">
-                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-bold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200">Cancel</Button></DialogClose>
-                <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-white shadow-md" style={{ background: 'linear-gradient(135deg, #ea580c, #c2410c)' }}>
-                  <Lock className="size-3 mr-1.5" />Store in Vault
+              <DialogFooter className="pt-3 gap-2">
+                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
+                <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-xl px-5" style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)' }}>
+                  <Lock className="size-3.5 mr-1.5" />Store in Vault
                 </Button>
               </DialogFooter>
             </form>
@@ -367,13 +438,20 @@ export default function ApiKeys() {
 
       {deleteKey && (
         <Dialog open onOpenChange={(n) => !n && setDeleteKey(null)}>
-          <DialogContent className="sm:max-w-sm sector-card">
-            <DialogHeader><DialogTitle className="text-base font-extrabold text-red-600 flex items-center gap-2"><Trash2 className="size-4" />Revoke API Key</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-md border-t-4 border-t-red-500 shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="text-base font-black text-red-600 flex items-center gap-2.5">
+                <div className="size-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center flex-none">
+                  <Trash2 className="size-4 text-red-600" />
+                </div>
+                Revoke API Key
+              </DialogTitle>
+            </DialogHeader>
             <p className="text-sm text-slate-700 py-2 font-medium">Permanently revoke <span className="font-extrabold text-slate-900">{deleteKey.label}</span>? Applications using this key will immediately lose access.</p>
-            <DialogFooter>
-              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-bold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200">Cancel</Button></DialogClose>
-              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleDelete(deleteKey)} className="text-xs font-bold">
-                <Trash2 className="size-3 mr-1" />Revoke Key
+            <DialogFooter className="mt-3 gap-2">
+              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
+              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleDelete(deleteKey)} className="text-xs font-extrabold cursor-pointer rounded-xl px-5 shadow-md hover:shadow-lg">
+                <Trash2 className="size-3.5 mr-1" />Revoke Key
               </Button>
             </DialogFooter>
           </DialogContent>

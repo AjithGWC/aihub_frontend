@@ -19,18 +19,30 @@ export function Pagination({
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
   return (
-    <div className="flex items-center justify-between px-1 py-2 text-xs text-muted-foreground">
-      <span>
-        Showing {from}–{to} of {total}
+    <div className="flex items-center justify-between px-2 py-3 text-xs font-bold text-slate-600 border-t border-slate-200/80">
+      <span className="font-medium text-slate-500">
+        Showing <span className="font-extrabold text-slate-900">{from}–{to}</span> of <span className="font-extrabold text-slate-900">{total}</span>
       </span>
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => onChange(Math.max(0, offset - limit))} disabled={offset === 0}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onChange(Math.max(0, offset - limit))}
+          disabled={offset === 0}
+          className="text-xs font-bold border-slate-300 bg-white text-slate-800 hover:bg-slate-100 shadow-xs cursor-pointer disabled:opacity-40"
+        >
           Prev
         </Button>
-        <span>
+        <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-800 font-extrabold text-[11px]">
           Page {page} of {totalPages}
         </span>
-        <Button variant="outline" size="sm" onClick={() => onChange(offset + limit)} disabled={offset + limit >= total}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onChange(offset + limit)}
+          disabled={offset + limit >= total}
+          className="text-xs font-bold border-slate-300 bg-white text-slate-800 hover:bg-slate-100 shadow-xs cursor-pointer disabled:opacity-40"
+        >
           Next
         </Button>
       </div>

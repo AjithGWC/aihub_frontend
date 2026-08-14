@@ -20,7 +20,8 @@ import {
   LayoutGrid,
   Eye,
   Pause,
-  Play
+  Play,
+  ArrowLeft
 } from 'lucide-react'
 import { api } from '@/api'
 import type { AppUser } from '../types'
@@ -350,41 +351,41 @@ export default function UsersRoles() {
     <form onSubmit={onSubmit} className="space-y-4 py-2">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold text-slate-700">Full Name</Label>
-          <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Alice Chen" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white" />
+          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Full Name</Label>
+          <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Alice Chen" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold text-slate-700">Email</Label>
-          <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="alice@co.com" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white" />
+          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Email</Label>
+          <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="alice@co.com" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold text-slate-700">Role</Label>
+          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Role</Label>
           <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v }))}>
-            <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs"><SelectValue placeholder="Select role" /></SelectTrigger>
-            <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl">
-              {ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize text-slate-900 font-medium">{r}</SelectItem>)}
+            <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl"><SelectValue placeholder="Select role" /></SelectTrigger>
+            <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl rounded-xl">
+              {ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize text-slate-900 font-medium cursor-pointer">{r}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold text-slate-700">Department</Label>
-          <Input value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} placeholder="Engineering" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white" />
+          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Department</Label>
+          <Input value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} placeholder="Engineering" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl" />
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label className="text-xs font-bold text-slate-700">Status</Label>
+        <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Status</Label>
         <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as 'active' | 'inactive' }))}>
-          <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl">
-            <SelectItem value="active" className="text-slate-900 font-medium">● Active</SelectItem>
-            <SelectItem value="inactive" className="text-slate-900 font-medium">○ Inactive</SelectItem>
+          <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl"><SelectValue /></SelectTrigger>
+          <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl rounded-xl">
+            <SelectItem value="active" className="text-slate-900 font-medium cursor-pointer">● Active</SelectItem>
+            <SelectItem value="inactive" className="text-slate-900 font-medium cursor-pointer">○ Inactive</SelectItem>
           </SelectContent>
         </Select>
       </div>
-      <DialogFooter className="pt-2">
-        <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-bold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200">Cancel</Button></DialogClose>
-        <Button type="submit" size="sm" className="text-xs font-extrabold text-white shadow-md" disabled={submitting} style={{ background: 'linear-gradient(135deg, #06b6d4, #2563eb)' }}>
-          {submitting ? <RefreshCw className="size-3 animate-spin mr-1" /> : null}Save
+      <DialogFooter className="pt-3 gap-2">
+        <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
+        <Button type="submit" size="sm" className="text-xs font-extrabold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-xl px-5" disabled={submitting} style={{ background: 'linear-gradient(135deg, #06b6d4, #0284c7)' }}>
+          {submitting ? <RefreshCw className="size-3 animate-spin mr-1" /> : null}Save Member
         </Button>
       </DialogFooter>
     </form>
@@ -395,15 +396,29 @@ export default function UsersRoles() {
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#06b6d4]/30 pb-5">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="cyber-pulse-dot cyber-pulse-dot-blue" />
+            <span className="cyber-pulse-dot cyber-pulse-dot-cyan" />
             <h1 className="text-2xl font-bold tracking-tight sector-header-title">Identity Directory</h1>
             <Badge variant="outline" className="sector-badge text-xs font-mono">{total} Members</Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">Manage user identities, roles, and access levels.</p>
         </div>
-        <Button onClick={() => { setShowCreate(true); setForm({ name: '', email: '', role: '', department: '', status: 'active' }) }} size="sm" className="gap-2 text-xs font-bold magnetic-btn" style={{ background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', boxShadow: '0 0 20px rgba(6,182,212,0.3)' }}>
-          <UserPlus className="size-3.5" />Invite Member
-        </Button>
+
+        <div className="flex items-center gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
+            className="border-cyan-300 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 font-extrabold shadow-sm cursor-pointer"
+          >
+            <ArrowLeft className="size-3.5 mr-1" />
+            All Sectors
+          </Button>
+
+          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold magnetic-btn cursor-pointer" style={{ background: 'linear-gradient(135deg, #06b6d4, #0284c7)', boxShadow: '0 0 20px rgba(6,182,212,0.3)' }}>
+            <UserPlus className="size-3.5" />Invite Member
+          </Button>
+        </div>
       </header>
 
       {error && (
@@ -414,17 +429,62 @@ export default function UsersRoles() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Total Members', value: total, icon: Users, color: '#06b6d4' },
-          { label: 'Active Now', value: activeCount, icon: UserCheck, color: '#22c55e' },
-          { label: 'Admins', value: adminCount, icon: ShieldAlert, color: '#8b5cf6' },
-        ].map(({ label, value, icon: Icon, color }, i) => (
-          <div key={label} className="sector-card spotlight-card card-hover-lift p-4 flex items-center gap-3 rounded-xl animate-stagger-1 group border-slate-200" style={{ animationDelay: `${i * 80}ms`, background: `radial-gradient(circle at 50% 0%, ${color}12, transparent 70%), linear-gradient(135deg, #ffffff, #f8fafc)`, borderTop: `3.5px solid ${color}`, boxShadow: '0 6px 18px rgba(15, 23, 42, 0.06)' }}>
-            <div className="p-2.5 rounded-lg flex-none transition-transform group-hover:scale-110" style={{ background: `${color}18`, border: `1px solid ${color}35` }}><Icon className="size-5 icon-spring" style={{ color }} /></div>
-            <div>
-              <p className="text-2xl font-extrabold font-mono text-slate-900">{value}</p>
-              <p className="text-[10px] text-slate-600 font-extrabold uppercase tracking-wider">{label}</p>
+          { label: 'Total Directory Members', value: total, icon: Users, color: '#06b6d4', chip: 'Directory', glow: 'rgba(6,182,212,0.45)' },
+          { label: 'Active Sessions Now', value: activeCount, icon: UserCheck, color: '#22c55e', chip: 'Online', glow: 'rgba(34,197,94,0.45)' },
+          { label: 'System Administrators', value: adminCount, icon: ShieldAlert, color: '#8b5cf6', chip: 'Super Admin', glow: 'rgba(139,92,246,0.45)' },
+        ].map(({ label, value, icon: Icon, color, chip, glow }, i) => (
+          <div
+            key={label}
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+              e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+            }}
+            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+            style={{
+              animationDelay: `${i * 80}ms`,
+              background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
+              border: `1.5px solid ${color}50`,
+              borderTop: `4px solid ${color}`,
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+            }}
+          >
+            {/* Ambient Corner Energy Glow */}
+            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+
+            {/* Shimmer sweep effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+
+            <div className="flex items-center gap-3.5 z-10">
+              <div className="relative flex items-center justify-center">
+                {/* Inner spinning dashed orbit */}
+                <svg width="52" height="52" className="absolute -rotate-90 pointer-events-none">
+                  <circle
+                    cx="26" cy="26" r="23"
+                    fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 5" opacity="0.6" className="animate-spin" style={{ animationDuration: '10s' }}
+                  />
+                  <circle
+                    cx="26" cy="26" r="18"
+                    fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.35" className="animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}
+                  />
+                </svg>
+                <div className="size-11 rounded-xl flex items-center justify-center text-white flex-none transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md" style={{ background: color, boxShadow: `0 0 20px ${glow}` }}>
+                  <Icon className="size-5 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-black font-mono text-slate-900 tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5">{value}</p>
+                <p className="text-[11px] font-black uppercase tracking-widest text-slate-600 mt-0.5">{label}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end gap-1.5 z-10">
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-xs flex items-center gap-1.5 border transition-all duration-300 group-hover:scale-105" style={{ color, background: `${color}18`, borderColor: `${color}45` }}>
+                <span className="size-1.5 rounded-full animate-ping" style={{ background: color }} />
+                {chip}
+              </span>
             </div>
           </div>
         ))}
@@ -494,26 +554,28 @@ export default function UsersRoles() {
                 size="icon"
                 variant="outline"
                 onClick={() => setIsPlaying((p) => !p)}
-                className="size-7 rounded-full border-[#06b6d4]/40 bg-[#06b6d4]/10 hover:bg-[#06b6d4]/30 text-white"
+                className="size-8 rounded-full border-[#06b6d4]/50 bg-[#06b6d4]/15 hover:bg-[#06b6d4] text-[#0891b2] hover:text-white transition-all shadow-sm magnetic-btn cursor-pointer"
                 title={isPlaying ? 'Pause Auto Scroll' : 'Play Auto Scroll'}
               >
-                {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+                {isPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current ml-0.5" />}
               </Button>
               <Button
                 size="icon"
                 variant="outline"
                 onClick={() => scrollCarousel('left')}
-                className="size-7 rounded-full border-[#06b6d4]/40 bg-[#06b6d4]/10 hover:bg-[#06b6d4]/30 text-white magnetic-btn"
+                className="size-8 rounded-full border-[#06b6d4]/50 bg-[#06b6d4]/15 hover:bg-[#06b6d4] text-[#0891b2] hover:text-white transition-all shadow-sm magnetic-btn cursor-pointer"
+                title="Previous Cards"
               >
-                <ChevronLeft className="size-4" />
+                <ChevronLeft className="size-4 stroke-[2.5]" />
               </Button>
               <Button
                 size="icon"
                 variant="outline"
                 onClick={() => scrollCarousel('right')}
-                className="size-7 rounded-full border-[#06b6d4]/40 bg-[#06b6d4]/10 hover:bg-[#06b6d4]/30 text-white magnetic-btn"
+                className="size-8 rounded-full border-[#06b6d4]/50 bg-[#06b6d4]/15 hover:bg-[#06b6d4] text-[#0891b2] hover:text-white transition-all shadow-sm magnetic-btn cursor-pointer"
+                title="Next Cards"
               >
-                <ChevronRight className="size-4" />
+                <ChevronRight className="size-4 stroke-[2.5]" />
               </Button>
             </div>
           </div>
@@ -536,36 +598,64 @@ export default function UsersRoles() {
               maskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)'
             }}
           >
-            {(safeUsers.length <= 6 ? [...safeUsers, ...safeUsers] : safeUsers).map((user, i) => {
+            {(safeUsers.length <= 6 ? [...safeUsers, ...safeUsers] : safeUsers).map((user, i, list) => {
               const realIdx = i % (safeUsers.length || 1)
               const isFocused = realIdx === activeDot
+              const isLast = i === list.length - 1
+
               return (
-                <div
-                  key={`${user.id}-${i}`}
-                  className="flex-none w-[260px] rounded-2xl"
-                  style={{
-                    transform: isFocused ? 'scale(1.04) translateZ(0)' : 'scale(0.96)',
-                    border: isFocused ? '2.5px solid #06b6d4' : '1.5px solid rgba(6, 182, 212, 0.2)',
-                    boxShadow: isFocused ? '0 0 30px rgba(6, 182, 212, 0.55), 0 12px 36px rgba(0,0,0,0.5)' : '0 4px 15px rgba(0,0,0,0.3)',
-                    transition: 'all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                  }}
-                >
-                  <UserCard user={user} onEdit={openEdit} onToggle={handleToggle} onDelete={setDeleteUser} index={realIdx} />
+                <div key={`${user.id}-${i}`} className="flex items-center gap-3 flex-none">
+                  {/* User Card */}
+                  <div
+                    className="flex-none w-[260px] rounded-2xl"
+                    style={{
+                      transform: isFocused ? 'scale(1.04) translateZ(0)' : 'scale(0.96)',
+                      border: isFocused ? '2.5px solid #06b6d4' : '1.5px solid rgba(6, 182, 212, 0.2)',
+                      boxShadow: isFocused ? '0 0 30px rgba(6, 182, 212, 0.55), 0 12px 36px rgba(0,0,0,0.5)' : '0 4px 15px rgba(0,0,0,0.3)',
+                      transition: 'all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    }}
+                  >
+                    <UserCard user={user} onEdit={openEdit} onToggle={handleToggle} onDelete={setDeleteUser} index={realIdx} />
+                  </div>
+
+                  {/* Animated Live Laser Connector between adjacent cards */}
+                  {!isLast && (
+                    <div className="flex items-center justify-center w-8 flex-none z-10 pointer-events-none self-center">
+                      <div className="relative w-full h-1 flex items-center justify-center">
+                        {/* Laser Line Background Track */}
+                        <div
+                          className="absolute inset-x-0 h-0.5 rounded-full"
+                          style={{
+                            background: 'linear-gradient(90deg, rgba(6, 182, 212, 0.3), rgba(6, 182, 212, 0.8), rgba(6, 182, 212, 0.3))',
+                            boxShadow: '0 0 8px rgba(6, 182, 212, 0.6)'
+                          }}
+                        />
+
+                        {/* Traveling Energy Bead */}
+                        <div
+                          className="absolute size-2.5 rounded-full bg-cyan-400 live-card-connector-bead"
+                          style={{
+                            animationDelay: `${(i % 4) * 0.45}s`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}
           </div>
 
           {/* Active Page Indicator Dots Bar */}
-          <div className="flex items-center justify-center gap-1.5 pt-1">
+          <div className="flex items-center justify-center gap-2 pt-2 pb-1">
             {safeUsers.map((_, dotIdx) => (
               <button
                 key={dotIdx}
                 onClick={() => scrollToDot(dotIdx)}
-                className={`h-2 rounded-full transition-all duration-300 ${
+                className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
                   dotIdx === activeDot
-                    ? 'w-6 bg-[#06b6d4] shadow-[0_0_10px_#06b6d4]'
-                    : 'w-2 bg-white/20 hover:bg-white/40'
+                    ? 'w-7 bg-[#06b6d4] shadow-[0_0_12px_rgba(6,182,212,0.8)]'
+                    : 'w-2.5 bg-slate-300 hover:bg-[#06b6d4]/60'
                 }`}
                 title={`Go to member ${dotIdx + 1}`}
               />
@@ -586,8 +676,15 @@ export default function UsersRoles() {
       {/* Edit User Modal */}
       {editUser && (
         <Dialog open onOpenChange={(n) => !n && setEditUser(null)}>
-          <DialogContent className="sm:max-w-lg sector-card">
-            <DialogHeader><DialogTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900"><Edit3 className="size-4 text-[#06b6d4]" />Edit Member — {editUser.name || editUser.email}</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-lg border-t-4 border-t-[#06b6d4] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-900 tracking-tight">
+                <div className="size-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-none">
+                  <Edit3 className="size-4 text-[#06b6d4]" />
+                </div>
+                Edit Member — {editUser.name || editUser.email}
+              </DialogTitle>
+            </DialogHeader>
             <UserFormFields onSubmit={handleSubmitEdit} />
           </DialogContent>
         </Dialog>
@@ -596,8 +693,15 @@ export default function UsersRoles() {
       {/* Create User Modal */}
       {showCreate && (
         <Dialog open onOpenChange={(n) => !n && setShowCreate(false)}>
-          <DialogContent className="sm:max-w-lg sector-card">
-            <DialogHeader><DialogTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900"><UserPlus className="size-4 text-[#06b6d4]" />Invite New Member</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-lg border-t-4 border-t-[#06b6d4] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-900 tracking-tight">
+                <div className="size-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-none">
+                  <UserPlus className="size-4 text-[#06b6d4]" />
+                </div>
+                Invite New Member
+              </DialogTitle>
+            </DialogHeader>
             <UserFormFields onSubmit={handleCreate} />
           </DialogContent>
         </Dialog>
@@ -606,13 +710,20 @@ export default function UsersRoles() {
       {/* Delete User Modal */}
       {deleteUser && (
         <Dialog open onOpenChange={(n) => !n && setDeleteUser(null)}>
-          <DialogContent className="sm:max-w-sm sector-card">
-            <DialogHeader><DialogTitle className="flex items-center gap-2 text-base font-extrabold text-red-600"><Trash2 className="size-4" />Remove Member</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-md border-t-4 border-t-red-500 shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="text-base font-black text-red-600 flex items-center gap-2.5">
+                <div className="size-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center flex-none">
+                  <Trash2 className="size-4 text-red-600" />
+                </div>
+                Remove Member
+              </DialogTitle>
+            </DialogHeader>
             <p className="text-sm text-slate-700 py-2 font-medium">Permanently remove <span className="font-extrabold text-slate-900">{deleteUser.name || deleteUser.email}</span>?</p>
-            <DialogFooter>
-              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-bold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200">Cancel</Button></DialogClose>
-              <Button variant="destructive" size="sm" className="text-xs font-bold" disabled={submitting} onClick={() => handleDelete(deleteUser)}>
-                {submitting ? <RefreshCw className="size-3 animate-spin mr-1" /> : <Trash2 className="size-3 mr-1" />}Remove
+            <DialogFooter className="mt-3 gap-2">
+              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
+              <Button variant="destructive" size="sm" className="text-xs font-extrabold cursor-pointer rounded-xl px-5 shadow-md hover:shadow-lg" disabled={submitting} onClick={() => handleDelete(deleteUser)}>
+                {submitting ? <RefreshCw className="size-3.5 animate-spin mr-1" /> : <Trash2 className="size-3.5 mr-1" />}Remove Member
               </Button>
             </DialogFooter>
           </DialogContent>
