@@ -1395,7 +1395,7 @@ select.input {
   --sector-color: #3b82f6;
   --sector-glow: rgba(59, 130, 246, 0.15);
   --sector-border: rgba(59, 130, 246, 0.3);
-  --sector-bg: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08), transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc);
+  --sector-bg: transparent;
 }
 
 /* Cyan Sector Theme (Users & Roles) */
@@ -1403,7 +1403,7 @@ select.input {
   --sector-color: #06b6d4;
   --sector-glow: rgba(6, 182, 212, 0.15);
   --sector-border: rgba(6, 182, 212, 0.3);
-  --sector-bg: radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.08), transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc);
+  --sector-bg: transparent;
 }
 
 /* Orange Sector Theme (API Keys) */
@@ -1411,7 +1411,7 @@ select.input {
   --sector-color: #f97316;
   --sector-glow: rgba(249, 115, 22, 0.15);
   --sector-border: rgba(249, 115, 22, 0.3);
-  --sector-bg: radial-gradient(circle at 50% 0%, rgba(249, 115, 22, 0.08), transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc);
+  --sector-bg: transparent;
 }
 
 /* Amber Sector Theme (Model Registry) */
@@ -1419,7 +1419,7 @@ select.input {
   --sector-color: #f59e0b;
   --sector-glow: rgba(245, 158, 11, 0.15);
   --sector-border: rgba(245, 158, 11, 0.3);
-  --sector-bg: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08), transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc);
+  --sector-bg: transparent;
 }
 
 /* Violet Sector Theme (Permissions) */
@@ -1427,7 +1427,7 @@ select.input {
   --sector-color: #a855f7;
   --sector-glow: rgba(168, 85, 247, 0.15);
   --sector-border: rgba(168, 85, 247, 0.3);
-  --sector-bg: radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.08), transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc);
+  --sector-bg: transparent;
 }
 
 /* Green Sector Theme (Audit Log) */
@@ -1435,7 +1435,7 @@ select.input {
   --sector-color: #22c55e;
   --sector-glow: rgba(34, 197, 94, 0.15);
   --sector-border: rgba(34, 197, 94, 0.3);
-  --sector-bg: radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.08), transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc);
+  --sector-bg: transparent;
 }
 
 /* Sector Card Utilities & High-Contrast Pearl White Theme */
@@ -1763,5 +1763,119 @@ select.input {
 .arrival-ripple-ring {
   animation: arrivalRipple 1.4s cubic-bezier(0, 0.2, 0.8, 1) 0.95s infinite;
 }
+
+/* ==========================================================================
+   Jitter Motion Design Animation Engine
+   ========================================================================== */
+
+@keyframes jitterSpringEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+  }
+}
+
+@keyframes jitterFloatPulse {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes jitterGlowSweep {
+  0% {
+    background-position: -200% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
+.jitter-card {
+  animation: jitterSpringEntrance 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.jitter-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.15), 0 0 24px rgba(59, 130, 246, 0.2);
+}
+
+.jitter-float {
+  animation: jitterFloatPulse 4s ease-in-out infinite;
+}
+
+.jitter-shimmer-btn {
+  background-size: 200% 100%;
+  animation: jitterGlowSweep 3s linear infinite;
+}
+
+/* ==========================================================================
+   Fixed-Size Internal Page Custom Scrollbar
+   ========================================================================== */
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.6);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.7);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) rgba(241, 245, 249, 0.6);
+}
+
+/* ==========================================================================
+   Live Inter-Card Beam Connector Animation
+   ========================================================================== */
+
+@keyframes connectorBeamPulse {
+  0% {
+    transform: translateX(-14px) scale(0.6);
+    opacity: 0.2;
+    box-shadow: 0 0 4px #06b6d4;
+  }
+  50% {
+    transform: translateX(0px) scale(1.3);
+    opacity: 1;
+    box-shadow: 0 0 16px #06b6d4, 0 0 24px #22d3ee;
+  }
+  100% {
+    transform: translateX(14px) scale(0.6);
+    opacity: 0.2;
+    box-shadow: 0 0 4px #06b6d4;
+  }
+}
+
+.live-card-connector-bead {
+  animation: connectorBeamPulse 1.8s ease-in-out infinite;
+}
+
+
+
 
 

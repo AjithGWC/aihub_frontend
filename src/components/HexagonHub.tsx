@@ -475,6 +475,7 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
         @keyframes atlas-spin { to { transform: rotate(360deg); } }
         @keyframes atlas-spinback { to { transform: rotate(-360deg); } }
         @keyframes atlas-flow { to { stroke-dashoffset: -320; } }
+        @keyframes atlas-pulse-glow { 0%, 100% { opacity: 0.45; stroke-width: 2px; } 50% { opacity: 1; stroke-width: 4px; filter: drop-shadow(0 0 10px currentColor); } }
         @keyframes atlas-pop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
       `}</style>
 
@@ -499,6 +500,31 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
           />
 
           <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="absolute inset-0 w-full h-full">
+            <defs>
+              <filter id="circuit-neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Soft Neon Background Glow Traces */}
+            {traces.map((tr, i) => (
+              <path
+                key={`glow-${i}`}
+                d={tr.d}
+                fill="none"
+                stroke={tr.color}
+                strokeWidth={tr.w * 3}
+                strokeLinecap="round"
+                opacity={tr.op * 0.45}
+                style={{ filter: "blur(5px)", transition: tr.transition }}
+              />
+            ))}
+
+            {/* Sharp Core Circuit Traces */}
             {traces.map((tr, i) => (
               <path
                 key={i}
@@ -511,36 +537,60 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
                 style={{ transition: tr.transition }}
               />
             ))}
+
+            {/* Terminal Junction Pads with Soft Glow Aura */}
             {pads.map((p, i) => (
-              <rect
-                key={i}
-                x={p.x}
-                y={p.y}
-                width={7}
-                height={7}
-                fill={p.color}
-                opacity={p.op}
-                style={{ transition: p.transition }}
-              />
+              <g key={i}>
+                <rect
+                  x={p.x - 2}
+                  y={p.y - 2}
+                  width={11}
+                  height={11}
+                  fill={p.color}
+                  opacity={p.op * 0.35}
+                  rx={2}
+                  style={{ filter: "blur(3px)" }}
+                />
+                <rect
+                  x={p.x}
+                  y={p.y}
+                  width={7}
+                  height={7}
+                  fill={p.color}
+                  opacity={p.op}
+                  style={{ transition: p.transition }}
+                />
+              </g>
             ))}
+
+            {/* Animated Dashed Data Pulse Streams */}
             {animateTraces &&
               flows.map((f, i) => (
                 <path
-                  key={i}
+                  key={`flow-stream-${i}`}
                   d={f.d}
                   fill="none"
                   stroke={f.color}
-                  strokeWidth={2.2}
-                  strokeDasharray="9 15"
-                  opacity={0.55}
-                  style={{ animation: "atlas-flow 5s linear infinite" }}
+                  strokeWidth={2.8}
+                  strokeDasharray="12 18"
+                  opacity={0.85}
+                  style={{ animation: "atlas-flow 3.5s linear infinite" }}
                 />
               ))}
+
+            {/* Live Traveling Energy Orbs / Comets */}
             {animateTraces &&
               flows.map((f, i) => (
-                <circle key={`dot-${i}`} r={3.4} fill={f.color}>
-                  <animateMotion path={f.d} dur={`${f.dur}s`} repeatCount="indefinite" rotate="auto" />
-                </circle>
+                <g key={`dot-group-${i}`}>
+                  {/* Glowing Energy Aura */}
+                  <circle r={6} fill={f.color} opacity={0.65} style={{ filter: "blur(2px)" }}>
+                    <animateMotion path={f.d} dur={`${f.dur}s`} repeatCount="indefinite" rotate="auto" />
+                  </circle>
+                  {/* Core Bright Energy Bead */}
+                  <circle r={3.6} fill="#ffffff" stroke={f.color} strokeWidth={1.8}>
+                    <animateMotion path={f.d} dur={`${f.dur}s`} repeatCount="indefinite" rotate="auto" />
+                  </circle>
+                </g>
               ))}
           </svg>
 
@@ -674,10 +724,10 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
               </button>
 
               <div
-                className="absolute flex flex-col gap-6 overflow-y-auto"
-                style={{ left: 402, top: 100, width: 1500, height: VB_H - 140, paddingTop: 70, paddingRight: 10, paddingBottom: 40, animation: "atlas-pop 1.2s cubic-bezier(.22,1,.36,1) both" }}
+                className="absolute flex flex-col gap-5 overflow-hidden"
+                style={{ left: 402, top: 90, width: 1530, height: VB_H - 120, animation: "atlas-pop 1.2s cubic-bezier(.22,1,.36,1) both" }}
               >
-                <div className="flex items-center gap-4" style={{ paddingLeft: 42 }}>
+                <div className="flex items-center gap-4 flex-none" style={{ paddingLeft: 42 }}>
                   <div className="relative flex items-center justify-center flex-none">
                     {/* Shockwave expanding aura triggered upon connector arrival */}
                     <span
@@ -721,13 +771,21 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
                   <div style={{ fontFamily: FONT_HEADING, fontSize: 28, color: COLOR.neutral100 }}>{panelTitle}</div>
                 </div>
 
-                <div className="text-[19px] leading-relaxed" style={{ paddingLeft: 42, maxWidth: 720, color: COLOR.neutral300 }}>
+                <div className="text-[17px] leading-relaxed flex-none" style={{ paddingLeft: 42, maxWidth: 780, color: COLOR.neutral300 }}>
                   {panelBody}
                 </div>
 
+                {/* Fixed-size sector card container with sleek internal scrollbar */}
                 <div
-                  className="rounded-2xl transition-all"
-                  style={{ marginLeft: 26, marginRight: 4, background: COLOR.panelBg, border: `2px solid ${focusTone.ring}`, boxShadow: `0 4px 24px ${focusTone.ring}33` }}
+                  className="rounded-2xl transition-all overflow-y-auto custom-scrollbar flex-1 p-6"
+                  style={{
+                    marginLeft: 26,
+                    marginRight: 12,
+                    maxHeight: VB_H - 250,
+                    background: "transparent",
+                    border: "none",
+                    boxShadow: "none"
+                  }}
                 >
                   <focusSec.Component />
                 </div>

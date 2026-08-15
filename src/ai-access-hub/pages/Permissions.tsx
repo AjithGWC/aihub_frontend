@@ -117,18 +117,21 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
 
   return (
     <div
-      className="spotlight-card card-hover-lift rounded-2xl p-5 space-y-4 animate-slide-left group shadow-lg border-slate-200"
+      className="spotlight-card rounded-2xl p-5 space-y-4 animate-slide-left group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-purple-400/60 cursor-pointer relative overflow-hidden"
       style={{
         animationDelay: `${index * 60}ms`,
-        background: `radial-gradient(circle at 50% 0%, rgba(168,85,247,0.1), transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc)`,
-        border: '1.5px solid rgba(168, 85, 247, 0.35)',
-        borderTop: '3.5px solid #7c3aed',
+        background: `radial-gradient(circle at 90% 10%, rgba(168,85,247,0.14), transparent 65%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
+        border: '1.5px solid rgba(168, 85, 247, 0.4)',
+        borderTop: '4px solid #a855f7',
         boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
       }}
     >
-      <div className="flex items-start gap-3">
-        <div className="p-2.5 rounded-xl flex-none transition-transform group-hover:scale-110" style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)' }}>
-          <Lock className="size-4 text-[#7c3aed] icon-spring" />
+      {/* Shimmer sweep effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+
+      <div className="flex items-start gap-3 z-10">
+        <div className="p-2.5 rounded-xl flex-none transition-transform duration-300 group-hover:scale-110 shadow-xs" style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)' }}>
+          <Lock className="size-4 text-[#a855f7] icon-spring" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-black text-slate-900 font-mono group-hover:text-[#7c3aed] transition-colors">{label}</p>
@@ -365,26 +368,60 @@ export default function Permissions() {
       {/* Stats row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Roles', value: safeRolesList.length, icon: Crown, color: '#7c3aed', glow: 'rgba(124,58,237,0.3)' },
-          { label: 'Actions', value: ACTIONS.length, icon: ShieldCheck, color: '#16a34a', glow: 'rgba(22,163,74,0.3)' },
-          { label: 'Total Grants', value: totalGrants, icon: Layers, color: '#0891b2', glow: 'rgba(8,145,178,0.3)' },
-        ].map((s) => (
+          { label: 'Configured Roles', value: safeRolesList.length, icon: Crown, color: '#a855f7', chip: 'RBAC Roles', glow: 'rgba(168,85,247,0.45)' },
+          { label: 'Protected Actions', value: ACTIONS.length, icon: ShieldCheck, color: '#10b981', chip: 'Enforced', glow: 'rgba(16,185,129,0.45)' },
+          { label: 'Active Grants', value: totalGrants, icon: Layers, color: '#06b6d4', chip: 'Matrix Sync', glow: 'rgba(6,182,212,0.45)' },
+        ].map(({ label, value, icon: Icon, color, chip, glow }, i) => (
           <div
-            key={s.label}
-            className="spotlight-card card-hover-lift rounded-2xl p-4 flex items-center gap-4 shadow-lg border-slate-200"
+            key={label}
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+              e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+            }}
+            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
             style={{
-              background: `radial-gradient(circle at 50% 0%, ${s.color}12, transparent 70%), linear-gradient(135deg, #ffffff, #f8fafc)`,
-              border: `1.5px solid ${s.color}35`,
-              borderTop: `3.5px solid ${s.color}`,
-              boxShadow: '0 6px 18px rgba(15, 23, 42, 0.06)'
+              animationDelay: `${i * 80}ms`,
+              background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
+              border: `1.5px solid ${color}50`,
+              borderTop: `4px solid ${color}`,
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
             }}
           >
-            <div className="p-3 rounded-xl flex-none" style={{ background: `${s.color}18`, border: `1px solid ${s.color}35` }}>
-              <s.icon className="size-5 icon-spring" style={{ color: s.color }} />
+            {/* Ambient Corner Energy Glow */}
+            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+
+            {/* Shimmer sweep effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+
+            <div className="flex items-center gap-3.5 z-10">
+              <div className="relative flex items-center justify-center">
+                {/* Inner spinning dashed orbit */}
+                <svg width="52" height="52" className="absolute -rotate-90 pointer-events-none">
+                  <circle
+                    cx="26" cy="26" r="23"
+                    fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 5" opacity="0.6" className="animate-spin" style={{ animationDuration: '10s' }}
+                  />
+                  <circle
+                    cx="26" cy="26" r="18"
+                    fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.35" className="animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}
+                  />
+                </svg>
+                <div className="size-11 rounded-xl flex items-center justify-center text-white flex-none transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md" style={{ background: color, boxShadow: `0 0 20px ${glow}` }}>
+                  <Icon className="size-5 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-black font-mono text-slate-900 tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5">{value}</p>
+                <p className="text-[11px] font-black uppercase tracking-widest text-slate-600 mt-0.5">{label}</p>
+              </div>
             </div>
-            <div>
-              <span className="text-2xl font-black font-mono text-slate-900">{s.value}</span>
-              <p className="text-[11px] font-black uppercase tracking-widest text-slate-600 mt-0.5">{s.label}</p>
+
+            <div className="flex flex-col items-end gap-1.5 z-10">
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-xs flex items-center gap-1.5 border transition-all duration-300 group-hover:scale-105" style={{ color, background: `${color}18`, borderColor: `${color}45` }}>
+                <span className="size-1.5 rounded-full animate-ping" style={{ background: color }} />
+                {chip}
+              </span>
             </div>
           </div>
         ))}
@@ -433,37 +470,41 @@ export default function Permissions() {
 
       {/* Add Role Dialog */}
       <Dialog open={showAddRole} onOpenChange={setShowAddRole}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-md border-t-4 border-t-[#a855f7] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
-              <Crown className="size-5 text-[#a855f7]" /> Add New Role
+            <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-900 tracking-tight">
+              <div className="size-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center flex-none">
+                <Crown className="size-4 text-[#a855f7]" />
+              </div>
+              Add New Role
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleCreateRole} className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label className="text-slate-200 font-bold">Role Name</Label>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Role Key / Name</Label>
               <Input
                 placeholder="e.g. analyst, auditor, devops"
                 value={newRoleName}
                 onChange={(e) => setNewRoleName(e.target.value)}
-                className="bg-slate-900 border-white/20 text-white font-bold"
+                className="bg-slate-50 border-slate-300 text-slate-900 font-semibold font-mono text-xs shadow-xs focus:bg-white focus:border-[#a855f7] focus:ring-2 focus:ring-[#a855f7]/20 transition-all rounded-xl"
                 required
               />
             </div>
 
-            <DialogFooter className="gap-2">
+            <DialogFooter className="pt-3 gap-2">
               <DialogClose asChild>
-                <Button type="button" variant="outline">
+                <Button type="button" variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">
                   Cancel
                 </Button>
               </DialogClose>
               <Button
                 type="submit"
+                size="sm"
                 disabled={addingRole}
-                className="magnetic-btn bg-[#a855f7] hover:bg-[#9333ea] text-white font-extrabold"
+                className="text-xs font-extrabold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-xl px-5" style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)' }}
               >
-                {addingRole ? 'Adding...' : 'Add Role'}
+                {addingRole ? 'Adding...' : 'Create Role'}
               </Button>
             </DialogFooter>
           </form>
