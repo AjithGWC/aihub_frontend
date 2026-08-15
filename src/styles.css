@@ -1110,6 +1110,30 @@ select.input {
   100% { height: 100%; opacity: 1; }
 }
 
+/* Traveling telemetry bead for live timeline tracks */
+@keyframes timelineTravel {
+  0% {
+    top: 0%;
+    opacity: 0;
+    transform: translate(-50%, -42%) scale(0.55);
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+    transform: translate(-50%, -58%) scale(0.55);
+  }
+}
+
 /* Event pop-in from left */
 @keyframes slideInLeft {
   0% { opacity: 0; transform: translateX(-20px); }
@@ -1191,6 +1215,89 @@ select.input {
 }
 .animate-dot-ping {
   animation: dotPing 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.timeline-travel-dot {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  animation: timelineTravel 3.6s linear infinite;
+  pointer-events: none;
+}
+
+.timeline-travel-dot-secondary {
+  width: 12px;
+  height: 12px;
+  opacity: 0.85;
+  animation-duration: 4.6s;
+}
+
+@keyframes connectorBeamDotRight {
+  0% {
+    left: 0%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  12% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+}
+
+@keyframes connectorBeamDotLeft {
+  0% {
+    left: 100%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  12% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    left: 0%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+}
+
+.connector-beam-dot {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.connector-beam-dot-right {
+  left: 0;
+  animation: connectorBeamDotRight 1.8s linear infinite;
+}
+
+.connector-beam-dot-left {
+  left: 100%;
+  animation: connectorBeamDotLeft 1.8s linear infinite;
 }
 
 /* Flip card container */
@@ -1878,4 +1985,4 @@ select.input {
 
 
 
-
+

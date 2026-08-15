@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import {
   Search,
   ScrollText,
@@ -45,6 +45,53 @@ const LAYER_ICONS: Record<string, any> = {
   auth: User,
   rbac: Layers,
   routing: Filter,
+}
+
+const TIMELINE_CARD_OFFSET = '4.5rem'
+
+function TimelineConnector({ side, color, delay }: { side: 'left' | 'right'; color: string; delay: number }) {
+  const isLeft = side === 'left'
+  const connectorStyle: CSSProperties = {
+    width: TIMELINE_CARD_OFFSET,
+    ...(isLeft
+      ? { right: `calc(-1 * ${TIMELINE_CARD_OFFSET})` }
+      : { left: `calc(-1 * ${TIMELINE_CARD_OFFSET})` })
+  }
+
+  return (
+    <span
+      className="absolute top-1/2 h-[2px] -translate-y-1/2 pointer-events-none z-0"
+      style={connectorStyle}
+    >
+      <span
+        className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 rounded-full opacity-90"
+        style={{
+          background: isLeft
+            ? `linear-gradient(to left, ${color}dd, ${color}22)`
+            : `linear-gradient(to right, ${color}dd, ${color}22)`,
+          boxShadow: `0 0 8px ${color}55`
+        }}
+      />
+      <span
+        className="absolute inset-x-1 top-1/2 h-3 -translate-y-1/2 rounded-full blur-[4px] opacity-55"
+        style={{
+          background: isLeft
+            ? `linear-gradient(to left, ${color}88, transparent)`
+            : `linear-gradient(to right, ${color}88, transparent)`
+        }}
+      />
+      <span
+        className={`connector-beam-dot ${isLeft ? 'connector-beam-dot-left' : 'connector-beam-dot-right'}`}
+        style={{ animationDelay: `${delay}ms` } as CSSProperties}
+      >
+        <span className="absolute inset-0 rounded-full blur-[4px]" style={{ background: `${color}aa` }} />
+        <span
+          className="absolute inset-[2px] rounded-full bg-white"
+          style={{ boxShadow: `0 0 0 1.5px ${color}, 0 0 10px ${color}` }}
+        />
+      </span>
+    </span>
+  )
 }
 
 /* ── Timeline Event Card ── */
@@ -112,8 +159,15 @@ function TimelineEventCard({ event, index, onSelect }: { event: AuditLogEntry; i
       style={{ animationDelay: `${index * 60}ms` }}
     >
       {/* Left Column */}
-      <div className="flex-1 flex justify-end pr-6">
-        {isLeft ? cardContent : <div className="w-full max-w-md" />}
+      <div className="flex-1 flex justify-end" style={{ paddingRight: TIMELINE_CARD_OFFSET }}>
+        {isLeft ? (
+          <div className="relative w-full max-w-md">
+            <TimelineConnector side="left" color={conf.color} delay={index * 140} />
+            {cardContent}
+          </div>
+        ) : (
+          <div className="w-full max-w-md" />
+        )}
       </div>
 
       {/* Center Circle Node with Spinning Orbit */}
@@ -139,8 +193,15 @@ function TimelineEventCard({ event, index, onSelect }: { event: AuditLogEntry; i
       </div>
 
       {/* Right Column */}
-      <div className="flex-1 flex justify-start pl-6">
-        {!isLeft ? cardContent : <div className="w-full max-w-md" />}
+      <div className="flex-1 flex justify-start" style={{ paddingLeft: TIMELINE_CARD_OFFSET }}>
+        {!isLeft ? (
+          <div className="relative w-full max-w-md">
+            <TimelineConnector side="right" color={conf.color} delay={index * 140} />
+            {cardContent}
+          </div>
+        ) : (
+          <div className="w-full max-w-md" />
+        )}
       </div>
     </div>
   )
@@ -333,15 +394,39 @@ export default function AuditLog() {
         </div>
       ) : (
         <div className="relative py-4">
-          {/* Central Vertical Timeline Track Line */}
           <div
-            className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-1 rounded-full pointer-events-none"
-            style={{
-              background: 'linear-gradient(to bottom, #22c55e, #06b6d4, #8b5cf6, #22c55e)',
-              boxShadow: '0 0 12px rgba(34, 197, 94, 0.5)',
-              animation: 'timelineDraw 1.2s ease-out 0.2s both',
-            }}
-          />
+            className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-6 pointer-events-none"
+          >
+            {/* Central Vertical Timeline Track Line */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-1 rounded-full"
+              style={{
+                background: 'linear-gradient(to bottom, #22c55e, #06b6d4, #8b5cf6, #22c55e)',
+                boxShadow: '0 0 12px rgba(34, 197, 94, 0.5)',
+                animation: 'timelineDraw 1.2s ease-out 0.2s both',
+              }}
+            />
+            <span className="timeline-travel-dot" style={{ animationDelay: '0.35s' } as CSSProperties}>
+              <span
+                className="absolute inset-0 rounded-full blur-[5px]"
+                style={{ background: 'rgba(34, 197, 94, 0.7)' }}
+              />
+              <span
+                className="absolute inset-[3px] rounded-full bg-white"
+                style={{ boxShadow: '0 0 0 2px #22c55e, 0 0 10px rgba(34, 197, 94, 0.85)' }}
+              />
+            </span>
+            <span className="timeline-travel-dot timeline-travel-dot-secondary" style={{ animationDelay: '1.7s' } as CSSProperties}>
+              <span
+                className="absolute inset-0 rounded-full blur-[4px]"
+                style={{ background: 'rgba(6, 182, 212, 0.72)' }}
+              />
+              <span
+                className="absolute inset-[2px] rounded-full bg-white"
+                style={{ boxShadow: '0 0 0 1.5px #06b6d4, 0 0 8px rgba(6, 182, 212, 0.8)' }}
+              />
+            </span>
+          </div>
           <div className="space-y-6 relative">
             {filteredEvents.map((event, idx) => (
               <TimelineEventCard key={event.id} event={event} index={idx} onSelect={() => setSelectedEvent(event)} />

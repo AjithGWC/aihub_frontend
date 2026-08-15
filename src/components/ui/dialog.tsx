@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { createPortal } from "react-dom"
 import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
@@ -22,9 +21,8 @@ function DialogTrigger({
 
 function DialogPortal({
   children,
-}: {
-  children?: React.ReactNode
-}) {
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   const [target, setTarget] = React.useState<HTMLElement | null>(null)
 
   React.useEffect(() => {
@@ -39,28 +37,33 @@ function DialogPortal({
 
   if (!target) return null
 
-  return createPortal(
-    <div
-      data-slot="dialog-portal"
-      className="fixed inset-0 z-[999999] flex items-center justify-center pointer-events-none p-4"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 999999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        pointerEvents: 'none'
-      }}
-    >
-      {children}
-    </div>,
-    target
+  // Radix's own Portal (not a hand-rolled createPortal) so it only mounts this
+  // full-viewport wrapper while the dialog is actually open — `container`
+  // still points it at our stable #global-modal-portal element, which exists
+  // to escape the CSS transform/stacking context of the scaled hub canvas.
+  return (
+    <DialogPrimitive.Portal {...props} container={target}>
+      <div
+        data-slot="dialog-portal"
+        className="fixed inset-0 z-[999999] flex items-center justify-center pointer-events-none p-4"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 999999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'none'
+        }}
+      >
+        {children}
+      </div>
+    </DialogPrimitive.Portal>
   )
 }
 
