@@ -386,11 +386,11 @@ export default function ModelRegistry() {
         ))}
       </div>
 
-      <div className="relative max-w-sm">
+      {/* <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search models…" className="pl-9 bg-white border-[#f59e0b]/50 text-slate-900 font-semibold placeholder:text-slate-400 text-sm shadow-sm" />
         {query && <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X className="size-3.5 text-slate-400 hover:text-slate-700" /></button>}
-      </div>
+      </div> */}
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

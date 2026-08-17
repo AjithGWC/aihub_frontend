@@ -492,11 +492,11 @@ export default function UsersRoles() {
 
       {/* Control bar: Search + Layout Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="relative max-w-sm flex-1">
+        {/* <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or email…" className="pl-9 bg-white border-[#06b6d4]/50 text-slate-900 font-semibold placeholder:text-slate-400 text-sm shadow-sm" />
           {query && <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X className="size-3.5 text-slate-400 hover:text-slate-700" /></button>}
-        </div>
+        </div> */}
 
         {/* Layout Switcher buttons */}
         <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200 flex-none">
