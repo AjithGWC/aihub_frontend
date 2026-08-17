@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Search,
   ScrollText,
@@ -12,9 +12,8 @@ import {
   Terminal,
   Layers,
   Shield,
-  X,
   Clock,
-  ArrowLeft
+  ArrowLeft,
 } from 'lucide-react'
 import { api } from '@/api'
 import type { AuditLogEntry } from '../types'
@@ -31,6 +30,14 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table'
 
 const PAGE_SIZE = 12
 
@@ -47,163 +54,68 @@ const LAYER_ICONS: Record<string, any> = {
   routing: Filter,
 }
 
-const TIMELINE_CARD_OFFSET = '4.5rem'
-
-function TimelineConnector({ side, color, delay }: { side: 'left' | 'right'; color: string; delay: number }) {
-  const isLeft = side === 'left'
-  const connectorStyle: CSSProperties = {
-    width: TIMELINE_CARD_OFFSET,
-    ...(isLeft
-      ? { right: `calc(-1 * ${TIMELINE_CARD_OFFSET})` }
-      : { left: `calc(-1 * ${TIMELINE_CARD_OFFSET})` })
-  }
-
-  return (
-    <span
-      className="absolute top-1/2 h-[2px] -translate-y-1/2 pointer-events-none z-0"
-      style={connectorStyle}
-    >
-      <span
-        className="absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 rounded-full opacity-90"
-        style={{
-          background: isLeft
-            ? `linear-gradient(to left, ${color}dd, ${color}22)`
-            : `linear-gradient(to right, ${color}dd, ${color}22)`,
-          boxShadow: `0 0 8px ${color}55`
-        }}
-      />
-      <span
-        className="absolute inset-x-1 top-1/2 h-3 -translate-y-1/2 rounded-full blur-[4px] opacity-55"
-        style={{
-          background: isLeft
-            ? `linear-gradient(to left, ${color}88, transparent)`
-            : `linear-gradient(to right, ${color}88, transparent)`
-        }}
-      />
-      <span
-        className={`connector-beam-dot ${isLeft ? 'connector-beam-dot-left' : 'connector-beam-dot-right'}`}
-        style={{ animationDelay: `${delay}ms` } as CSSProperties}
-      >
-        <span className="absolute inset-0 rounded-full blur-[4px]" style={{ background: `${color}aa` }} />
-        <span
-          className="absolute inset-[2px] rounded-full bg-white"
-          style={{ boxShadow: `0 0 0 1.5px ${color}, 0 0 10px ${color}` }}
-        />
-      </span>
-    </span>
-  )
-}
-
-/* ── Timeline Event Card ── */
-function TimelineEventCard({ event, index, onSelect }: { event: AuditLogEntry; index: number; onSelect: () => void }) {
+/* ── Audit Event Row ── */
+function AuditRow({ event, index, onSelect }: { event: AuditLogEntry; index: number; onSelect: () => void }) {
   const conf = OUTCOME_CONFIG[event.outcome] || OUTCOME_CONFIG.passed
   const StatusIcon = conf.icon
   const LayerIcon = LAYER_ICONS[event.layer?.toLowerCase()] || Terminal
-  const isLeft = index % 2 === 0
-
-  const cardContent = (
-    <div
-      onMouseMove={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect()
-        e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
-        e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
-      }}
-      className="w-full max-w-md p-4 rounded-2xl card-hover-lift cursor-pointer group shadow-md hover:shadow-xl relative overflow-hidden transition-all duration-300 border-slate-200"
-      style={{
-        background: `radial-gradient(circle 220px at var(--mouse-x, 50%) var(--mouse-y, 0%), ${conf.color}20, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
-        border: `1.5px solid ${conf.color}45`,
-        borderLeft: `4px solid ${conf.color}`,
-        boxShadow: `0 6px 20px rgba(15, 23, 42, 0.05), 0 0 12px ${conf.color}15`
-      }}
-      onClick={onSelect}
-    >
-      {/* Shimmer sweep effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
-      <div className="flex items-center justify-between gap-2 mb-2 z-10 relative">
-        <span className="font-mono text-xs font-black text-slate-900 group-hover:text-[#0284c7] transition-colors truncate">
-          {event.event}
-        </span>
-        <Badge
-          variant="outline"
-          className="text-[10px] px-2.5 py-0.5 font-mono font-extrabold flex-none capitalize tracking-wider flex items-center gap-1 shadow-xs"
-          style={{ borderColor: conf.border, color: conf.text, background: conf.bg }}
-        >
-          <span className="size-1.5 rounded-full animate-ping" style={{ background: conf.color }} />
-          {conf.label}
-        </Badge>
-      </div>
-
-      <div className="flex items-center gap-2 text-[11px] text-slate-700 font-mono z-10 relative">
-        <User className="size-3.5 text-[#22c55e] flex-none icon-spring" />
-        <span className="truncate font-bold text-slate-800">{event.actorEmail || 'System'}</span>
-      </div>
-
-      <div className="flex items-center gap-2.5 mt-2.5 pt-2 border-t border-slate-200 text-[10px] text-slate-600 font-mono z-10 relative">
-        <div className="flex items-center gap-1 font-extrabold text-slate-700">
-          <LayerIcon className="size-3 text-slate-500" />
-          <span className="uppercase">{event.layer}</span>
-        </div>
-        <span className="text-slate-300">·</span>
-        <div className="flex items-center gap-1 font-semibold text-slate-600">
-          <Clock className="size-3 text-slate-400" />
-          <span>{new Date(event.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
-        </div>
-      </div>
-    </div>
-  )
 
   return (
-    <div
-      className="relative flex items-center w-full animate-slide-left"
-      style={{ animationDelay: `${index * 60}ms` }}
+    <TableRow
+      onClick={onSelect}
+      className="group border-slate-100 hover:bg-green-50/50 transition-colors cursor-pointer animate-slide-up"
+      style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >
-      {/* Left Column */}
-      <div className="flex-1 flex justify-end" style={{ paddingRight: TIMELINE_CARD_OFFSET }}>
-        {isLeft ? (
-          <div className="relative w-full max-w-md">
-            <TimelineConnector side="left" color={conf.color} delay={index * 140} />
-            {cardContent}
-          </div>
-        ) : (
-          <div className="w-full max-w-md" />
-        )}
-      </div>
-
-      {/* Center Circle Node with Spinning Orbit */}
-      <div className="flex flex-col items-center flex-none z-10">
-        <div className="relative flex items-center justify-center">
-          <svg width="48" height="48" className="absolute -rotate-90 pointer-events-none">
-            <circle
-              cx="24" cy="24" r="22"
-              fill="none" stroke={conf.color} strokeWidth="1.5" strokeDasharray="3 4" opacity="0.45" className="animate-spin" style={{ animationDuration: '10s' }}
-            />
-          </svg>
+      {/* Event */}
+      <TableCell className="py-3">
+        <div className="flex items-center gap-3 min-w-0">
           <div
-            className="flex items-center justify-center size-10 rounded-full border-2 transition-all duration-300 group-hover:scale-125 bg-white shadow-md"
-            style={{
-              background: '#ffffff',
-              borderColor: conf.color,
-              boxShadow: `0 0 14px ${conf.color}44`
-            }}
+            className="size-8 rounded-full flex items-center justify-center flex-none bg-white border-2"
+            style={{ borderColor: conf.color, boxShadow: `0 0 10px ${conf.color}30` }}
           >
-            <StatusIcon className="size-5 icon-spring relative z-10" style={{ color: conf.color }} />
+            <StatusIcon className="size-4" style={{ color: conf.color }} />
           </div>
+          <span className="font-mono text-xs font-bold text-slate-900 truncate group-hover:text-[#0284c7] transition-colors">
+            {event.event}
+          </span>
         </div>
-      </div>
+      </TableCell>
 
-      {/* Right Column */}
-      <div className="flex-1 flex justify-start" style={{ paddingLeft: TIMELINE_CARD_OFFSET }}>
-        {!isLeft ? (
-          <div className="relative w-full max-w-md">
-            <TimelineConnector side="right" color={conf.color} delay={index * 140} />
-            {cardContent}
-          </div>
-        ) : (
-          <div className="w-full max-w-md" />
-        )}
-      </div>
-    </div>
+      {/* Actor */}
+      <TableCell className="whitespace-nowrap">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+          <User className="size-3.5 text-[#22c55e] flex-none" />
+          <span className="truncate max-w-[180px]">{event.actorEmail || 'System'}</span>
+        </span>
+      </TableCell>
+
+      {/* Layer */}
+      <TableCell className="whitespace-nowrap">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-slate-700 uppercase">
+          <LayerIcon className="size-3.5 text-slate-500" />
+          {event.layer}
+        </span>
+      </TableCell>
+
+      {/* Outcome */}
+      <TableCell className="whitespace-nowrap">
+        <Badge
+          variant="outline"
+          className="text-[10px] px-2 py-0.5 font-mono font-extrabold capitalize"
+          style={{ borderColor: conf.border, color: conf.text, background: conf.bg }}
+        >
+          {conf.label}
+        </Badge>
+      </TableCell>
+
+      {/* Timestamp */}
+      <TableCell className="text-right whitespace-nowrap">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 font-mono">
+          <Clock className="size-3 text-slate-400" />
+          {new Date(event.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+        </span>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -334,7 +246,7 @@ export default function AuditLog() {
                 </div>
               </div>
               <div>
-                <p className="text-3xl font-black font-mono text-slate-900 tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5">{value}</p>
+                <p className="text-3xl font-black font-mono tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5" style={{ color, textShadow: `0 0 18px ${color}45` }}>{value}</p>
                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-600 mt-0.5">{label}</p>
               </div>
             </div>
@@ -380,62 +292,42 @@ export default function AuditLog() {
         </Select>
       </div>
 
-      {/* Central Alternating Timeline */}
-      {loading ? (
-        <div className="space-y-4 py-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-20 rounded-xl bg-white/5 animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />
-          ))}
-        </div>
-      ) : filteredEvents.length === 0 ? (
-        <div className="py-16 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
-          <ScrollText className="size-8 text-muted-foreground/30" />
-          No matching security audit events found.
-        </div>
-      ) : (
-        <div className="relative py-4">
-          <div
-            className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-6 pointer-events-none"
-          >
-            {/* Central Vertical Timeline Track Line */}
-            <div
-              className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-1 rounded-full"
-              style={{
-                background: 'linear-gradient(to bottom, #22c55e, #06b6d4, #8b5cf6, #22c55e)',
-                boxShadow: '0 0 12px rgba(34, 197, 94, 0.5)',
-                animation: 'timelineDraw 1.2s ease-out 0.2s both',
-              }}
-            />
-            <span className="timeline-travel-dot" style={{ animationDelay: '0.35s' } as CSSProperties}>
-              <span
-                className="absolute inset-0 rounded-full blur-[5px]"
-                style={{ background: 'rgba(34, 197, 94, 0.7)' }}
-              />
-              <span
-                className="absolute inset-[3px] rounded-full bg-white"
-                style={{ boxShadow: '0 0 0 2px #22c55e, 0 0 10px rgba(34, 197, 94, 0.85)' }}
-              />
-            </span>
-            <span className="timeline-travel-dot timeline-travel-dot-secondary" style={{ animationDelay: '1.7s' } as CSSProperties}>
-              <span
-                className="absolute inset-0 rounded-full blur-[4px]"
-                style={{ background: 'rgba(6, 182, 212, 0.72)' }}
-              />
-              <span
-                className="absolute inset-[2px] rounded-full bg-white"
-                style={{ boxShadow: '0 0 0 1.5px #06b6d4, 0 0 8px rgba(6, 182, 212, 0.8)' }}
-              />
-            </span>
-          </div>
-          <div className="space-y-6 relative">
-            {filteredEvents.map((event, idx) => (
-              <TimelineEventCard key={event.id} event={event} index={idx} onSelect={() => setSelectedEvent(event)} />
+      {/* Audit Event Table */}
+      <div className="sector-card rounded-2xl overflow-hidden shadow-xl border-slate-200" style={{ background: 'linear-gradient(135deg, #ffffff, #f8fafc)' }}>
+        {loading ? (
+          <div className="p-5 space-y-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-11 rounded-xl bg-slate-100 animate-pulse" style={{ animationDelay: `${i * 40}ms` }} />
             ))}
           </div>
-        </div>
-      )}
+        ) : filteredEvents.length === 0 ? (
+          <div className="py-16 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+            <ScrollText className="size-8 text-muted-foreground/30" />
+            No matching security audit events found.
+          </div>
+        ) : (
+          <div className="px-4">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200 hover:bg-transparent bg-slate-50/80">
+                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-slate-600">Event</TableHead>
+                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-slate-600">Actor</TableHead>
+                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-slate-600">Layer</TableHead>
+                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-slate-600">Outcome</TableHead>
+                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-slate-600 text-right">Time</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredEvents.map((event, idx) => (
+                  <AuditRow key={event.id} event={event} index={idx} onSelect={() => setSelectedEvent(event)} />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
-      <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={(off) => { setOffset(off); load(query, off) }} />
+        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={(off) => { setOffset(off); load(query, off) }} />
+      </div>
 
       {/* Event Inspector Modal */}
       {selectedEvent && (

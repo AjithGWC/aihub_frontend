@@ -217,7 +217,7 @@ function QuickTile({ label, color, sublabel, icon: Icon, sectorKey }: { label: s
       className="spotlight-card card-hover-lift magnetic-btn flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden shadow-md cursor-pointer hover:-translate-y-1 hover:shadow-xl"
       style={{
         background: `radial-gradient(circle at 50% 0%, ${color}15, transparent 70%), linear-gradient(135deg, #ffffff, #f8fafc)`,
-        border: `1.5px solid ${color}40`,
+        border: `1.5px solid ${color}50`,
         boxShadow: `0 6px 18px rgba(15, 23, 42, 0.06)`
       }}
     >
@@ -478,7 +478,7 @@ export default function Dashboard() {
                   className="spotlight-card rounded-xl p-3 flex flex-col items-center justify-center gap-1.5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer group relative overflow-hidden"
                   style={{
                     background: `radial-gradient(circle at 90% 10%, ${color}15, transparent 65%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
-                    border: `1.5px solid ${color}40`,
+                    border: `1.5px solid ${color}50`,
                     borderTop: `3px solid ${color}`
                   }}
                 >

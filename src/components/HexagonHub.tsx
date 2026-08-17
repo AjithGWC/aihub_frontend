@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Cpu,
   ArrowLeft,
@@ -9,9 +9,27 @@ import {
   Boxes,
   ScrollText,
   LogOut,
+  Server,
+  Network,
+  HardDrive,
+  Database,
+  Terminal,
+  MapPin,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
+import { IndiaMap } from "india-map-react";
+import { geoMercator } from "d3-geo";
 import { COLOR, SECTOR_COLOR, FONT_HEADING, FONT_BODY, type SectorTone } from "./atlasTheme";
+
+// Matches india-map-react's internal ComposableMap projection exactly (geoMercator,
+// scale 1000, center [82.8, 22.5], 800x600 viewBox) so overlay callouts land on the
+// same point as the rendered marker instead of drifting.
+const INDIA_PROJECTION = geoMercator().center([82.8, 22.5]).scale(1000).translate([400, 300]);
+
+const HSR_LNG = 77.8326;
+const HSR_LAT = 12.7365;
+const HSR_POINT = INDIA_PROJECTION([HSR_LNG, HSR_LAT]) ?? [400, 300];
 import { useSession } from "../auth/SessionContext";
 import AihDashboard from "../ai-access-hub/pages/Dashboard";
 import AihUsersRoles from "../ai-access-hub/pages/UsersRoles";
@@ -144,6 +162,273 @@ interface CatItem {
 interface HighlightItem {
   left: number; top: number; label: string; border: string; ink: string;
   op: number; scale: number; transition: string;
+}
+
+/* ------------------------------------------------------------------ */
+/*  On-Premises Server Details — right-side panel on the landing hub   */
+/* ------------------------------------------------------------------ */
+
+const ONPREM_TONE = SECTOR_COLOR.violet;
+
+const ONPREM_DETAILS: { label: string; value: string; icon: LucideIcon; mono: boolean }[] = [
+  { label: "Hostname", value: "gwc-onprem-node-01.hosur.internal", icon: Server, mono: true },
+  { label: "IP Address", value: "10.142.48.12", icon: Network, mono: true },
+  { label: "Operating System", value: "AlmaLinux OS 9.4", icon: Cpu, mono: false },
+  { label: "Compute CPU", value: "2× Xeon Gold 6430 (64c)", icon: Cpu, mono: false },
+  { label: "System RAM", value: "512 GB DDR5 ECC", icon: Zap, mono: false },
+  { label: "NVMe Storage", value: "4× 3.84TB RAID 10", icon: HardDrive, mono: false },
+  { label: "Local Database", value: "SQLite v3.45", icon: Database, mono: true },
+];
+
+const ONPREM_TELEMETRY = [
+  { text: "ZFS POOL STATUS: HEALTHY (RAID 10)", color: "#22c55e" },
+  { text: "INTRANET GATEWAY: SECURED", color: "#22c55e" },
+  { text: "OS UPDATE: ALMALINUX 9.4 UP-TO-DATE", color: "#a78bfa" },
+  { text: "LATENCY CHECK: 1.15ms (LAN)", color: "#a78bfa" },
+  { text: "BACKUP DAEMON: STANDBY", color: "#f59e0b" },
+];
+
+function OnPremContent() {
+  const mapBoxRef = useRef<HTMLDivElement>(null);
+  const dotRef = useRef<SVGCircleElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const [leaderLine, setLeaderLine] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+
+  // Measure the dot's and badge's REAL rendered screen positions (accounting for the
+  // map's zoom/pan transform and the panel's responsive width) rather than guessing
+  // coordinates by hand — guarantees the connector always actually touches both ends.
+  useEffect(() => {
+    function measure() {
+      const box = mapBoxRef.current;
+      const dot = dotRef.current;
+      const badge = badgeRef.current;
+      if (!box || !dot || !badge) return;
+      const boxRect = box.getBoundingClientRect();
+      const dotRect = dot.getBoundingClientRect();
+      const badgeRect = badge.getBoundingClientRect();
+      setLeaderLine({
+        x1: dotRect.left + dotRect.width / 2 - boxRect.left,
+        y1: dotRect.top + dotRect.height / 2 - boxRect.top,
+        x2: badgeRect.left + badgeRect.width / 2 - boxRect.left,
+        y2: badgeRect.top - boxRect.top,
+      });
+    }
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (mapBoxRef.current) ro.observe(mapBoxRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  return (
+    <div className="p-6 space-y-4">
+        {/* Header */}
+        <div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div
+                className="rounded-full flex items-center justify-center flex-none"
+                style={{ width: 34, height: 34, background: `${ONPREM_TONE.ring}18`, border: `1.5px solid ${ONPREM_TONE.ring}55` }}
+              >
+                <Server size={16} color={ONPREM_TONE.ink} />
+              </div>
+              <div style={{ fontFamily: FONT_HEADING, fontSize: 17, color: COLOR.neutral100 }}>On-Prem Server</div>
+            </div>
+            <span
+              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold uppercase"
+              style={{ color: "#16a34a", background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.4)" }}
+            >
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
+              Active
+            </span>
+          </div>
+          <p className="mt-1.5 text-[12px] leading-relaxed" style={{ color: COLOR.neutral400 }}>
+            Private compute node for the local intelligence pipeline — runs strictly inside the intranet.
+          </p>
+        </div>
+
+        {/* Top: compact detail rows */}
+        <div className="space-y-2 pt-1">
+          {ONPREM_DETAILS.map(({ label, value, icon: Icon, mono }) => (
+            <div key={label} className="flex items-center justify-between gap-2 text-[11px]">
+              <span className="flex items-center gap-1.5 font-bold flex-none" style={{ color: COLOR.neutral400 }}>
+                <Icon className="size-3 flex-none" style={{ color: ONPREM_TONE.ink }} />
+                {label}
+              </span>
+              <span
+                className="text-right truncate max-w-[190px]"
+                style={mono
+                  ? { fontFamily: "monospace", color: COLOR.neutral200, background: `${ONPREM_TONE.ring}12`, border: `1px solid ${ONPREM_TONE.ring}30`, borderRadius: 6, padding: "2px 6px" }
+                  : { color: COLOR.neutral200, fontWeight: 700 }}
+              >
+                {value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Middle: real India state-boundary map with node telemetry marker */}
+        <div
+          ref={mapBoxRef}
+          className="relative rounded-xl overflow-hidden"
+          style={{
+            height: 250,
+            background: `radial-gradient(circle at 50% 30%, ${ONPREM_TONE.ring}14, transparent 70%), linear-gradient(135deg, #faf5ff, #f5f3ff)`,
+            border: `1px solid ${ONPREM_TONE.ring}30`,
+          }}
+        >
+          {/* Zoomed/cropped inner layer — keeps the map's 4:3 projection aspect
+              intact so overlay percentages line up, then scales+crops via the
+              parent's overflow-hidden for the "zoomed in" look. Origin is pulled
+              down from center so the host marker (south India) stays fully
+              in frame instead of being pushed past the bottom edge. */}
+          <div className="absolute left-0 right-0 top-0" style={{ aspectRatio: "4 / 3", transform: "scale(1.15)", transformOrigin: "50% 52%" }}>
+            <IndiaMap
+              style={{ width: "100%" }}
+              disabled
+              showTooltip={false}
+              fillColor={`${ONPREM_TONE.ring}22`}
+              hoverColor={`${ONPREM_TONE.ring}22`}
+              strokeColor={`${ONPREM_TONE.ring}55`}
+              strokeWidth={0.6}
+              markers={[
+                { id: "del", label: "Delhi", lat: 28.61, lng: 77.2, color: ONPREM_TONE.ring },
+                { id: "mum", label: "Mumbai", lat: 19.08, lng: 72.88, color: ONPREM_TONE.ring },
+                { id: "kol", label: "Kolkata", lat: 22.57, lng: 88.36, color: ONPREM_TONE.ring },
+                { id: "hsr-city", label: "Hosur", lat: HSR_LAT, lng: HSR_LNG, color: ONPREM_TONE.ring },
+              ]}
+            />
+
+            {/* Host node dot — drawn ourselves instead of via the library's marker
+                renderer, whose internal pin offset never quite lined up with a
+                separately-computed leader line. */}
+            <svg viewBox="0 0 800 600" className="absolute inset-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
+              <circle
+                cx={HSR_POINT[0]} cy={HSR_POINT[1]} r={14}
+                fill="#ec4899" opacity={0.35} className="animate-ping"
+                style={{ transformOrigin: `${HSR_POINT[0]}px ${HSR_POINT[1]}px` }}
+              />
+              <circle ref={dotRef} cx={HSR_POINT[0]} cy={HSR_POINT[1]} r={7} fill="#ec4899" stroke="#fff" strokeWidth={2} />
+            </svg>
+          </div>
+
+          {/* Leader line — drawn in the OUTER box's real pixel space from the dot's and
+              badge's measured on-screen rects (see useEffect above), so it always
+              actually touches both ends regardless of zoom/pan or panel width. */}
+          {leaderLine && (
+            <svg className="absolute inset-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
+              <line
+                x1={leaderLine.x1} y1={leaderLine.y1}
+                x2={leaderLine.x2} y2={leaderLine.y2}
+                stroke="#ec4899" strokeWidth={2.2} strokeDasharray="5 5" opacity={0.85}
+              />
+            </svg>
+          )}
+
+          {/* Two-badge callout: node name + coordinates. Pinned to a fixed corner of the
+              OUTER (un-scaled, clipped) box — never affected by the zoom transform or the
+              projection math above, so it can never get pushed off-panel. */}
+          <div ref={badgeRef} className="absolute bottom-6.5 right-2.5 flex flex-col items-start gap-1 pointer-events-none max-w-[calc(100%-20px)]">
+            <span
+              className="px-2 py-0.5 rounded-full text-[8.5px] font-extrabold text-white whitespace-nowrap shadow-md"
+              style={{ background: "#ec4899" }}
+            >
+              HSR-NODE-01 (HOST)
+            </span>
+            <span
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-extrabold whitespace-nowrap shadow-md"
+              style={{ fontFamily: "monospace", color: "#ec4899", background: "#ffffff", border: "1px solid #ec4899" }}
+            >
+              <MapPin className="size-2.5" />
+              12.7365°N, 77.8326°E
+            </span>
+          </div>
+        </div>
+
+        {/* Bottom: terminal-style telemetry log */}
+        <div className="rounded-xl p-3 space-y-1.5" style={{ background: "#0a0a12", border: "1px solid rgba(255,255,255,.08)" }}>
+          <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
+            <Terminal className="size-3" />
+            Telemetry
+          </div>
+          {ONPREM_TELEMETRY.map((line) => (
+            <p key={line.text} className="text-[9.5px] leading-relaxed truncate" style={{ fontFamily: "monospace", color: line.color }}>
+              &gt; {line.text}
+            </p>
+          ))}
+        </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Desktop / mobile wrappers for OnPremContent                        */
+/* ------------------------------------------------------------------ */
+
+function OnPremSidePanel() {
+  return (
+    <div
+      className="hidden xl:block flex-none h-full overflow-y-auto overflow-x-hidden custom-scrollbar xl:w-[320px] 2xl:w-[380px]"
+      style={{ borderLeft: `1px solid ${COLOR.hairline}`, background: COLOR.panelBg }}
+    >
+      <OnPremContent />
+    </div>
+  );
+}
+
+function OnPremMobileDrawer() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      {/* Trigger tab — only shown below the xl breakpoint where the fixed sidebar is hidden */}
+      <button
+        onClick={() => setOpen(true)}
+        className="xl:hidden fixed z-40 flex items-center gap-1.5 px-3 py-2 rounded-l-full text-[11px] font-extrabold uppercase shadow-lg cursor-pointer transition-transform hover:-translate-x-1"
+        style={{ right: 0, top: "50%", transform: "translateY(-50%)", background: ONPREM_TONE.ring, color: "#fff", letterSpacing: ".04em" }}
+      >
+        <Server size={14} />
+        On-Prem
+      </button>
+
+      {/* Backdrop — blurs/dims the rest of the app while the drawer is open */}
+      <div
+        onClick={() => setOpen(false)}
+        className={`xl:hidden fixed inset-0 z-40 transition-opacity duration-300 ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        style={{ background: "rgba(15,23,42,0.35)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
+      />
+
+      {/* Sliding panel */}
+      <div
+        className="xl:hidden fixed right-0 top-0 z-50 h-full w-[85vw] max-w-[360px] overflow-y-auto overflow-x-hidden custom-scrollbar shadow-2xl transition-transform duration-300"
+        style={{
+          borderLeft: `1px solid ${COLOR.hairline}`,
+          background: COLOR.panelBg,
+          transform: open ? "translateX(0)" : "translateX(100%)",
+        }}
+      >
+        {/* Drawer header — its own row, so the close button never overlaps the
+            content's own title/badge below it. */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3" style={{ background: COLOR.panelBg, borderBottom: `1px solid ${COLOR.hairline}` }}>
+          <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: COLOR.neutral400, letterSpacing: ".08em" }}>
+            On-Prem Details
+          </span>
+          <button
+            onClick={() => setOpen(false)}
+            className="flex items-center justify-center size-8 rounded-full flex-none cursor-pointer transition-colors hover:bg-black/5"
+            style={{ background: "rgba(15,23,42,.06)", color: COLOR.neutral300 }}
+            title="Close"
+          >
+            <ArrowLeft size={16} />
+          </button>
+        </div>
+        <OnPremContent />
+      </div>
+    </>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -479,7 +764,8 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
         @keyframes atlas-pop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
       `}</style>
 
-      <div ref={fitRef} className="flex justify-center items-center w-full h-full flex-1 min-h-0">
+      <div className="flex w-full h-full flex-1 min-h-0">
+      <div ref={fitRef} className="flex justify-center items-center flex-1 min-w-0 h-full">
         {/* ---------------- Graph canvas ---------------- */}
         <div
           className="relative flex-none overflow-hidden origin-center"
@@ -724,7 +1010,7 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
               </button>
 
               <div
-                className="absolute flex flex-col gap-5 overflow-hidden"
+                className="absolute flex flex-col gap-5"
                 style={{ left: 402, top: 90, width: 1530, height: VB_H - 120, animation: "atlas-pop 1.2s cubic-bezier(.22,1,.36,1) both" }}
               >
                 <div className="flex items-center gap-4 flex-none" style={{ paddingLeft: 42 }}>
@@ -733,6 +1019,11 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
                     <span
                       className="absolute z-[5] rounded-full arrival-ripple-ring pointer-events-none"
                       style={{
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        margin: "auto",
                         width: 70,
                         height: 70,
                         background: focusTone.ring,
@@ -740,7 +1031,11 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
                     />
 
                     {/* Spinning dashed orbit ring */}
-                    <svg width="72" height="72" className="absolute -rotate-90 pointer-events-none">
+                    <svg
+                      width="72" height="72"
+                      className="absolute -rotate-90 pointer-events-none"
+                      style={{ top: 0, left: 0, right: 0, bottom: 0, margin: "auto" }}
+                    >
                       <circle
                         cx="36" cy="36" r="33"
                         fill="none"
@@ -810,6 +1105,14 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
             Logout
           </button>
         </div>
+      </div>
+
+      {!isFocus && (
+        <>
+          <OnPremSidePanel />
+          <OnPremMobileDrawer />
+        </>
+      )}
       </div>
     </div>
   );

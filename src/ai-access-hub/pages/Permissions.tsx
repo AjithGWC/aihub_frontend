@@ -412,7 +412,7 @@ export default function Permissions() {
                 </div>
               </div>
               <div>
-                <p className="text-3xl font-black font-mono text-slate-900 tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5">{value}</p>
+                <p className="text-3xl font-black font-mono tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5" style={{ color, textShadow: `0 0 18px ${color}45` }}>{value}</p>
                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-600 mt-0.5">{label}</p>
               </div>
             </div>
