@@ -129,16 +129,24 @@ export default function AuditLog() {
   const [loading, setLoading] = useState(true)
   const [selectedEvent, setSelectedEvent] = useState<AuditLogEntry | null>(null)
   const [copiedId, setCopiedId] = useState(false)
+  const [passedCount, setPassedCount] = useState(0)
+  const [deniedCount, setDeniedCount] = useState(0)
+  const [errorCount, setErrorCount] = useState(0)
 
-  async function load(q: string, off: number) {
+  async function load(q: string, off: number, outcome: string, layer: string) {
     setLoading(true)
     try {
       const { data } = await api.get('/audit-log', {
-        params: { q: q || undefined, offset: off, limit: 10 },
+        params: { q: q || undefined, outcome, layer, offset: off, limit: 10 },
       })
       const loaded = data?.events ?? data?.logs ?? (Array.isArray(data) ? data : [])
       setEvents(loaded)
       setTotal(data?.total ?? loaded.length)
+      // These are counted across the full filtered result set server-side, not just
+      // this page — otherwise the KPI tiles only ever reflected the current page size.
+      setPassedCount(data?.passedCount ?? 0)
+      setDeniedCount(data?.deniedCount ?? 0)
+      setErrorCount(data?.errorCount ?? 0)
     } catch (err) {
       console.error('Failed to load audit logs', err)
       setEvents([])
@@ -147,12 +155,20 @@ export default function AuditLog() {
     }
   }
 
-  useEffect(() => { load('', 0) }, [])
+  useEffect(() => { load('', 0, 'all', 'all') }, [])
 
   useEffect(() => {
-    const t = setTimeout(() => { setOffset(0); load(query, 0) }, 300)
+    const t = setTimeout(() => { setOffset(0); load(query, 0, outcomeFilter, layerFilter) }, 300)
     return () => clearTimeout(t)
   }, [query])
+
+  // Outcome/layer filters must be applied server-side (like search) rather than to
+  // just the currently-loaded page — otherwise selecting a filter with matches on
+  // other pages shows an empty table even though matches exist.
+  useEffect(() => {
+    setOffset(0)
+    load(query, 0, outcomeFilter, layerFilter)
+  }, [outcomeFilter, layerFilter])
 
   function handleCopyTrace(id: string) {
     navigator.clipboard.writeText(id)
@@ -160,15 +176,7 @@ export default function AuditLog() {
     setTimeout(() => setCopiedId(false), 2000)
   }
 
-  const safeEvents = Array.isArray(events) ? events : []
-  const passedCount = safeEvents.filter((e) => e.outcome === 'passed').length
-  const deniedCount = safeEvents.filter((e) => e.outcome === 'denied').length
-  const errorCount = safeEvents.filter((e) => e.outcome === 'error').length
-
-  const filteredEvents = safeEvents.filter((e) => {
-    return (outcomeFilter === 'all' || e.outcome === outcomeFilter) &&
-           (layerFilter === 'all' || e.layer === layerFilter)
-  })
+  const filteredEvents = Array.isArray(events) ? events : []
 
   return (
     <div className="page sector-green space-y-6 animate-slide-up">
@@ -326,7 +334,7 @@ export default function AuditLog() {
           </div>
         )}
 
-        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={(off) => { setOffset(off); load(query, off) }} />
+        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={(off) => { setOffset(off); load(query, off, outcomeFilter, layerFilter) }} />
       </div>
 
       {/* Event Inspector Modal */}
