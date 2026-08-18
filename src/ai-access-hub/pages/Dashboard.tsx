@@ -56,18 +56,17 @@ function RingGauge({ value, max, label, sublabel, color, glow, icon: Icon, delay
   return (
     <div
       onMouseMove={handleMouseMove}
-      className="spotlight-card rounded-2xl flex flex-col items-center justify-between p-5 animate-stagger-1 group relative overflow-hidden shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+      className="spotlight-card motion-spring-card animate-float-slow rounded-2xl p-4 flex flex-col items-center justify-between gap-3 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03] hover:shadow-2xl cursor-pointer"
       style={{
-        animationDelay: `${delay}ms`,
-        background: `radial-gradient(circle 220px at ${pos.x}px ${pos.y}px, ${color}22, transparent 75%), radial-gradient(circle at 90% 10%, ${color}18, transparent 65%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
+        animationDelay: `${delay * 6}ms`,
+        background: `radial-gradient(circle 220px at var(--mouse-x, 50%) var(--mouse-y, 30%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
         border: `1.5px solid ${color}50`,
         borderTop: `4px solid ${color}`,
-        boxShadow: `0 8px 24px rgba(15, 23, 42, 0.06), 0 0 16px ${color}15`,
-        minHeight: '210px'
+        boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
       }}
     >
-      {/* Ambient Corner Energy Glow */}
-      <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+      <div className="scanner-sweep-line" />
+      <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-35 animate-float-gentle pointer-events-none" style={{ background: color }} />
 
       {/* Shimmer sweep effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
@@ -151,12 +150,15 @@ function TimelineEvent({ event, delay }: { event: AuditLogEntry; delay: number }
   const isDenied = event.outcome === 'denied'
   const StatusIcon = isPassed ? CheckCircle2 : isDenied ? AlertCircle : XCircle
   const dotColor = isPassed ? '#22c55e' : isDenied ? '#f59e0b' : '#f43f5e'
-  const bgColor = isPassed ? 'rgba(34,197,94,0.15)' : isDenied ? 'rgba(245,158,11,0.15)' : 'rgba(244,63,94,0.15)'
-  const borderColor = isPassed ? 'rgba(34,197,94,0.45)' : isDenied ? 'rgba(245,158,11,0.45)' : 'rgba(244,63,94,0.45)'
+  const bgColor = isPassed ? 'rgba(34,197,94,0.1)' : isDenied ? 'rgba(245,158,11,0.1)' : 'rgba(244,63,94,0.1)'
+  const borderColor = isPassed ? 'rgba(34,197,94,0.3)' : isDenied ? 'rgba(245,158,11,0.3)' : 'rgba(244,63,94,0.3)'
 
   function handleNavigateAudit() {
     window.dispatchEvent(new CustomEvent('hexagon-hub-select-sector', { detail: 'audit' }))
   }
+
+  const actorName = event.actorEmail || 'System'
+  const initial = actorName.charAt(0).toUpperCase()
 
   return (
     <div
@@ -164,41 +166,94 @@ function TimelineEvent({ event, delay }: { event: AuditLogEntry; delay: number }
       className="flex items-center gap-3 animate-slide-left group cursor-pointer relative"
       style={{ animationDelay: `${delay}ms` }}
     >
-      {/* Node circle (solid bg covers the line behind it) */}
-      <div className="flex flex-col items-center flex-none z-10">
+      {/* Node Badge Circle (solid background perfectly covers vertical track line behind it) */}
+      <div className="flex flex-col items-center flex-none z-10 relative">
         <div
-          className="relative flex items-center justify-center size-7 rounded-full bg-white transition-all duration-300 group-hover:scale-125 shadow-xs"
-          style={{ background: '#ffffff', border: `2px solid ${dotColor}`, boxShadow: `0 0 14px ${dotColor}44` }}
+          className="relative flex items-center justify-center size-7 rounded-full bg-white transition-all duration-300 group-hover:scale-125 shadow-2xs"
+          style={{
+            background: '#ffffff',
+            border: `2px solid ${dotColor}`,
+            boxShadow: `0 0 10px ${dotColor}35`
+          }}
         >
-          <div className="size-2.5 rounded-full animate-ping absolute" style={{ background: dotColor, opacity: 0.3 }} />
-          <StatusIcon className="size-3.5 relative z-10" style={{ color: dotColor }} />
+          {/* Internal Pulse Ring */}
+          <div
+            className="size-2.5 rounded-full animate-ping absolute opacity-30 pointer-events-none"
+            style={{ background: dotColor }}
+          />
+
+          {/* Status Icon */}
+          <StatusIcon className="size-3.5 relative z-10 transition-transform group-hover:scale-110" style={{ color: dotColor }} />
         </div>
       </div>
 
-      {/* Content card */}
+      {/* Clean Horizontal Connector Arm */}
       <div
-        className="flex-1 min-w-0 rounded-xl px-4 py-2.5 transition-all duration-300 group-hover:scale-[1.015] group-hover:-translate-y-0.5 border-slate-200 group-hover:border-blue-400/60 shadow-xs group-hover:shadow-md relative overflow-hidden"
+        className="w-4 h-[1.5px] flex-none z-0 relative overflow-hidden rounded-full -mx-0.5"
+        style={{ background: `linear-gradient(90deg, ${dotColor}, ${dotColor}30)` }}
+      >
+        <div
+          className="absolute inset-y-0 w-2 rounded-full animate-comet-slide"
+          style={{
+            background: '#ffffff',
+            boxShadow: `0 0 6px ${dotColor}`,
+            animationDuration: '2s'
+          }}
+        />
+      </div>
+
+      {/* Main Event Content Card */}
+      <div
+        className="flex-1 min-w-0 rounded-2xl px-4 py-2.5 transition-all duration-300 group-hover:translate-x-1 group-hover:-translate-y-0.5 border-slate-200/90 group-hover:border-slate-300 shadow-2xs group-hover:shadow-md relative overflow-hidden bg-white/90 backdrop-blur-md"
         style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-          borderLeft: `4px solid ${dotColor}`,
-          boxShadow: '0 4px 15px rgba(15, 23, 42, 0.05)'
+          borderLeft: `3.5px solid ${dotColor}`,
+          boxShadow: '0 3px 12px rgba(15, 23, 42, 0.03)'
         }}
       >
-        {/* Shimmer sweep */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+        {/* Subtle background hover glow */}
+        <div
+          className="absolute -right-6 -bottom-6 size-24 rounded-full blur-xl opacity-0 group-hover:opacity-15 transition-opacity duration-500 pointer-events-none"
+          style={{ background: dotColor }}
+        />
 
+        {/* Top Line: Event Name + Outcome Badge */}
         <div className="flex items-center justify-between gap-2 z-10 relative">
-          <span className="text-xs font-black font-mono text-slate-900 group-hover:text-[#0284c7] transition-colors truncate">{event.event}</span>
-          <Badge variant="outline" className="text-[9.5px] px-2.5 py-0.5 font-mono font-extrabold flex-none capitalize tracking-wider flex items-center gap-1.5 shadow-xs" style={{ borderColor, color: dotColor, background: bgColor }}>
+          <span className="text-[12px] font-black font-mono text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+            {event.event}
+          </span>
+
+          <Badge
+            variant="outline"
+            className="text-[9.5px] px-2.5 py-0.5 font-mono font-extrabold flex-none capitalize tracking-wider flex items-center gap-1.5 shadow-2xs transition-transform group-hover:scale-105"
+            style={{ borderColor, color: dotColor, background: bgColor }}
+          >
             <span className="size-1.5 rounded-full animate-ping" style={{ background: dotColor }} />
             {event.outcome}
           </Badge>
         </div>
-        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-600 font-mono z-10 relative">
-          <span className="truncate font-bold text-slate-800">{event.actorEmail || 'System'}</span>
-          <span className="flex-none text-slate-400">·</span>
-          <span className="flex-none font-medium text-slate-500">{new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          <span className="flex-none uppercase border border-slate-300 px-1.5 py-0.2 rounded text-slate-700 bg-slate-100 font-extrabold text-[9px]">{event.layer}</span>
+
+        {/* Bottom Line: Actor Avatar + Email + Timestamp + Layer */}
+        <div className="flex items-center justify-between gap-2 mt-1.5 text-[11px] text-slate-600 font-mono z-10 relative flex-wrap">
+          <div className="flex items-center gap-1.5 truncate">
+            <span
+              className="size-4 rounded-full flex items-center justify-center text-[9px] font-black text-white flex-none"
+              style={{ background: `linear-gradient(135deg, ${dotColor}, #3b82f6)` }}
+            >
+              {initial}
+            </span>
+            <span className="truncate font-bold text-slate-800">{actorName}</span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-none text-[10px]">
+            <span className="flex items-center gap-1 text-slate-500 font-medium">
+              <Clock className="size-3 text-slate-400" />
+              {new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="uppercase border border-slate-200 px-1.5 py-0.2 rounded text-slate-700 bg-slate-100 font-extrabold text-[9px]">
+              {event.layer}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -206,7 +261,18 @@ function TimelineEvent({ event, delay }: { event: AuditLogEntry; delay: number }
 }
 
 /* ─── Quick Shortcut Tile ─── */
-function QuickTile({ label, color, sublabel, icon: Icon, sectorKey }: { label: string; color: string; sublabel: string; icon: React.ElementType; sectorKey: string }) {
+interface QuickTileProps {
+  label: string
+  color: string
+  sublabel: string
+  icon: React.ElementType
+  sectorKey: string
+  isActive: boolean
+  stepNumber: number
+  onHover: () => void
+}
+
+function QuickTile({ label, color, sublabel, icon: Icon, sectorKey, isActive, stepNumber, onHover }: QuickTileProps) {
   function handleClick() {
     window.dispatchEvent(new CustomEvent('hexagon-hub-select-sector', { detail: sectorKey }))
   }
@@ -214,19 +280,146 @@ function QuickTile({ label, color, sublabel, icon: Icon, sectorKey }: { label: s
   return (
     <button
       onClick={handleClick}
-      className="spotlight-card card-hover-lift magnetic-btn flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden shadow-md cursor-pointer hover:-translate-y-1 hover:shadow-xl"
+      onMouseEnter={onHover}
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+        e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+      }}
+      className={`spotlight-card motion-spring-card flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl transition-all duration-500 group relative overflow-hidden cursor-pointer bg-white ${
+        isActive
+          ? 'z-20 -translate-y-1.5 scale-[1.03] shadow-lg'
+          : 'z-10 hover:-translate-y-0.5 hover:scale-[1.01] shadow-xs'
+      }`}
       style={{
-        background: `radial-gradient(circle at 50% 0%, ${color}15, transparent 70%), linear-gradient(135deg, #ffffff, #f8fafc)`,
-        border: `1.5px solid ${color}40`,
-        boxShadow: `0 6px 18px rgba(15, 23, 42, 0.06)`
+        background: isActive
+          ? `radial-gradient(circle 180px at var(--mouse-x, 50%) var(--mouse-y, 20%), ${color}08, #ffffff 85%)`
+          : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+        border: isActive ? `1.5px solid ${color}60` : '1px solid rgba(226, 232, 240, 0.8)',
+        borderTop: `2.5px solid ${color}`,
+        boxShadow: isActive
+          ? `0 10px 24px -4px rgba(15, 23, 42, 0.08), 0 0 12px ${color}15`
+          : '0 2px 8px rgba(15, 23, 42, 0.03)'
       }}
     >
-      <div className="p-2.5 rounded-xl transition-transform duration-300 group-hover:scale-110 shadow-xs" style={{ background: `${color}18`, border: `1.5px solid ${color}44` }}>
-        <Icon className="size-4.5 icon-spring" style={{ color }} />
+      <div className="scanner-sweep-line opacity-40" />
+      
+      {/* Soft subtle corner glow */}
+      <div
+        className={`absolute -right-4 -bottom-4 size-16 rounded-full blur-xl pointer-events-none transition-opacity duration-500 ${
+          isActive ? 'opacity-15 scale-110' : 'opacity-0'
+        }`}
+        style={{ background: color }}
+      />
+
+      {/* Active Top Step Badge */}
+      <div className="w-full flex items-center justify-between text-[9px] font-mono font-extrabold z-10">
+        <span
+          className={`px-1.5 py-0.2 rounded-full border transition-all duration-300 ${
+            isActive
+              ? 'bg-slate-100 text-slate-800 border-slate-300 shadow-2xs'
+              : 'bg-slate-50 text-slate-400 border-slate-200'
+          }`}
+        >
+          0{stepNumber}
+        </span>
+        {isActive && (
+          <span className="flex items-center gap-1 text-[8.5px] font-mono font-extrabold" style={{ color }}>
+            <span className="size-1.5 rounded-full animate-ping" style={{ background: color }} />
+            ACTIVE
+          </span>
+        )}
       </div>
-      <div className="text-center">
-        <span className="text-[11px] font-black uppercase tracking-widest text-slate-900 group-hover:text-slate-950 block">{label}</span>
-        <span className="text-[9.5px] font-extrabold text-slate-500 font-mono block mt-0.5">{sublabel}</span>
+
+      {/* Rotating Circle Container */}
+      <div className="relative flex items-center justify-center size-14 flex-none my-0.5 z-10">
+        {/* Soft Background Radial Glow Pulse */}
+        <div
+          className={`absolute inset-1 rounded-full pointer-events-none blur-xs transition-all duration-500 ${
+            isActive ? 'animate-pulse opacity-15' : 'opacity-0'
+          }`}
+          style={{ background: color }}
+        />
+
+        {/* Outer Clockwise Rotating Dashed Orbit Ring */}
+        <svg
+          viewBox="0 0 56 56"
+          className="absolute inset-0 size-full pointer-events-none animate-spin"
+          style={{ animationDuration: isActive ? '2s' : '10s' }}
+        >
+          <circle
+            cx="28"
+            cy="28"
+            r="25"
+            fill="none"
+            stroke={color}
+            strokeWidth={isActive ? '1.5' : '1'}
+            strokeDasharray={isActive ? '5 5' : '3 6'}
+            opacity={isActive ? '0.7' : '0.35'}
+          />
+        </svg>
+
+        {/* Inner Counter-Clockwise Rotating Orbit Ring */}
+        <svg
+          viewBox="0 0 56 56"
+          className="absolute inset-0 size-full pointer-events-none animate-spin"
+          style={{ animationDuration: isActive ? '1.4s' : '7s', animationDirection: 'reverse' }}
+        >
+          <circle
+            cx="28"
+            cy="28"
+            r="20"
+            fill="none"
+            stroke={color}
+            strokeWidth="1"
+            strokeDasharray="2 4"
+            opacity={isActive ? '0.5' : '0.25'}
+          />
+        </svg>
+
+        {/* Orbiting Glowing Particle Dot */}
+        <div
+          className="absolute inset-0 pointer-events-none animate-spin"
+          style={{ animationDuration: isActive ? '1.4s' : '5s' }}
+        >
+          <div
+            className={`rounded-full absolute top-[2px] left-[27px] transition-all duration-300 ${
+              isActive ? 'size-2 scale-110' : 'size-1.5'
+            }`}
+            style={{
+              background: color,
+              boxShadow: isActive ? `0 0 6px ${color}` : 'none'
+            }}
+          />
+        </div>
+
+        {/* Center Circular Icon Badge */}
+        <div
+          className={`size-10 rounded-full flex items-center justify-center transition-all duration-500 shadow-xs relative z-10 ${
+            isActive ? 'scale-105 rotate-3 shadow-sm' : 'group-hover:scale-105'
+          }`}
+          style={{
+            background: isActive ? `${color}12` : `${color}0a`,
+            border: isActive ? `1.5px solid ${color}40` : `1px solid ${color}25`,
+            boxShadow: isActive ? `0 0 10px ${color}15` : 'none'
+          }}
+        >
+          <Icon className={`size-4.5 icon-spring transition-transform duration-300 ${isActive ? 'scale-105' : ''}`} style={{ color }} />
+        </div>
+      </div>
+
+      {/* Label and Sublabel */}
+      <div className="text-center z-10 relative">
+        <span
+          className={`text-[11.5px] font-black uppercase tracking-widest transition-colors block ${
+            isActive ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'
+          }`}
+        >
+          {label}
+        </span>
+        <span className="text-[9.5px] font-bold text-slate-500 font-mono block mt-0.5">
+          {sublabel}
+        </span>
       </div>
     </button>
   )
@@ -245,6 +438,75 @@ const QUICK_TILES = [
   { label: 'Models', sublabel: 'Registry', icon: Cpu, color: '#f59e0b', sectorKey: 'models' },
   { label: 'Audit Log', sublabel: 'Telemetry', icon: BarChart3, color: '#22c55e', sectorKey: 'audit' },
 ]
+
+/* ─── Quick Access Container with Sequential Auto-Rotating Cards ─── */
+function QuickAccessWidget() {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(true)
+
+  useEffect(() => {
+    if (!isPlaying) return
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % QUICK_TILES.length)
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [isPlaying])
+
+  return (
+    <div
+      onMouseEnter={() => setIsPlaying(false)}
+      onMouseLeave={() => setIsPlaying(true)}
+      className="rounded-2xl p-4 shadow-lg border-slate-200 relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
+        border: '1.5px solid rgba(59, 130, 246, 0.3)',
+        boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
+      }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-1.5">
+          <Zap className="size-3.5 text-[#3b82f6]" />
+          Quick Access
+        </h2>
+
+        {/* Sequential Step Progress & Auto-Play Control */}
+        <div className="flex items-center gap-2 z-10">
+          <div className="flex items-center gap-1">
+            {QUICK_TILES.map((t, idx) => (
+              <button
+                key={t.label}
+                onClick={() => setActiveIndex(idx)}
+                title={`Rotate to ${t.label}`}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  activeIndex === idx ? 'w-5' : 'w-1.5 opacity-40 hover:opacity-80'
+                }`}
+                style={{ background: activeIndex === idx ? t.color : '#94a3b8' }}
+              />
+            ))}
+          </div>
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="text-[9.5px] font-mono font-extrabold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+          >
+            {isPlaying ? '⏸ Cycle' : '▶ Play'}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 relative">
+        {QUICK_TILES.map((tile, i) => (
+          <QuickTile
+            key={tile.label}
+            {...tile}
+            stepNumber={i + 1}
+            isActive={activeIndex === i}
+            onHover={() => setActiveIndex(i)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const [auditEvents, setAuditEvents] = useState<AuditLogEntry[]>([])
@@ -327,11 +589,11 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Activity Timeline */}
         <div
-          className="lg:col-span-2 rounded-2xl p-5 shadow-lg border-slate-200"
+          className="lg:col-span-2 rounded-2xl p-5 shadow-lg border-slate-200/80 backdrop-blur-md"
           style={{
-            background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
-            border: '1.5px solid rgba(59, 130, 246, 0.3)',
-            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
+            background: 'rgba(255, 255, 255, 0.45)',
+            border: '1.5px solid rgba(59, 130, 246, 0.25)',
+            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.04)'
           }}
         >
           <div className="flex items-center justify-between mb-5">
@@ -358,14 +620,23 @@ export default function Dashboard() {
           <div ref={timelineRef} className="relative space-y-0">
             {/* Animated vertical track line perfectly centered behind 28px node circles (at left 13px) */}
             {auditEvents.length > 0 && (
-              <div
-                className="absolute left-[13px] top-3 bottom-3 w-[2px] rounded-full z-0 pointer-events-none"
-                style={{
-                  background: 'linear-gradient(to bottom, #3b82f6 0%, #a855f7 50%, #22c55e 100%)',
-                  boxShadow: '0 0 8px rgba(59, 130, 246, 0.5)',
-                  animation: 'timelineDraw 1.2s ease-out 0.2s both'
-                }}
-              />
+              <>
+                <div
+                  className="absolute left-[13px] top-3 bottom-3 w-[2px] rounded-full z-0 pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(to bottom, #22c55e 0%, #3b82f6 50%, #a855f7 100%)',
+                    boxShadow: '0 0 8px rgba(34, 197, 94, 0.4)',
+                    animation: 'timelineDraw 1.2s ease-out 0.2s both'
+                  }}
+                />
+                <div
+                  className="absolute left-[13px] w-0.5 h-8 rounded-full z-0 pointer-events-none animate-comet-slide"
+                  style={{
+                    background: 'linear-gradient(to bottom, transparent, #22c55e, #ffffff)',
+                    boxShadow: '0 0 14px #22c55e, 0 0 24px #3b82f6',
+                  }}
+                />
+              </>
             )}
 
             <div className="space-y-3.5 pl-0 relative z-10">
@@ -390,24 +661,7 @@ export default function Dashboard() {
         {/* Right column: Quick Tiles + Status */}
         <div className="flex flex-col gap-4">
           {/* Quick Access */}
-          <div
-            className="rounded-2xl p-4 shadow-lg border-slate-200"
-            style={{
-              background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
-              border: '1.5px solid rgba(59, 130, 246, 0.3)',
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
-            }}
-          >
-            <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-              <Zap className="size-3.5 text-[#3b82f6]" />
-              Quick Access
-            </h2>
-            <div className="grid grid-cols-2 gap-2.5">
-              {QUICK_TILES.map((tile) => (
-                <QuickTile key={tile.label} {...tile} />
-              ))}
-            </div>
-          </div>
+          <QuickAccessWidget />
 
           {/* System health strip */}
           <div

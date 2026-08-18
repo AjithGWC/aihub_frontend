@@ -1087,81 +1087,154 @@ select.input {
    ========================================================================== */
 
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Ring gauge arc draw animation */
 @keyframes ringDraw {
-  0% { stroke-dashoffset: var(--ring-circumference, 502); }
-  100% { stroke-dashoffset: var(--ring-offset, 0); }
+  0% {
+    stroke-dashoffset: var(--ring-circumference, 502);
+  }
+
+  100% {
+    stroke-dashoffset: var(--ring-offset, 0);
+  }
 }
 
 /* Card flip animation */
 @keyframes flipIn {
-  0% { transform: perspective(600px) rotateY(-90deg); opacity: 0; }
-  100% { transform: perspective(600px) rotateY(0deg); opacity: 1; }
+  0% {
+    transform: perspective(600px) rotateY(-90deg);
+    opacity: 0;
+  }
+
+  100% {
+    transform: perspective(600px) rotateY(0deg);
+    opacity: 1;
+  }
 }
 
 /* Timeline line draw from top */
 @keyframes timelineDraw {
-  0% { height: 0%; opacity: 0; }
-  100% { height: 100%; opacity: 1; }
+  0% {
+    height: 0%;
+    opacity: 0;
+  }
+
+  100% {
+    height: 100%;
+    opacity: 1;
+  }
 }
 
 /* Event pop-in from left */
 @keyframes slideInLeft {
-  0% { opacity: 0; transform: translateX(-20px); }
-  100% { opacity: 1; transform: translateX(0); }
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* Orb glow pulse on toggle */
 @keyframes orbPulse {
-  0% { box-shadow: 0 0 0 0 var(--sector-glow, rgba(59,130,246,0.4)); }
-  70% { box-shadow: 0 0 0 10px rgba(59,130,246,0); }
-  100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+  0% {
+    box-shadow: 0 0 0 0 var(--sector-glow, rgba(59, 130, 246, 0.4));
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
 }
 
 /* Counter tick-up number animation */
 @keyframes counterUp {
-  0% { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Spotlight moving glow sweep */
 @keyframes spotlightSweep {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 /* Shimmer loading bar */
 @keyframes shimmerLoad {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% {
+    background-position: -400px 0;
+  }
+
+  100% {
+    background-position: 400px 0;
+  }
 }
 
 /* Vault unlock open effect */
 @keyframes vaultOpen {
-  0% { transform: scaleY(0); transform-origin: top; opacity: 0; }
-  100% { transform: scaleY(1); transform-origin: top; opacity: 1; }
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+    opacity: 0;
+  }
+
+  100% {
+    transform: scaleY(1);
+    transform-origin: top;
+    opacity: 1;
+  }
 }
 
 /* Floating glow pulse for cards */
 @keyframes floatGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 15px var(--sector-glow, rgba(59,130,246,0.2));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px var(--sector-glow, rgba(59, 130, 246, 0.2));
   }
+
   50% {
     transform: translateY(-4px);
-    box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 0 30px var(--sector-glow, rgba(59,130,246,0.4));
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 30px var(--sector-glow, rgba(59, 130, 246, 0.4));
   }
 }
 
 /* Timeline event type dot ping */
 @keyframes dotPing {
-  75%, 100% {
+
+  75%,
+  100% {
     transform: scale(2);
     opacity: 0;
   }
@@ -1171,24 +1244,31 @@ select.input {
 .animate-ring-draw {
   animation: ringDraw 1.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
 .animate-flip-in {
   animation: flipIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
 .animate-slide-left {
   animation: slideInLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
 .animate-orb-pulse {
   animation: orbPulse 0.6s ease-out;
 }
+
 .animate-counter-up {
   animation: counterUp 0.5s ease-out both;
 }
+
 .animate-float-glow {
   animation: floatGlow 4s ease-in-out infinite;
 }
+
 .animate-vault-open {
   animation: vaultOpen 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
 .animate-dot-ping {
   animation: dotPing 1s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
@@ -1197,6 +1277,7 @@ select.input {
 .flip-card {
   perspective: 1000px;
 }
+
 .flip-card-inner {
   position: relative;
   width: 100%;
@@ -1204,10 +1285,12 @@ select.input {
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   transform-style: preserve-3d;
 }
+
 .flip-card:hover .flip-card-inner,
 .flip-card:focus-within .flip-card-inner {
   transform: rotateY(180deg);
 }
+
 .flip-card-front,
 .flip-card-back {
   position: absolute;
@@ -1217,6 +1300,7 @@ select.input {
   -webkit-backface-visibility: hidden;
   border-radius: inherit;
 }
+
 .flip-card-back {
   transform: rotateY(180deg);
 }
@@ -1226,21 +1310,21 @@ select.input {
   position: relative;
   overflow: hidden;
 }
+
 .spotlight-card::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 40%,
-    rgba(255, 255, 255, 0.08) 50%,
-    transparent 60%
-  );
+  background: linear-gradient(105deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 60%);
   background-size: 200% 100%;
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
 }
+
 .spotlight-card:hover::after {
   opacity: 1;
   animation: spotlightSweep 0.8s ease forwards;
@@ -1255,9 +1339,11 @@ select.input {
     opacity: 0;
     transform: translateY(28px) scale(0.94);
   }
+
   60% {
     transform: translateY(-4px) scale(1.01);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1266,10 +1352,13 @@ select.input {
 
 /* 2. Continuous border pulse */
 @keyframes borderGlowPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     border-color: var(--sector-color, rgba(59, 130, 246, 0.3));
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), 0 0 12px var(--sector-glow, rgba(59, 130, 246, 0.2));
   }
+
   50% {
     border-color: var(--sector-color, rgba(59, 130, 246, 0.6));
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 24px var(--sector-glow, rgba(59, 130, 246, 0.45));
@@ -1278,21 +1367,35 @@ select.input {
 
 /* 3. Icon Spring Hover Bounce */
 @keyframes iconSpring {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.25) rotate(-6deg); }
-  70% { transform: scale(0.92) rotate(3deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  0% {
+    transform: scale(1);
+  }
+
+  40% {
+    transform: scale(1.25) rotate(-6deg);
+  }
+
+  70% {
+    transform: scale(0.92) rotate(3deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 /* 4. Badge Breathing Glow */
 @keyframes badgeBreath {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
-    filter: drop-shadow(0 0 4px var(--sector-glow, rgba(59,130,246,0.3)));
+    filter: drop-shadow(0 0 4px var(--sector-glow, rgba(59, 130, 246, 0.3)));
   }
+
   50% {
     transform: scale(1.05);
-    filter: drop-shadow(0 0 10px var(--sector-glow, rgba(59,130,246,0.6)));
+    filter: drop-shadow(0 0 10px var(--sector-glow, rgba(59, 130, 246, 0.6)));
   }
 }
 
@@ -1309,6 +1412,7 @@ select.input {
 .card-hover-lift {
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease;
 }
+
 .card-hover-lift:hover {
   transform: translateY(-6px) scale(1.018);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45), 0 0 25px var(--sector-glow, rgba(59, 130, 246, 0.4));
@@ -1322,8 +1426,15 @@ select.input {
 }
 
 @keyframes neonPulseBlue {
-  0%, 100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.35), inset 0 0 10px rgba(59, 130, 246, 0.15); }
-  50% { box-shadow: 0 0 25px rgba(99, 102, 241, 0.55), inset 0 0 15px rgba(99, 102, 241, 0.3); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.35), inset 0 0 10px rgba(59, 130, 246, 0.15);
+  }
+
+  50% {
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.55), inset 0 0 15px rgba(99, 102, 241, 0.3);
+  }
 }
 
 @keyframes cardEntrance {
@@ -1331,6 +1442,7 @@ select.input {
     opacity: 0;
     transform: translateY(12px) scale(0.98);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1341,15 +1453,19 @@ select.input {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
 }
 
 @keyframes pulseGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 12px var(--sector-glow, rgba(59, 130, 246, 0.25));
   }
+
   50% {
     box-shadow: 0 0 24px var(--sector-glow, rgba(59, 130, 246, 0.5));
   }
@@ -1359,12 +1475,15 @@ select.input {
 .animate-stagger-1 {
   animation: cardEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
 }
+
 .animate-stagger-2 {
   animation: cardEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
 }
+
 .animate-stagger-3 {
   animation: cardEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
 }
+
 .animate-stagger-4 {
   animation: cardEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
 }
@@ -1374,6 +1493,7 @@ select.input {
   background-size: 200% 100%;
   transition: all 0.3s ease;
 }
+
 .shimmer-button:hover {
   background-position: right center;
   transform: translateY(-1px);
@@ -1439,7 +1559,9 @@ select.input {
 }
 
 /* Sector Card Utilities & High-Contrast Pearl White Theme */
-.sector-card, .cyber-card, .kpi-card {
+.sector-card,
+.cyber-card,
+.kpi-card {
   position: relative;
   overflow: hidden !important;
   background: var(--sector-bg, #ffffff);
@@ -1451,7 +1573,9 @@ select.input {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.sector-card:hover, .cyber-card:hover, .kpi-card:hover {
+.sector-card:hover,
+.cyber-card:hover,
+.kpi-card:hover {
   border-color: var(--sector-color, #06b6d4) !important;
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.12), 0 0 24px var(--sector-glow, rgba(6, 182, 212, 0.25)) !important;
   transform: translateY(-3px);
@@ -1477,20 +1601,20 @@ select.input {
 /* ==========================================================================
    High-Contrast Outer Page Header Rules (On Light HexagonHub Canvas)
    ========================================================================== */
-.page > header .sector-header-title,
+.page>header .sector-header-title,
 .page-header-title {
   color: #0f172a !important;
   font-weight: 900 !important;
   text-shadow: none !important;
 }
 
-.page > header p,
+.page>header p,
 .page-header-desc {
   color: #334155 !important;
   font-weight: 600 !important;
 }
 
-.page > header .sector-badge {
+.page>header .sector-badge {
   background: #f1f5f9 !important;
   border: 1.5px solid var(--sector-border, #cbd5e1) !important;
   color: var(--sector-color, #2563eb) !important;
@@ -1529,29 +1653,48 @@ select.input {
 .sector-card .text-foreground,
 .cyber-card .text-foreground,
 .kpi-card .text-foreground,
-.sector-card h1, .sector-card h2, .sector-card h3, .sector-card h4,
-.cyber-card h1, .cyber-card h2, .cyber-card h3, .cyber-card h4 {
+.sector-card h1,
+.sector-card h2,
+.sector-card h3,
+.sector-card h4,
+.cyber-card h1,
+.cyber-card h2,
+.cyber-card h3,
+.cyber-card h4 {
   color: #0f172a !important;
   font-weight: 800 !important;
 }
 
 /* Table & Form Control Contrast Overrides for Pearl White Theme */
-.sector-card table, .cyber-card table, .kpi-card table {
+.sector-card table,
+.cyber-card table,
+.kpi-card table {
   color: #0f172a !important;
 }
-.sector-card th, .cyber-card th, .kpi-card th {
+
+.sector-card th,
+.cyber-card th,
+.kpi-card th {
   color: #475569 !important;
 }
-.sector-card td, .cyber-card td, .kpi-card td {
+
+.sector-card td,
+.cyber-card td,
+.kpi-card td {
   color: #1e293b !important;
 }
-.sector-card input, .cyber-card input,
-.sector-card select, .cyber-card select {
+
+.sector-card input,
+.cyber-card input,
+.sector-card select,
+.cyber-card select {
   color: #0f172a !important;
   background-color: #f8fafc !important;
   border: 1.5px solid #cbd5e1 !important;
 }
-.sector-card input::placeholder, .cyber-card input::placeholder {
+
+.sector-card input::placeholder,
+.cyber-card input::placeholder {
   color: #94a3b8 !important;
 }
 
@@ -1570,7 +1713,7 @@ select.input {
   perspective: none !important;
 }
 
-#global-modal-portal > * {
+#global-modal-portal>* {
   pointer-events: auto !important;
 }
 
@@ -1614,7 +1757,9 @@ select.input {
 }
 
 /* Ensure dialog titles, headers, labels, and text are high-contrast dark slate on Pearl White modal */
-[role="dialog"] h1, [role="dialog"] h2, [role="dialog"] h3,
+[role="dialog"] h1,
+[role="dialog"] h2,
+[role="dialog"] h3,
 [role="dialog"] [class*="DialogTitle"],
 [role="dialog"] [data-slot="dialog-title"] {
   color: #0f172a !important;
@@ -1626,7 +1771,8 @@ select.input {
   font-weight: 700 !important;
 }
 
-[role="dialog"] p, [role="dialog"] [class*="description"] {
+[role="dialog"] p,
+[role="dialog"] [class*="description"] {
   color: #475569 !important;
   font-weight: 500 !important;
 }
@@ -1674,9 +1820,20 @@ select.input {
    ========================================================================== */
 
 @keyframes particleDrift {
-  0% { transform: translateY(0px) scale(1); opacity: 0.3; }
-  50% { transform: translateY(-18px) scale(1.25); opacity: 0.95; }
-  100% { transform: translateY(0px) scale(1); opacity: 0.3; }
+  0% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: translateY(-18px) scale(1.25);
+    opacity: 0.95;
+  }
+
+  100% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.3;
+  }
 }
 
 .particle-dot {
@@ -1694,9 +1851,11 @@ select.input {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -1706,6 +1865,7 @@ select.input {
   0% {
     background-position: 0 0;
   }
+
   100% {
     background-position: 60px 60px;
   }
@@ -1720,6 +1880,40 @@ select.input {
   animation: gridScroll 12s linear infinite;
 }
 
+/* Force crisp hand pointer cursor for all buttons & interactive controls */
+button,
+[role="button"],
+.magnetic-btn,
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+/* Traveling Energy Comet Motion Engine */
+@keyframes cometSlide {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 96%; opacity: 0; }
+}
+
+.animate-comet-slide {
+  animation: cometSlide 3.8s linear infinite;
+}
+
+/* Slow Harmonic Float Wave for KPI Cards */
+@keyframes floatSlowWave {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlowWave 5.5s ease-in-out infinite;
+}
+
 /* ==========================================================================
    Sequential Connector Arrival Energy Burst Engine
    ========================================================================== */
@@ -1730,14 +1924,17 @@ select.input {
     opacity: 0;
     box-shadow: 0 0 0 0 var(--burst-glow, rgba(59, 130, 246, 0.9));
   }
+
   50% {
     transform: scale(1.3);
     opacity: 1;
     box-shadow: 0 0 40px 18px var(--burst-glow, rgba(59, 130, 246, 0.7));
   }
+
   75% {
     transform: scale(0.92);
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -1750,6 +1947,7 @@ select.input {
     transform: scale(0.5);
     opacity: 0.95;
   }
+
   100% {
     transform: scale(2.4);
     opacity: 0;
@@ -1773,10 +1971,12 @@ select.input {
     opacity: 0;
     transform: translateY(24px) scale(0.94);
   }
+
   60% {
     opacity: 1;
     transform: translateY(-4px) scale(1.015);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0px) scale(1);
@@ -1784,9 +1984,12 @@ select.input {
 }
 
 @keyframes jitterFloatPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-6px);
   }
@@ -1796,6 +1999,7 @@ select.input {
   0% {
     background-position: -200% 0%;
   }
+
   100% {
     background-position: 200% 0%;
   }
@@ -1859,11 +2063,13 @@ select.input {
     opacity: 0.2;
     box-shadow: 0 0 4px #06b6d4;
   }
+
   50% {
     transform: translateX(0px) scale(1.3);
     opacity: 1;
     box-shadow: 0 0 16px #06b6d4, 0 0 24px #22d3ee;
   }
+
   100% {
     transform: translateX(14px) scale(0.6);
     opacity: 0.2;
@@ -1874,8 +2080,3 @@ select.input {
 .live-card-connector-bead {
   animation: connectorBeamPulse 1.8s ease-in-out infinite;
 }
-
-
-
-
-

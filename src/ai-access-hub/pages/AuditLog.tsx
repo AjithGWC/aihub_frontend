@@ -112,8 +112,18 @@ function TimelineEventCard({ event, index, onSelect }: { event: AuditLogEntry; i
       style={{ animationDelay: `${index * 60}ms` }}
     >
       {/* Left Column */}
-      <div className="flex-1 flex justify-end pr-6">
-        {isLeft ? cardContent : <div className="w-full max-w-md" />}
+      <div className="flex-1 flex justify-end pr-6 relative">
+        {isLeft ? (
+          <div className="relative w-full flex justify-end items-center">
+            {cardContent}
+            {/* Connector Line to Node */}
+            <div className="absolute right-0 translate-x-full w-6 h-[2px] z-0 overflow-hidden" style={{ background: `linear-gradient(90deg, ${conf.color}, ${conf.color}44)` }}>
+              <div className="absolute inset-y-0 w-2 bg-white rounded-full shadow-[0_0_8px_#ffffff] animate-comet-slide" style={{ animationDuration: '2s' }} />
+            </div>
+          </div>
+        ) : (
+          <div className="w-full max-w-md" />
+        )}
       </div>
 
       {/* Center Circle Node with Spinning Orbit */}
@@ -139,8 +149,18 @@ function TimelineEventCard({ event, index, onSelect }: { event: AuditLogEntry; i
       </div>
 
       {/* Right Column */}
-      <div className="flex-1 flex justify-start pl-6">
-        {!isLeft ? cardContent : <div className="w-full max-w-md" />}
+      <div className="flex-1 flex justify-start pl-6 relative">
+        {!isLeft ? (
+          <div className="relative w-full flex justify-start items-center">
+            {/* Connector Line from Node */}
+            <div className="absolute left-0 -translate-x-full w-6 h-[2px] z-0 overflow-hidden" style={{ background: `linear-gradient(90deg, ${conf.color}44, ${conf.color})` }}>
+              <div className="absolute inset-y-0 w-2 bg-white rounded-full shadow-[0_0_8px_#ffffff] animate-comet-slide" style={{ animationDuration: '2s' }} />
+            </div>
+            {cardContent}
+          </div>
+        ) : (
+          <div className="w-full max-w-md" />
+        )}
       </div>
     </div>
   )
@@ -240,17 +260,18 @@ export default function AuditLog() {
               e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
               e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
             }}
-            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+            className="spotlight-card motion-spring-card animate-float-slow rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03] hover:shadow-2xl cursor-pointer"
             style={{
-              animationDelay: `${i * 80}ms`,
+              animationDelay: `${i * 750}ms`,
               background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
               border: `1.5px solid ${color}50`,
               borderTop: `4px solid ${color}`,
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
             }}
           >
+            <div className="scanner-sweep-line" />
             {/* Ambient Corner Energy Glow */}
-            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-35 animate-float-gentle pointer-events-none" style={{ background: color }} />
 
             {/* Shimmer sweep effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
@@ -328,18 +349,25 @@ export default function AuditLog() {
         </div>
       ) : filteredEvents.length === 0 ? (
         <div className="py-16 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
-          <ScrollText className="size-8 text-muted-foreground/30" />
+            <ScrollText className="size-8 text-muted-foreground/30" />
           No matching security audit events found.
         </div>
       ) : (
         <div className="relative py-4">
-          {/* Central Vertical Timeline Track Line */}
+          {/* Animated vertical timeline connector track line */}
           <div
-            className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-1 rounded-full pointer-events-none"
+            className="absolute left-[13px] top-3 bottom-3 w-[2px] rounded-full z-0 pointer-events-none"
             style={{
               background: 'linear-gradient(to bottom, #22c55e, #06b6d4, #8b5cf6, #22c55e)',
               boxShadow: '0 0 12px rgba(34, 197, 94, 0.5)',
               animation: 'timelineDraw 1.2s ease-out 0.2s both',
+            }}
+          />
+          <div
+            className="absolute left-[10px] w-2 h-6 rounded-full z-0 pointer-events-none animate-comet-slide"
+            style={{
+              background: 'linear-gradient(to bottom, transparent, #22c55e, #ffffff)',
+              boxShadow: '0 0 14px #22c55e, 0 0 24px #06b6d4',
             }}
           />
           <div className="space-y-6 relative">

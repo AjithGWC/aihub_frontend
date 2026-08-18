@@ -442,17 +442,18 @@ export default function UsersRoles() {
               e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
               e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
             }}
-            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+            className="spotlight-card motion-spring-card animate-float-slow rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03] hover:shadow-2xl cursor-pointer"
             style={{
-              animationDelay: `${i * 80}ms`,
+              animationDelay: `${i * 800}ms`,
               background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
               border: `1.5px solid ${color}50`,
               borderTop: `4px solid ${color}`,
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
             }}
           >
+            <div className="scanner-sweep-line" />
             {/* Ambient Corner Energy Glow */}
-            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-35 animate-float-gentle pointer-events-none" style={{ background: color }} />
 
             {/* Shimmer sweep effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />

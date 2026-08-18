@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, useRef, type FormEvent } from 'react'
 import {
   KeyRound,
   ShieldCheck,
@@ -91,11 +91,20 @@ function getOwnerEmail(owner: ApiKeyRecord['owner']): string {
 }
 
 /* ── API Key Vault Card ── */
-function VaultCard({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete: (k: ApiKeyRecord) => void; index: number }) {
+interface VaultCardProps {
+  apiKey: ApiKeyRecord
+  onDelete: (k: ApiKeyRecord) => void
+  index: number
+  isSpotlit: boolean
+  stepNumber: number
+  onHover: () => void
+}
+
+function VaultCard({ apiKey, onDelete, index, isSpotlit, stepNumber, onHover }: VaultCardProps) {
   const [revealed, setRevealed] = useState(false)
   const [copied, setCopied] = useState(false)
   const meta = getProviderMeta(apiKey.llmName || (apiKey as any).provider || apiKey.label)
-  const isActive = apiKey.status === 'active'
+  const keyIsActive = apiKey.status === 'active'
 
   function handleCopy() {
     navigator.clipboard.writeText(apiKey.masked)
@@ -109,44 +118,153 @@ function VaultCard({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete
 
   return (
     <div
-      className="spotlight-card sector-card rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden animate-slide-left group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-orange-400/60 cursor-pointer"
+      onMouseEnter={onHover}
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+        e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+      }}
+      className={`spotlight-card sector-card rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden animate-slide-left group cursor-pointer transition-all duration-500 ${
+        isSpotlit
+          ? 'shadow-2xl -translate-y-2 scale-[1.025] z-20'
+          : 'shadow-lg hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] z-10'
+      }`}
       style={{
         animationDelay: `${index * 60}ms`,
-        background: `radial-gradient(circle at 50% 0%, ${meta.color}15, transparent 75%), linear-gradient(135deg, #ffffff, #f8fafc)`,
-        border: `1.5px solid ${meta.color}40`,
-        boxShadow: `0 8px 24px rgba(15, 23, 42, 0.06)`
+        background: isSpotlit
+          ? `radial-gradient(circle 260px at var(--mouse-x, 50%) var(--mouse-y, 0%), ${meta.color}18, #ffffff 85%)`
+          : `radial-gradient(circle at 50% 0%, ${meta.color}08, transparent 70%), linear-gradient(135deg, #ffffff, #f8fafc)`,
+        border: isSpotlit ? `1.5px solid ${meta.color}80` : `1px solid ${meta.color}30`,
+        borderTop: `3px solid ${meta.color}`,
+        boxShadow: isSpotlit
+          ? `0 16px 40px -8px ${meta.color}30, 0 0 20px ${meta.color}15`
+          : `0 4px 16px rgba(15, 23, 42, 0.04)`
       }}
     >
       {/* Provider watermark */}
-      <div className="absolute top-0 right-0 text-[85px] font-extrabold leading-none select-none pointer-events-none opacity-[0.05] group-hover:opacity-[0.12] transition-opacity duration-300" style={{ color: meta.color, top: '-12px', right: '10px' }}>
+      <div
+        className={`absolute top-0 right-0 text-[85px] font-extrabold leading-none select-none pointer-events-none transition-opacity duration-500 ${
+          isSpotlit ? 'opacity-[0.08]' : 'opacity-[0.04] group-hover:opacity-[0.07]'
+        }`}
+        style={{ color: meta.color, top: '-12px', right: '10px' }}
+      >
         {meta.symbol}
+      </div>
+
+      {/* Subtle corner glow when spotlit */}
+      <div
+        className={`absolute -right-4 -bottom-4 size-20 rounded-full blur-xl pointer-events-none transition-opacity duration-500 ${
+          isSpotlit ? 'opacity-20' : 'opacity-0'
+        }`}
+        style={{ background: meta.color }}
+      />
+
+      {/* Step Badge Row */}
+      <div className="w-full flex items-center justify-between text-[9px] font-mono font-extrabold z-10">
+        <span
+          className={`px-1.5 py-0.5 rounded-full border transition-all duration-300 ${
+            isSpotlit
+              ? 'bg-slate-100 text-slate-800 border-slate-300'
+              : 'bg-slate-50 text-slate-400 border-slate-200'
+          }`}
+        >
+          {String(stepNumber).padStart(2, '0')}
+        </span>
+        {isSpotlit && (
+          <span className="flex items-center gap-1 font-extrabold" style={{ color: meta.color }}>
+            <span className="size-1.5 rounded-full animate-ping" style={{ background: meta.color }} />
+            SPOTLIGHT
+          </span>
+        )}
       </div>
 
       {/* Header */}
       <div className="flex items-start justify-between gap-2 z-10">
         <div className="flex items-center gap-3">
-          {/* Provider badge with orbit ring */}
+          {/* Provider badge with sequential orbit ring */}
           <div className="relative flex items-center justify-center">
-            <svg width="50" height="50" className="absolute -rotate-90 pointer-events-none">
+            {/* Outer Orbit Ring — faster when spotlit */}
+            <svg
+              width="52" height="52"
+              className="absolute pointer-events-none animate-spin"
+              style={{
+                animationDuration: isSpotlit ? '1.8s' : '10s',
+                top: '-1px', left: '-1px'
+              }}
+            >
               <circle
-                cx="25" cy="25" r="23"
-                fill="none" stroke={meta.color} strokeWidth="1.5" strokeDasharray="3 4" opacity="0.5" className="animate-spin" style={{ animationDuration: '10s' }}
+                cx="26" cy="26" r="23"
+                fill="none"
+                stroke={meta.color}
+                strokeWidth={isSpotlit ? '2' : '1.5'}
+                strokeDasharray={isSpotlit ? '5 4' : '3 5'}
+                opacity={isSpotlit ? '0.85' : '0.45'}
               />
             </svg>
-            <div className="size-10 rounded-xl flex items-center justify-center text-xs font-black text-white flex-none transition-transform duration-300 group-hover:scale-110 shadow-md" style={{ background: meta.gradient, boxShadow: `0 0 18px ${meta.glow}` }}>
+            {/* Inner Counter-Rotating Ring */}
+            <svg
+              width="52" height="52"
+              className="absolute pointer-events-none animate-spin"
+              style={{
+                animationDuration: isSpotlit ? '1.2s' : '7s',
+                animationDirection: 'reverse',
+                top: '-1px', left: '-1px'
+              }}
+            >
+              <circle
+                cx="26" cy="26" r="17"
+                fill="none"
+                stroke={meta.color}
+                strokeWidth="1"
+                strokeDasharray="2 4"
+                opacity={isSpotlit ? '0.6' : '0.3'}
+              />
+            </svg>
+            {/* Orbiting Particle */}
+            <div
+              className="absolute pointer-events-none animate-spin"
+              style={{
+                width: '52px', height: '52px',
+                top: '-1px', left: '-1px',
+                animationDuration: isSpotlit ? '1.2s' : '5s'
+              }}
+            >
+              <div
+                className={`rounded-full absolute transition-all duration-300 ${
+                  isSpotlit ? 'size-2 top-[2px] left-[25px]' : 'size-1.5 top-[3px] left-[25px] opacity-0'
+                }`}
+                style={{
+                  background: meta.color,
+                  boxShadow: isSpotlit ? `0 0 8px ${meta.color}` : 'none'
+                }}
+              />
+            </div>
+
+            {/* Center Badge */}
+            <div
+              className={`size-10 rounded-xl flex items-center justify-center text-xs font-black text-white flex-none transition-all duration-500 shadow-md ${
+                isSpotlit ? 'scale-110 rotate-6 shadow-lg' : 'group-hover:scale-105'
+              }`}
+              style={{
+                background: meta.gradient,
+                boxShadow: isSpotlit ? `0 0 22px ${meta.glow}` : `0 0 14px ${meta.glow}`
+              }}
+            >
               {meta.symbol}
             </div>
           </div>
 
           <div className="min-w-0">
-            <p className="text-sm font-extrabold text-slate-900 capitalize group-hover:text-[#ea580c] transition-colors">{apiKey.llmName || (apiKey as any).provider || 'Unknown Provider'}</p>
+            <p className={`text-sm font-extrabold capitalize transition-colors ${
+              isSpotlit ? 'text-[#ea580c]' : 'text-slate-900 group-hover:text-[#ea580c]'
+            }`}>{apiKey.llmName || (apiKey as any).provider || 'Unknown Provider'}</p>
             <p className="text-[11px] text-slate-600 font-bold truncate max-w-[140px]">{apiKey.label}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-sm" style={{ background: isActive ? 'rgba(34,197,94,0.12)' : 'rgba(244,63,94,0.12)', borderColor: isActive ? 'rgba(34,197,94,0.4)' : 'rgba(244,63,94,0.4)' }}>
-          <span className="size-2 rounded-full animate-ping opacity-75" style={{ background: isActive ? '#22c55e' : '#f43f5e' }} />
-          <span className="text-[10px] font-extrabold" style={{ color: isActive ? '#16a34a' : '#dc2626' }}>{isActive ? 'Active' : 'Revoked'}</span>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-sm" style={{ background: keyIsActive ? 'rgba(34,197,94,0.12)' : 'rgba(244,63,94,0.12)', borderColor: keyIsActive ? 'rgba(34,197,94,0.4)' : 'rgba(244,63,94,0.4)' }}>
+          <span className="size-2 rounded-full animate-ping opacity-75" style={{ background: keyIsActive ? '#22c55e' : '#f43f5e' }} />
+          <span className="text-[10px] font-extrabold" style={{ color: keyIsActive ? '#16a34a' : '#dc2626' }}>{keyIsActive ? 'Active' : 'Revoked'}</span>
         </div>
       </div>
 
@@ -201,6 +319,23 @@ export default function ApiKeys() {
   const [deleteKey, setDeleteKey] = useState<ApiKeyRecord | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({ label: '', llmName: '', key: '', expiresAt: '', user: '', status: 'active' as 'active' | 'inactive' })
+
+  // Sequential spotlight rotation
+  const [spotlitIndex, setSpotlitIndex] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(true)
+  const playingRef = useRef(true)
+
+  useEffect(() => {
+    playingRef.current = isPlaying
+  }, [isPlaying])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!playingRef.current) return
+      setSpotlitIndex((prev) => (prev + 1) % Math.max(keys.length, 1))
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [keys.length])
 
   async function loadKeys(q: string, off: number) {
     setLoading(true)
@@ -296,17 +431,18 @@ export default function ApiKeys() {
               e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
               e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
             }}
-            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+            className="spotlight-card motion-spring-card animate-float-slow rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03] hover:shadow-2xl cursor-pointer"
             style={{
-              animationDelay: `${i * 80}ms`,
+              animationDelay: `${i * 800}ms`,
               background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
               border: `1.5px solid ${color}50`,
               borderTop: `4px solid ${color}`,
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
             }}
           >
+            <div className="scanner-sweep-line" />
             {/* Ambient Corner Energy Glow */}
-            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-35 animate-float-gentle pointer-events-none" style={{ background: color }} />
 
             {/* Shimmer sweep effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
@@ -375,8 +511,22 @@ export default function ApiKeys() {
           <KeyRound className="size-8 text-muted-foreground/30" />No API keys found.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {safeKeys.map((key, i) => <VaultCard key={key.id} apiKey={key} onDelete={setDeleteKey} index={i} />)}
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          onMouseEnter={() => setIsPlaying(false)}
+          onMouseLeave={() => setIsPlaying(true)}
+        >
+          {safeKeys.map((key, i) => (
+            <VaultCard
+              key={key.id}
+              apiKey={key}
+              onDelete={setDeleteKey}
+              index={i}
+              isSpotlit={spotlitIndex === i}
+              stepNumber={i + 1}
+              onHover={() => setSpotlitIndex(i)}
+            />
+          ))}
         </div>
       )}
 

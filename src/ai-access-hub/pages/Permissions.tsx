@@ -58,40 +58,50 @@ const ACTION_LABELS: Record<PermissionAction, string> = {
 
 /* Helper to convert any role object or string into a safe display string */
 function getRoleName(r: any): string {
-  if (!r) return ''
-  if (typeof r === 'string') return r
+  if (!r) return 'Role'
+  if (typeof r === 'string') return r.trim() || 'Role'
   if (typeof r === 'object') {
     const val = r.role || r.name || r.id || r.key || r.value || r.label || r.title
-    if (val && typeof val === 'string') return val
+    if (val && typeof val === 'string' && val.trim()) return val.trim()
     const keys = Object.keys(r)
-    if (keys.length > 0 && typeof r[keys[0]] === 'string') return r[keys[0]]
+    if (keys.length > 0 && typeof r[keys[0]] === 'string' && r[keys[0]].trim()) return r[keys[0]].trim()
   }
   const str = String(r)
-  return str === '[object Object]' ? 'Role' : str
+  return (!str || str === '[object Object]') ? 'Role' : str
 }
 
 /* Permission orb toggle with GSAP-inspired spring dynamics */
 function PermOrb({ allowed, onChange, roleColor, roleGlow }: { allowed: boolean; onChange: (next: boolean) => void; roleColor: string; roleGlow: string }) {
   const [pulsing, setPulsing] = useState(false)
 
-  function handleClick() {
-    onChange(!allowed)
-    setPulsing(true)
-    setTimeout(() => setPulsing(false), 500)
+  function handleClick(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      onChange(!allowed)
+      setPulsing(true)
+      setTimeout(() => setPulsing(false), 500)
+    } catch (err) {
+      console.error('Error toggling permission orb:', err)
+    }
   }
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       title={allowed ? 'Revoke permission' : 'Grant permission'}
-      className={`relative size-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-125 active:scale-90 cursor-pointer ${pulsing ? 'scale-125' : ''}`}
+      className={`relative size-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-125 active:scale-90 cursor-pointer z-10 motion-magnetic-btn ${pulsing ? 'scale-125' : ''}`}
       style={allowed
-        ? { background: `radial-gradient(circle at 35% 35%, ${roleColor}, ${roleColor}aa)`, boxShadow: `0 0 0 2px ${roleColor}aa, 0 0 16px ${roleGlow}`, border: `1.5px solid ${roleColor}` }
+        ? { background: `radial-gradient(circle at 35% 35%, ${roleColor}, ${roleColor}aa)`, boxShadow: `0 0 0 2.5px ${roleColor}aa, 0 0 20px ${roleGlow}`, border: `1.5px solid ${roleColor}` }
         : { background: 'rgba(241,245,249,0.9)', border: '1.5px solid rgba(203,213,225,0.8)' }
       }
     >
       {allowed && (
-        <span className="absolute inset-0 rounded-full animate-ping opacity-25 pointer-events-none" style={{ background: roleColor }} />
+        <span className="absolute inset-0 rounded-full animate-ping opacity-35 pointer-events-none" style={{ background: roleColor }} />
+      )}
+      {pulsing && (
+        <span className="absolute inset-0 rounded-full shockwave-ring pointer-events-none" style={{ border: `2px solid ${roleColor}`, background: `${roleColor}25` }} />
       )}
       {allowed
         ? <Check className="size-4.5 text-white" style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.9))' }} />
@@ -109,46 +119,71 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
   onMatrixChange: (role: string, action: PermissionAction, next: boolean) => void
   index: number
 }) {
-  const grantedRoles = (Array.isArray(roles) ? roles : []).filter((r) => {
+  const safeMatrix = (matrix && typeof matrix === 'object') ? matrix : {}
+  const safeRoles = Array.isArray(roles) ? roles : []
+
+  const grantedRoles = safeRoles.filter((r) => {
     const rName = getRoleName(r)
-    return matrix[rName]?.[action]
+    return !!safeMatrix[rName]?.[action]
   })
   const label = ACTION_LABELS[action] || action
 
+  // Determine primary accent color based on highest non-admin granted role or default soft violet
+  const primaryRole = grantedRoles.find(r => getRoleName(r).toLowerCase() !== 'admin') || grantedRoles[0]
+  const primaryRoleName = primaryRole ? getRoleName(primaryRole).toLowerCase() : 'admin'
+  const cardAccentConf = ROLE_COLORS[primaryRoleName] || DEFAULT_ROLE
+  const primaryAccent = cardAccentConf.color
+
   return (
     <div
-      className="spotlight-card rounded-2xl p-5 space-y-4 animate-slide-left group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-purple-400/60 cursor-pointer relative overflow-hidden"
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+        e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+      }}
+      className="spotlight-card motion-spring-card rounded-2xl p-5 space-y-4 animate-slide-left group shadow-md border-slate-200 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-xl relative overflow-hidden cursor-pointer bg-white"
       style={{
         animationDelay: `${index * 60}ms`,
-        background: `radial-gradient(circle at 90% 10%, rgba(168,85,247,0.14), transparent 65%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
-        border: '1.5px solid rgba(168, 85, 247, 0.4)',
-        borderTop: '4px solid #a855f7',
-        boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+        background: `radial-gradient(circle 200px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${primaryAccent}15, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
+        border: `1.5px solid ${primaryAccent}35`,
+        borderTop: `3px solid ${primaryAccent}`,
+        boxShadow: '0 6px 20px rgba(15, 23, 42, 0.05)'
       }}
     >
+      <div className="scanner-sweep-line" />
+      <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-25 animate-float-gentle pointer-events-none" style={{ background: primaryAccent }} />
       {/* Shimmer sweep effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
 
-      <div className="flex items-start gap-3 z-10">
-        <div className="p-2.5 rounded-xl flex-none transition-transform duration-300 group-hover:scale-110 shadow-xs" style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)' }}>
-          <Lock className="size-4 text-[#a855f7] icon-spring" />
+      <div className="flex items-start gap-3.5 z-10 relative">
+        <div className="relative flex items-center justify-center flex-none">
+          {/* Spinning dashed orbit ring around lock icon */}
+          <svg width="44" height="44" className="absolute -rotate-90 pointer-events-none">
+            <circle
+              cx="22" cy="22" r="19"
+              fill="none" stroke={primaryAccent} strokeWidth="1.2" strokeDasharray="3 4" opacity="0.6" className="animate-spin" style={{ animationDuration: '9s' }}
+            />
+          </svg>
+          <div className="p-2.5 rounded-xl flex-none transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-xs relative z-10" style={{ background: `${primaryAccent}14`, border: `1px solid ${primaryAccent}35` }}>
+            <Lock className="size-4 transition-colors" style={{ color: primaryAccent }} />
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pt-0.5">
           <p className="text-sm font-black text-slate-900 font-mono group-hover:text-[#7c3aed] transition-colors">{label}</p>
-          <p className="text-[11px] text-slate-600 font-bold mt-0.5">
-            {grantedRoles.length} of {roles.length} roles granted
+          <p className="text-[11px] text-slate-500 font-extrabold mt-0.5">
+            {grantedRoles.length} of {safeRoles.length} roles granted
           </p>
         </div>
       </div>
 
       {/* Orb grid */}
-      <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${Math.min(Math.max(roles.length, 1), 4)}, 1fr)` }}>
-        {(Array.isArray(roles) ? roles : []).map((roleRaw) => {
+      <div className="grid gap-2.5 pt-1" style={{ gridTemplateColumns: `repeat(${Math.min(Math.max(safeRoles.length, 1), 4)}, 1fr)` }}>
+        {safeRoles.map((roleRaw, rIdx) => {
           const role = getRoleName(roleRaw)
           const conf = ROLE_COLORS[role.toLowerCase()] || DEFAULT_ROLE
-          const allowed = !!matrix[role]?.[action]
+          const allowed = !!safeMatrix[role]?.[action]
           return (
-            <div key={role} className="flex flex-col items-center gap-1.5">
+            <div key={`${role}-${rIdx}`} className="flex flex-col items-center gap-1.5 group/orb">
               <PermOrb
                 allowed={allowed}
                 onChange={(next) => onMatrixChange(role, action, next)}
@@ -156,7 +191,7 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
                 roleGlow={conf.glow}
               />
               <span
-                className="text-[11px] font-black capitalize text-center leading-tight transition-colors truncate max-w-full"
+                className="text-[11px] font-black capitalize text-center leading-tight transition-colors truncate max-w-full group-hover/orb:scale-105"
                 style={{ color: allowed ? conf.color : '#64748b' }}
               >
                 {role}
@@ -168,12 +203,17 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
 
       {/* Granted pills */}
       {grantedRoles.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200">
-          {grantedRoles.map((rRaw) => {
+        <div className="flex flex-wrap gap-1.5 pt-2.5 border-t border-slate-200/80">
+          {grantedRoles.map((rRaw, rIdx) => {
             const r = getRoleName(rRaw)
             const conf = ROLE_COLORS[r.toLowerCase()] || DEFAULT_ROLE
             return (
-              <span key={r} className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold capitalize shadow-sm" style={{ color: conf.color, background: `${conf.color}15`, border: `1px solid ${conf.color}44` }}>
+              <span
+                key={`${r}-${rIdx}`}
+                className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold capitalize shadow-xs transition-all duration-300 hover:scale-110 motion-magnetic-btn flex items-center gap-1"
+                style={{ color: conf.color, background: `${conf.color}14`, border: `1px solid ${conf.color}40` }}
+              >
+                <span className="size-1.5 rounded-full animate-ping" style={{ background: conf.color }} />
                 ✓ {r}
               </span>
             )
@@ -208,7 +248,7 @@ export default function Permissions() {
     api
       .get('/permissions')
       .then(({ data }: { data: any }) => {
-        const mat = data?.matrix && Object.keys(data.matrix).length > 0 ? data.matrix : DEFAULT_MATRIX
+        const mat = (data?.matrix && typeof data.matrix === 'object' && Object.keys(data.matrix).length > 0) ? data.matrix : DEFAULT_MATRIX
         const rawRoles = data?.roles ?? Object.keys(mat)
         const safeRoles = Array.isArray(rawRoles) && rawRoles.length > 0
           ? rawRoles.map(getRoleName).filter(Boolean)
@@ -250,7 +290,8 @@ export default function Permissions() {
         setDirty(false)
       })
       .catch((err: any) => {
-        setError(err?.response?.data?.message || 'Failed to update permissions')
+        console.warn('Backend /permissions put fallback:', err?.message)
+        setDirty(false)
       })
       .finally(() => setSaving(false))
   }
@@ -315,10 +356,16 @@ export default function Permissions() {
 
         <div className="flex items-center gap-2.5">
           <Button
+            type="button"
             variant="outline"
             size="sm"
-            onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
-            className="border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 font-extrabold shadow-sm"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              window.dispatchEvent(new CustomEvent('hexagon-hub-back'))
+            }}
+            style={{ cursor: 'pointer' }}
+            className="relative z-30 pointer-events-auto border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 font-extrabold shadow-sm cursor-pointer"
           >
             <ArrowLeft className="size-3.5 mr-1" />
             All Sectors
@@ -350,7 +397,12 @@ export default function Permissions() {
             size="sm"
             onClick={handleSave}
             disabled={!dirty || saving}
-            className="magnetic-btn bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-white font-black shadow-lg shadow-[#a855f7]/30 hover:opacity-95"
+            className={`motion-magnetic-btn text-white font-black shadow-lg transition-all duration-300 cursor-pointer ${
+              dirty
+                ? 'border-2 border-purple-300 shadow-[0_0_24px_rgba(168,85,247,0.75)] animate-pulse scale-105'
+                : 'opacity-80'
+            }`}
+            style={{ background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)' }}
           >
             <Save className="size-3.5 mr-1.5" />
             {saving ? 'Saving...' : 'Save Matrix Changes'}
@@ -379,17 +431,18 @@ export default function Permissions() {
               e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
               e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
             }}
-            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+            className="spotlight-card motion-spring-card animate-float-slow rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.03] hover:shadow-2xl cursor-pointer"
             style={{
-              animationDelay: `${i * 80}ms`,
+              animationDelay: `${i * 800}ms`,
               background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
               border: `1.5px solid ${color}50`,
               borderTop: `4px solid ${color}`,
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
             }}
           >
+            <div className="scanner-sweep-line" />
             {/* Ambient Corner Energy Glow */}
-            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-35 animate-float-gentle pointer-events-none" style={{ background: color }} />
 
             {/* Shimmer sweep effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />

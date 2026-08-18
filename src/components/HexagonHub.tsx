@@ -162,7 +162,7 @@ export interface AtlasHubProps {
 /* ------------------------------------------------------------------ */
 
 // How long the hub's left/top "return to center" transition takes.
-const HUB_RETURN_MS = 1200;
+const HUB_RETURN_MS = 300;
 
 export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: AtlasHubProps) {
   const { logout } = useSession();
@@ -286,22 +286,43 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
   // visible while it moves.
   const goingHome = closing && !isFocus;
 
-  const returnToOverview = () => {
+  const returnToOverview = React.useCallback(() => {
     playSFX('back');
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     setClosing(true);
     setFocus(null);
     closeTimerRef.current = setTimeout(() => setClosing(false), HUB_RETURN_MS);
-  };
+  }, []);
 
   React.useEffect(() => {
-    const handleBack = () => returnToOverview()
-    window.addEventListener('hexagon-hub-back', handleBack)
+    const handleBack = (e?: Event) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      returnToOverview();
+    };
+
+    const handleSelectSector = (e: Event) => {
+      const customEv = e as CustomEvent<string>;
+      const sectorKey = customEv.detail;
+      const targetIdx = SECTORS.findIndex((s) => s.key === sectorKey);
+      if (targetIdx !== -1) {
+        playSFX('category');
+        setSel(targetIdx);
+        setFocus(targetIdx);
+        setClosing(false);
+      }
+    };
+
+    window.addEventListener('hexagon-hub-back', handleBack);
+    window.addEventListener('hexagon-hub-select-sector', handleSelectSector);
     return () => {
-      window.removeEventListener('hexagon-hub-back', handleBack)
-      if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
-    }
-  }, [])
+      window.removeEventListener('hexagon-hub-back', handleBack);
+      window.removeEventListener('hexagon-hub-select-sector', handleSelectSector);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, [returnToOverview]);
 
   const cats: CatItem[] = [];
   const highlights: HighlightItem[] = [];
@@ -352,13 +373,13 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
       });
     } else if (focused) {
       const trunk = "M 160 530 L 236 530";
-      const branchToPanel = "M 364 530 L 424 530 L 424 198 L 444 198";
+      const branchToPanel = "M 364 530 L 424 530 L 424 118 L 444 118";
       traces.push({ d: trunk, color: tone.trace, w: 2.4, op: 0.95, transition: "opacity .3s ease .05s" });
       traces.push({ d: branchToPanel, color: tone.ring, w: 2.4, op: 0.95, transition: "opacity .3s ease .05s" });
       flows.push({ d: trunk, color: tone.ring, dur: 4.5 });
       flows.push({ d: branchToPanel, color: tone.ring, dur: 3.5 });
       pads.push({ x: 296.5, y: 526.5, color: tone.ring, op: 1, transition: "opacity .3s ease .05s" });
-      pads.push({ x: 420.5, y: 194.5, color: tone.ring, op: 1, transition: "opacity .3s ease .05s" });
+      pads.push({ x: 440.5, y: 114.5, color: tone.ring, op: 1, transition: "opacity .3s ease .05s" });
     }
 
     // While going home, other sector hexes should animate in slowly, not be hidden instantly.
@@ -367,15 +388,9 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
     const hitCat = !(isFocus && !focused) && !goingHome;
     const scaleCat = focused ? 1.18 : (isFocus || goingHome) && !focused ? 0.75 : 1;
 
-    let transCat = "left 1.2s cubic-bezier(.22,1,.36,1), top 1.2s cubic-bezier(.22,1,.36,1), opacity .4s ease, transform .4s ease";
+    let transCat = "left 0.3s cubic-bezier(.22,1,.36,1), top 0.3s cubic-bezier(.22,1,.36,1), opacity .3s ease, transform .3s ease";
     if (goingHome) {
-      if (active) {
-        // Selected sector returns fast/first
-        transCat = "left 0.45s cubic-bezier(.25,1,.5,1), top 0.45s cubic-bezier(.25,1,.5,1), opacity 0.4s ease, transform 0.4s ease";
-      } else {
-        // Other sectors remain completely hidden during selected sector travel, then fade in slowly
-        transCat = "left 2.5s cubic-bezier(.25,1,.5,1) 0.3s, top 2.5s cubic-bezier(.25,1,.5,1) 0.3s, opacity 2.5s ease 0.3s, transform 2.5s ease 0.3s";
-      }
+      transCat = "left 0.3s cubic-bezier(.25,1,.5,1), top 0.3s cubic-bezier(.25,1,.5,1), opacity 0.3s ease, transform 0.3s ease";
     }
 
     cats.push({
@@ -460,7 +475,7 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
 
   return (
     <div
-      className="h-screen w-full flex flex-col overflow-hidden"
+      className="h-screen w-full flex flex-col overflow-hidden relative"
       style={{
         background:
           "radial-gradient(1100px 900px at 88% 4%, rgba(59,130,246,.10) 0%, rgba(59,130,246,0) 60%)," +
@@ -470,6 +485,44 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
         fontFamily: FONT_BODY,
       }}
     >
+      {/* Root-Level Viewport Fixed Top-Left ALL Back Button */}
+      {isFocus && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            returnToOverview();
+          }}
+          style={{
+            cursor: 'pointer',
+            borderColor: focusTone.ring,
+            color: focusTone.ink,
+            boxShadow: `0 2px 12px ${focusTone.ring}30, 0 1px 4px rgba(15,23,42,0.06)`,
+            background: '#ffffff',
+          }}
+          className="fixed top-6 left-6 z-[9999999] flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 border pointer-events-auto shadow-md"
+        >
+          <ArrowLeft size={13} className="stroke-[2.5]" style={{ color: focusTone.ink }} />
+          <span style={{ color: focusTone.ink }}>All</span>
+        </button>
+      )}
+
+      {/* Root-Level Viewport Fixed Top-Right Logout Button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          logout();
+        }}
+        style={{ cursor: 'pointer' }}
+        className="fixed top-6 right-6 z-[9999999] flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 shadow-md bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 pointer-events-auto"
+      >
+        <LogOut size={13} />
+        Logout
+      </button>
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Figtree:wght@300;400;500;600;700;800;900&display=swap');
         @keyframes atlas-spin { to { transform: rotate(360deg); } }
@@ -499,7 +552,7 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
             }}
           />
 
-          <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="absolute inset-0 w-full h-full">
+          <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="absolute inset-0 w-full h-full pointer-events-none">
             <defs>
               <filter id="circuit-neon-glow" x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur stdDeviation="4" result="blur" />
@@ -707,90 +760,75 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
             </div>
           ))}
 
-          {/* Focus mode: back button + detail panel */}
+          {/* Focus mode: detail panel */}
           {isFocus && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  returnToOverview();
-                }}
-                className="fixed z-[9999] flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 shadow-xl"
-                style={{ left: 24, top: 24, letterSpacing: ".06em", background: "#ffffff", border: "2px solid rgba(15,23,42,.25)", color: "#0f172a" }}
-              >
-                <ArrowLeft size={16} className="stroke-[2.5] text-slate-900" />
-                All
-              </button>
+            <div
+              className="absolute flex flex-col gap-5 overflow-hidden z-20 pointer-events-auto"
+              style={{ left: 402, top: 90, width: 1530, height: VB_H - 120, animation: "atlas-pop 1.2s cubic-bezier(.22,1,.36,1) both" }}
+            >
+              <div className="flex items-center gap-4 flex-none" style={{ paddingLeft: 42 }}>
+                <div className="relative flex items-center justify-center flex-none">
+                  {/* Shockwave expanding aura triggered upon connector arrival */}
+                  <span
+                    className="absolute z-[5] rounded-full arrival-ripple-ring pointer-events-none"
+                    style={{
+                      width: 70,
+                      height: 70,
+                      background: focusTone.ring,
+                    }}
+                  />
 
-              <div
-                className="absolute flex flex-col gap-5 overflow-hidden"
-                style={{ left: 402, top: 90, width: 1530, height: VB_H - 120, animation: "atlas-pop 1.2s cubic-bezier(.22,1,.36,1) both" }}
-              >
-                <div className="flex items-center gap-4 flex-none" style={{ paddingLeft: 42 }}>
-                  <div className="relative flex items-center justify-center flex-none">
-                    {/* Shockwave expanding aura triggered upon connector arrival */}
-                    <span
-                      className="absolute z-[5] rounded-full arrival-ripple-ring pointer-events-none"
-                      style={{
-                        width: 70,
-                        height: 70,
-                        background: focusTone.ring,
-                      }}
+                  {/* Spinning dashed orbit ring */}
+                  <svg width="72" height="72" className="absolute -rotate-90 pointer-events-none">
+                    <circle
+                      cx="36" cy="36" r="33"
+                      fill="none"
+                      stroke={focusTone.ring}
+                      strokeWidth="2"
+                      strokeDasharray="4 6"
+                      opacity="0.8"
+                      className="animate-spin"
+                      style={{ animationDuration: '8s' }}
                     />
+                  </svg>
 
-                    {/* Spinning dashed orbit ring */}
-                    <svg width="72" height="72" className="absolute -rotate-90 pointer-events-none">
-                      <circle
-                        cx="36" cy="36" r="33"
-                        fill="none"
-                        stroke={focusTone.ring}
-                        strokeWidth="2"
-                        strokeDasharray="4 6"
-                        opacity="0.8"
-                        className="animate-spin"
-                        style={{ animationDuration: '8s' }}
-                      />
-                    </svg>
-
-                    {/* Icon container badge with sequential arrival burst animation */}
-                    <div
-                      className="relative z-10 rounded-full flex items-center justify-center arrival-burst-container transition-all duration-500 hover:scale-110 shadow-lg"
-                      style={{
-                        width: 56,
-                        height: 56,
-                        background: "#ffffff",
-                        border: `2.5px solid ${focusTone.ring}`,
-                        '--burst-glow': focusTone.ring,
-                        boxShadow: `0 0 24px ${focusTone.ring}88, 0 2px 12px rgba(15,23,42,.15)`
-                      } as React.CSSProperties}
-                    >
-                      <focusSec.icon size={26} color={focusTone.ink} className="animate-pulse" style={{ filter: `drop-shadow(0 0 8px ${focusTone.ring})` }} />
-                    </div>
+                  {/* Icon container badge with sequential arrival burst animation */}
+                  <div
+                    className="relative z-10 rounded-full flex items-center justify-center arrival-burst-container transition-all duration-500 hover:scale-110 shadow-lg"
+                    style={{
+                      width: 56,
+                      height: 56,
+                      background: "#ffffff",
+                      border: `2.5px solid ${focusTone.ring}`,
+                      '--burst-glow': focusTone.ring,
+                      boxShadow: `0 0 24px ${focusTone.ring}88, 0 2px 12px rgba(15,23,42,.15)`
+                    } as React.CSSProperties}
+                  >
+                    <focusSec.icon size={26} color={focusTone.ink} className="animate-pulse" style={{ filter: `drop-shadow(0 0 8px ${focusTone.ring})` }} />
                   </div>
-                  <div style={{ fontFamily: FONT_HEADING, fontSize: 28, color: COLOR.neutral100 }}>{panelTitle}</div>
                 </div>
-
-                <div className="text-[17px] leading-relaxed flex-none" style={{ paddingLeft: 42, maxWidth: 780, color: COLOR.neutral300 }}>
-                  {panelBody}
-                </div>
-
-                {/* Fixed-size sector card container with sleek internal scrollbar */}
-                <div
-                  className="rounded-2xl transition-all overflow-y-auto custom-scrollbar flex-1 p-6"
-                  style={{
-                    marginLeft: 26,
-                    marginRight: 12,
-                    maxHeight: VB_H - 250,
-                    background: "transparent",
-                    border: "none",
-                    boxShadow: "none"
-                  }}
-                >
-                  <focusSec.Component />
-                </div>
+                <div style={{ fontFamily: FONT_HEADING, fontSize: 28, color: COLOR.neutral100 }}>{panelTitle}</div>
               </div>
-            </>
+
+              <div className="text-[17px] leading-relaxed flex-none" style={{ paddingLeft: 42, maxWidth: 780, color: COLOR.neutral300 }}>
+                {panelBody}
+              </div>
+
+              {/* Fixed-size sector card container with sleek internal scrollbar */}
+              <div
+                className="rounded-2xl transition-all overflow-y-auto custom-scrollbar flex-1 p-6"
+                style={{
+                  marginLeft: 26,
+                  marginRight: 12,
+                  maxHeight: VB_H - 250,
+                  background: "transparent",
+                  border: "none",
+                  boxShadow: "none"
+                }}
+              >
+                <focusSec.Component />
+              </div>
+            </div>
           )}
 
           {/* Legend */}
@@ -800,15 +838,6 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
               Team
             </div>
           </div>
-
-          <button
-            onClick={() => logout()}
-            className="absolute z-10 flex items-center gap-2 px-4 py-[9px] rounded-full text-[12px] uppercase transition-colors"
-            style={{ right: 24, top: 48, letterSpacing: ".06em", background: "#ffffff", border: "1px solid rgba(15,23,42,.12)", color: COLOR.neutral300, boxShadow: "0 1px 4px rgba(15,23,42,.06)" }}
-          >
-            <LogOut size={14} />
-            Logout
-          </button>
         </div>
       </div>
     </div>
