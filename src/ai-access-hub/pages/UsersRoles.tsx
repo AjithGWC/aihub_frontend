@@ -13,7 +13,9 @@ import {
   RefreshCw,
   X,
   ArrowLeft,
-  ArrowUpDown,
+  ChevronDown,
+  Mail,
+  Shield
 } from 'lucide-react'
 import { api } from '@/api'
 import type { AppUser } from '../types'
@@ -36,23 +38,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table'
-import { Pagination } from '../components/Pagination'
 
 const PAGE_SIZE = 12
+
 const ROLE_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-  admin: { color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.4)' },
-  owner: { color: '#f97316', bg: 'rgba(249,115,22,0.15)', border: 'rgba(249,115,22,0.4)' },
-  viewer: { color: '#06b6d4', bg: 'rgba(6,182,212,0.15)', border: 'rgba(6,182,212,0.4)' },
-  editor: { color: '#22c55e', bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.4)' },
+  admin: { color: '#8b5cf6', bg: '#f3e8ff', border: '#e9d5ff' },
+  owner: { color: '#f97316', bg: '#ffedd5', border: '#fed7aa' },
+  viewer: { color: '#06b6d4', bg: '#cffafe', border: '#a5f3fc' },
+  editor: { color: '#22c55e', bg: '#dcfce7', border: '#bbf7d0' },
 }
+
+const ROLES = ['admin', 'editor', 'viewer', 'owner'] as const
 
 function getAvatarGradient(name: string): { gradient: string; glow: string; color: string } {
   const hues = [210, 170, 270, 30, 140, 320]
@@ -60,7 +56,7 @@ function getAvatarGradient(name: string): { gradient: string; glow: string; colo
   const h = hues[idx]
   return {
     gradient: `linear-gradient(135deg, hsl(${h},80%,40%), hsl(${h + 40},90%,60%))`,
-    glow: `hsla(${h},80%,60%,0.5)`,
+    glow: `hsla(${h},80%,60%,0.3)`,
     color: `hsl(${h},80%,60%)`
   }
 }
@@ -71,114 +67,165 @@ function getInitials(name: string): string {
   return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : parts[0].slice(0, 2).toUpperCase()
 }
 
-const ROLES = ['admin', 'editor', 'viewer', 'owner'] as const
-
-/* ── Enterprise Directory Row ── */
-function UserRow({ user, onEdit, onToggle, onDelete, index }: {
+/* ── Expandable Accordion Row ── */
+function ExpandableUserCard({
+  user,
+  isExpanded,
+  onToggle,
+  onEdit,
+  onStatusToggle,
+  onDelete,
+}: {
   user: AppUser
+  isExpanded: boolean
+  onToggle: () => void
   onEdit: (u: AppUser) => void
-  onToggle: (u: AppUser) => void
+  onStatusToggle: (u: AppUser) => void
   onDelete: (u: AppUser) => void
-  index: number
 }) {
-  const { gradient, glow, color } = getAvatarGradient(user.name || user.email)
+  const { gradient, glow } = getAvatarGradient(user.name || user.email)
   const initials = getInitials(user.name || user.email)
-  const roleConf = ROLE_COLORS[user.role?.toLowerCase() || ''] || { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.3)' }
+  const roleConf = ROLE_COLORS[user.role?.toLowerCase() || ''] || { color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' }
   const isActive = user.status === 'active'
 
+  const statusColors = { 
+    active: { text: '#15803d', bg: '#dcfce7', border: '#bbf7d0' }, 
+    inactive: { text: '#be123c', bg: '#ffe4e6', border: '#fecdd3' } 
+  }
+  const statusTheme = isActive ? statusColors.active : statusColors.inactive
+
   return (
-    <TableRow
-      className="group border-slate-100 hover:bg-cyan-50/50 transition-colors animate-slide-up"
-      style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
-    >
-      {/* Identity */}
-      <TableCell className="py-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="size-9 rounded-full flex items-center justify-center text-xs font-extrabold text-white select-none flex-none"
-            style={{ background: gradient, boxShadow: `0 0 0 3px #fff, 0 0 10px ${glow}` }}
+    <div className={`flex flex-col bg-white rounded-2xl border transition-all duration-300 shadow-sm overflow-hidden ${
+      isExpanded ? 'border-slate-300 shadow-md my-2' : 'border-slate-200 hover:border-slate-300 hover:shadow-md mb-3'
+    }`}>
+      
+      {/* Summary Header */}
+      <div 
+        onClick={onToggle}
+        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 cursor-pointer transition-colors ${
+          isExpanded ? 'bg-slate-50/80 border-b border-slate-100' : 'bg-white'
+        }`}
+      >
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          <div 
+            className="size-10 rounded-full flex items-center justify-center flex-none font-black text-xs text-white border-2 border-white shadow-sm"
+            style={{ background: gradient, boxShadow: `0 0 0 2px #fff, 0 4px 10px ${glow}` }}
           >
             {initials}
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-slate-900 truncate group-hover:text-[#0891b2] transition-colors">
-              {user.name || '—'}
-            </p>
-            <p className="text-[11px] text-slate-500 font-mono truncate">{user.email}</p>
+          
+          <div className="flex flex-col min-w-0 gap-0.5">
+            <div className="flex items-center gap-2">
+              <h3 className="font-mono text-sm font-bold text-slate-800 truncate">
+                {user.name || 'Unknown User'}
+              </h3>
+              <Badge
+                variant="outline"
+                className="text-[9px] px-2 py-0 rounded-full font-bold capitalize hidden sm:inline-flex"
+                style={{ borderColor: statusTheme.border, color: statusTheme.text, background: statusTheme.bg }}
+              >
+                {isActive ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5 text-xs font-medium text-slate-500">
+              <span className="inline-flex items-center gap-1.5 truncate uppercase tracking-widest text-[9px] font-black text-slate-400">
+                <Mail className="size-3 text-slate-400" />
+                {user.email}
+              </span>
+              <span className="size-1 rounded-full bg-slate-200 flex-none hidden sm:block" />
+              <span className="inline-flex items-center gap-1.5 uppercase tracking-widest text-[9px] font-black" style={{ color: roleConf.color }}>
+                {user.role === 'admin' ? <Crown className="size-3" /> : <Shield className="size-3" />}
+                {user.role || 'No Role'}
+              </span>
+            </div>
           </div>
         </div>
-      </TableCell>
 
-      {/* Department */}
-      <TableCell className="whitespace-nowrap">
-        {user.department ? (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-            <Building2 className="size-3.5 text-[#06b6d4]" />
-            {user.department}
+        <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-1/4">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold font-mono uppercase tracking-widest text-slate-500 truncate max-w-[120px]">
+            <Building2 className="size-3.5" />
+            {user.department || 'No Dept'}
           </span>
-        ) : (
-          <span className="text-xs text-slate-400">—</span>
-        )}
-      </TableCell>
-
-      {/* Role */}
-      <TableCell className="whitespace-nowrap">
-        {user.role ? (
-          <Badge variant="outline" className="text-[10px] px-2 py-0.5 capitalize font-bold" style={{ color: roleConf.color, borderColor: roleConf.border, background: roleConf.bg }}>
-            {user.role === 'admin' && <Crown className="size-2.5 mr-1" />}
-            {user.role}
-          </Badge>
-        ) : (
-          <span className="text-xs text-slate-400">—</span>
-        )}
-      </TableCell>
-
-      {/* Status */}
-      <TableCell className="whitespace-nowrap">
-        <Badge
-          variant="outline"
-          className="text-[10px] px-2 py-0.5 font-bold"
-          style={{
-            color: isActive ? '#16a34a' : '#64748b',
-            borderColor: isActive ? 'rgba(34,197,94,0.4)' : 'rgba(100,116,139,0.4)',
-            background: isActive ? 'rgba(34,197,94,0.12)' : 'rgba(100,116,139,0.12)',
-          }}
-        >
-          {isActive ? '● Active' : '○ Inactive'}
-        </Badge>
-      </TableCell>
-
-      {/* Actions */}
-      <TableCell className="text-right whitespace-nowrap">
-        <div className="flex items-center justify-end gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={() => onEdit(user)}
-            className="magnetic-btn flex items-center justify-center size-8 rounded-lg bg-[#06b6d4]/10 border border-[#06b6d4]/40 hover:bg-[#06b6d4]/20 transition-all text-[#0891b2] cursor-pointer"
-            title="Edit Member"
-          >
-            <Edit3 className="size-3.5 icon-spring" />
-          </button>
-          <button
-            onClick={() => onToggle(user)}
-            className={`magnetic-btn flex items-center justify-center size-8 rounded-lg transition-all cursor-pointer ${
-              isActive
-                ? 'bg-amber-500/10 border border-amber-500/40 hover:bg-amber-500/20 text-amber-700'
-                : 'bg-green-500/10 border border-green-500/40 hover:bg-green-500/20 text-green-700'
-            }`}
-            title={isActive ? 'Disable Member' : 'Enable Member'}
-          >
-            {isActive ? <UserX className="size-3.5 icon-spring" /> : <UserCheck className="size-3.5 icon-spring" />}
-          </button>
-          <button
-            onClick={() => onDelete(user)}
-            className="magnetic-btn flex items-center justify-center size-8 rounded-lg bg-red-500/10 border border-red-500/40 hover:bg-red-500/20 transition-all text-red-600 cursor-pointer"
-            title="Remove Member"
-          >
-            <Trash2 className="size-3.5 icon-spring" />
-          </button>
+          <div className={`p-1.5 rounded-full transition-transform duration-300 ${isExpanded ? 'bg-slate-200 rotate-180' : 'bg-slate-100'}`}>
+            <ChevronDown className="size-4 text-slate-600" />
+          </div>
         </div>
-      </TableCell>
-    </TableRow>
+      </div>
+
+      {/* Expanded Body */}
+      {isExpanded && (
+        <div className="p-4 sm:p-6 bg-slate-50/30 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 items-start">
+            
+            <div className="flex flex-col gap-1.5">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Department</h4>
+              <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-sm h-[32px] flex items-center">
+                <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5 truncate">
+                  <Building2 className="size-3.5 text-cyan-500" />
+                  {user.department || 'Not Assigned'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-1.5">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Assigned Role</h4>
+              <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-sm h-[32px] flex items-center">
+                <p className="text-xs font-bold capitalize flex items-center gap-1.5" style={{ color: roleConf.color }}>
+                  <span className="size-2 rounded-full" style={{ backgroundColor: roleConf.color }} />
+                  {user.role || 'Unassigned'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Account Status</h4>
+              <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-sm h-[32px] flex items-center">
+                <p className="text-xs font-bold capitalize flex items-center gap-1.5" style={{ color: statusTheme.text }}>
+                  <span className="size-2 rounded-full" style={{ backgroundColor: statusTheme.text }} />
+                  {isActive ? 'Active & Verifed' : 'Account Disabled'}
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Action Row */}
+          <div className="mt-6 pt-6 border-t border-slate-200 flex flex-wrap items-center justify-end gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => { e.stopPropagation(); onEdit(user); }}
+              className="bg-white text-cyan-700 border-cyan-200 hover:bg-cyan-50 shadow-sm transition-colors text-xs font-bold cursor-pointer"
+            >
+              <Edit3 className="size-3.5 mr-1.5" /> Edit Details
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => { e.stopPropagation(); onStatusToggle(user); }}
+              className={`shadow-sm transition-colors text-xs font-bold cursor-pointer bg-white ${
+                isActive 
+                  ? 'text-amber-700 border-amber-200 hover:bg-amber-50' 
+                  : 'text-green-700 border-green-200 hover:bg-green-50'
+              }`}
+            >
+              {isActive ? <UserX className="size-3.5 mr-1.5" /> : <UserCheck className="size-3.5 mr-1.5" />}
+              {isActive ? 'Disable Access' : 'Enable Access'}
+            </Button>
+
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={(e) => { e.stopPropagation(); onDelete(user); }}
+              className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 shadow-sm transition-colors text-xs font-bold cursor-pointer"
+            >
+              <Trash2 className="size-3.5 mr-1.5" /> Remove User
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -189,22 +236,14 @@ export default function UsersRoles() {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [editUser, setEditUser] = useState<AppUser | null>(null)
   const [deleteUser, setDeleteUser] = useState<AppUser | null>(null)
-  const [form, setForm] = useState({ name: '', email: '', role: '', department: '', status: 'active' as 'active' | 'inactive' })
-  const [submitting, setSubmitting] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
-  const [sortKey, setSortKey] = useState<'name' | 'department' | 'role' | 'status'>('name')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
-
-  function toggleSort(key: typeof sortKey) {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortKey(key)
-      setSortDir('asc')
-    }
-  }
+  const [submitting, setSubmitting] = useState(false)
+  
+  const [form, setForm] = useState({ name: '', email: '', role: '', department: '', status: 'active' as 'active' | 'inactive' })
 
   async function loadData(q: string, off: number) {
     setLoading(true)
@@ -226,6 +265,10 @@ export default function UsersRoles() {
     const t = setTimeout(() => { setOffset(0); loadData(query, 0) }, 300)
     return () => clearTimeout(t)
   }, [query])
+
+  const toggleExpand = (id: string) => {
+    setExpandedId(prev => prev === id ? null : id)
+  }
 
   function openEdit(u: AppUser) {
     setEditUser(u)
@@ -255,7 +298,7 @@ export default function UsersRoles() {
     finally { setSubmitting(false) }
   }
 
-  async function handleToggle(u: AppUser) {
+  async function handleToggleStatus(u: AppUser) {
     const next = u.status === 'active' ? 'inactive' : 'active'
     try {
       await api.patch(`/users/${u.id}`, { status: next })
@@ -267,6 +310,7 @@ export default function UsersRoles() {
     setSubmitting(true)
     try {
       await api.delete(`/users/${u.id}`)
+      if (expandedId === u.id) setExpandedId(null)
       setDeleteUser(null)
       loadData(query, offset)
     } catch { setError('Failed to delete user.') }
@@ -275,238 +319,266 @@ export default function UsersRoles() {
 
   const safeUsers = Array.isArray(users) ? users : []
   const activeCount = safeUsers.filter((u) => u.status === 'active').length
-  const adminCount = safeUsers.filter((u) => u.role === 'admin').length
+  const adminCount = safeUsers.filter((u) => u.role === 'admin' || u.role === 'owner').length
 
+  // Always sort alphabetically by name for consistency in this view
   const sortedUsers = [...safeUsers].sort((a, b) => {
-    const av = (sortKey === 'name' ? (a.name || a.email) : a[sortKey] || '').toString().toLowerCase()
-    const bv = (sortKey === 'name' ? (b.name || b.email) : b[sortKey] || '').toString().toLowerCase()
-    if (av < bv) return sortDir === 'asc' ? -1 : 1
-    if (av > bv) return sortDir === 'asc' ? 1 : -1
-    return 0
+    const av = (a.name || a.email || '').toLowerCase()
+    const bv = (b.name || b.email || '').toLowerCase()
+    return av.localeCompare(bv)
   })
 
+  const kpis = [
+    { 
+      label: 'TOTAL DIRECTORY MEMBERS', value: total, icon: Users, chip: 'Directory',
+      borderColor: '#06b6d4', iconBg: '#06b6d4', valueColor: '#06b6d4', 
+      badgeBg: '#ecfeff', badgeText: '#0891b2', glow: 'rgba(6,182,212,0.12)'
+    },
+    { 
+      label: 'ACTIVE SESSIONS NOW', value: activeCount, icon: UserCheck, chip: 'Online',
+      borderColor: '#22c55e', iconBg: '#22c55e', valueColor: '#22c55e', 
+      badgeBg: '#f0fdf4', badgeText: '#16a34a', glow: 'rgba(34,197,94,0.12)'
+    },
+    { 
+      label: 'SYSTEM ADMINISTRATORS', value: adminCount, icon: ShieldAlert, chip: 'Super Admin',
+      borderColor: '#8b5cf6', iconBg: '#8b5cf6', valueColor: '#8b5cf6', 
+      badgeBg: '#f3e8ff', badgeText: '#7e22ce', glow: 'rgba(139,92,246,0.12)'
+    },
+  ]
+
   const UserFormFields = ({ onSubmit }: { onSubmit: (e: FormEvent) => Promise<void> }) => (
-    <form onSubmit={onSubmit} className="space-y-4 py-2">
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={onSubmit} className="space-y-4 py-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Full Name</Label>
-          <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Alice Chen" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl" />
+          <Label className="text-[10px] font-black uppercase tracking-wider text-slate-600">Full Name</Label>
+          <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Alice Chen" required className="bg-slate-50 border-slate-200 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-sm focus:bg-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-xl h-10" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Email</Label>
-          <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="alice@co.com" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl" />
+          <Label className="text-[10px] font-black uppercase tracking-wider text-slate-600">Email Address</Label>
+          <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="alice@co.com" required className="bg-slate-50 border-slate-200 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-sm focus:bg-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-xl h-10" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Role</Label>
+          <Label className="text-[10px] font-black uppercase tracking-wider text-slate-600">Assigned Role</Label>
           <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v }))}>
-            <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl"><SelectValue placeholder="Select role" /></SelectTrigger>
+            <SelectTrigger className="bg-slate-50 border-slate-200 text-slate-900 font-semibold text-xs shadow-sm focus:bg-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-xl h-10"><SelectValue placeholder="Select role" /></SelectTrigger>
             <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl rounded-xl">
-              {ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize text-slate-900 font-medium cursor-pointer">{r}</SelectItem>)}
+              {ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize text-slate-900 font-medium cursor-pointer hover:bg-slate-50">{r}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Department</Label>
-          <Input value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} placeholder="Engineering" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl" />
+          <Label className="text-[10px] font-black uppercase tracking-wider text-slate-600">Department</Label>
+          <Input value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} placeholder="Engineering" className="bg-slate-50 border-slate-200 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-sm focus:bg-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-xl h-10" />
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Status</Label>
+        <Label className="text-[10px] font-black uppercase tracking-wider text-slate-600">Account Status</Label>
         <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as 'active' | 'inactive' }))}>
-          <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="bg-slate-50 border-slate-200 text-slate-900 font-semibold text-xs shadow-sm focus:bg-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all rounded-xl h-10"><SelectValue /></SelectTrigger>
           <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl rounded-xl">
-            <SelectItem value="active" className="text-slate-900 font-medium cursor-pointer">● Active</SelectItem>
-            <SelectItem value="inactive" className="text-slate-900 font-medium cursor-pointer">○ Inactive</SelectItem>
+            <SelectItem value="active" className="text-slate-900 font-medium cursor-pointer hover:bg-slate-50">Active</SelectItem>
+            <SelectItem value="inactive" className="text-slate-900 font-medium cursor-pointer hover:bg-slate-50">Inactive</SelectItem>
           </SelectContent>
         </Select>
       </div>
-      <DialogFooter className="pt-3 gap-2">
-        <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
-        <Button type="submit" size="sm" className="text-xs font-extrabold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-xl px-5" disabled={submitting} style={{ background: 'linear-gradient(135deg, #06b6d4, #0284c7)' }}>
-          {submitting ? <RefreshCw className="size-3 animate-spin mr-1" /> : null}Save Member
+      <DialogFooter className="pt-4 border-t border-slate-100 gap-2">
+        <DialogClose asChild><Button variant="outline" size="sm" className="h-10 text-xs font-bold bg-white text-slate-700 border-slate-200 hover:bg-slate-50 cursor-pointer rounded-xl px-5">Cancel</Button></DialogClose>
+        <Button type="submit" size="sm" className="h-10 text-xs font-bold text-white shadow-md bg-cyan-500 hover:bg-cyan-600 transition-all cursor-pointer rounded-xl px-6" disabled={submitting}>
+          {submitting ? <RefreshCw className="size-3.5 animate-spin mr-1.5" /> : null} Save Member
         </Button>
       </DialogFooter>
     </form>
   )
 
   return (
-    <div className="page sector-cyan space-y-6 animate-slide-up">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#06b6d4]/30 pb-5">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="cyber-pulse-dot cyber-pulse-dot-cyan" />
-            <h1 className="text-2xl font-bold tracking-tight sector-header-title">Identity Directory</h1>
-            <Badge variant="outline" className="sector-badge text-xs font-mono">{total} Members</Badge>
+    <div className="page min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8 relative selection:bg-cyan-500/30">
+      
+      {/* Light Grid Background */}
+      <div className="absolute inset-0 pointer-events-none z-0" style={{ backgroundImage: 'linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+
+      {/* Unified Container for Perfect Alignment */}
+      <div className="relative z-10 max-w-[1100px] mx-auto w-full flex flex-col gap-6 animate-slide-up">
+        
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">Identity Directory</h1>
+              <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 border-cyan-200 bg-cyan-50 px-2.5 py-0.5 rounded-full">
+                {total} Members
+              </Badge>
+            </div>
+            <p className="text-sm font-medium text-slate-500 mt-1">Directory of everyone with portal access, and the roles that determine what they can do.</p>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Manage user identities, roles, and access levels.</p>
-        </div>
 
-        <div className="flex items-center gap-2.5">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
-            className="border-cyan-300 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 font-extrabold shadow-sm cursor-pointer"
-          >
-            <ArrowLeft className="size-3.5 mr-1" />
-            All Sectors
-          </Button>
+          <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
+              className="flex-1 sm:flex-none h-9 px-4 rounded-full border-cyan-200 text-cyan-600 bg-white hover:bg-cyan-50 font-bold shadow-sm cursor-pointer"
+            >
+              <ArrowLeft className="size-3.5 mr-1.5" /> All Sectors
+            </Button>
+            <Button 
+              onClick={() => setShowCreate(true)} 
+              size="sm" 
+              className="flex-1 sm:flex-none h-9 px-5 rounded-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold shadow-md shadow-cyan-500/20 cursor-pointer transition-colors"
+            >
+              <UserPlus className="size-4 mr-1.5" /> Add Member
+            </Button>
+          </div>
+        </header>
 
-          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold magnetic-btn cursor-pointer" style={{ background: 'linear-gradient(135deg, #06b6d4, #0284c7)', boxShadow: '0 0 20px rgba(6,182,212,0.3)' }}>
-            <UserPlus className="size-3.5" />Add Member
-          </Button>
-        </div>
-      </header>
+        {/* Divider */}
+        <div className="w-full h-px bg-cyan-200/50" />
 
-      {error && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
-          <ShieldAlert className="size-4 flex-none" /><span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)}><X className="size-3.5" /></button>
-        </div>
-      )}
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { label: 'Total Directory Members', value: total, icon: Users, color: '#06b6d4', chip: 'Directory', glow: 'rgba(6,182,212,0.45)' },
-          { label: 'Active Sessions Now', value: activeCount, icon: UserCheck, color: '#22c55e', chip: 'Online', glow: 'rgba(34,197,94,0.45)' },
-          { label: 'System Administrators', value: adminCount, icon: ShieldAlert, color: '#8b5cf6', chip: 'Super Admin', glow: 'rgba(139,92,246,0.45)' },
-        ].map(({ label, value, icon: Icon, color, chip, glow }, i) => (
-          <div
-            key={label}
-            onMouseMove={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect()
-              e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
-              e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
-            }}
-            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
-            style={{
-              animationDelay: `${i * 80}ms`,
-              background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
-              border: `1.5px solid ${color}50`,
-              borderTop: `4px solid ${color}`,
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
-            }}
-          >
-            {/* Ambient Corner Energy Glow */}
-            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
-
-            {/* Shimmer sweep effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
-            <div className="flex items-center gap-3.5 z-10">
-              <div className="relative flex items-center justify-center">
-                {/* Inner spinning dashed orbit */}
-                <svg width="52" height="52" className="absolute -rotate-90 pointer-events-none">
-                  <circle
-                    cx="26" cy="26" r="23"
-                    fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 5" opacity="0.6" className="animate-spin" style={{ animationDuration: '10s' }}
-                  />
-                  <circle
-                    cx="26" cy="26" r="18"
-                    fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.35" className="animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}
-                  />
-                </svg>
-                <div className="size-11 rounded-xl flex items-center justify-center text-white flex-none transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md" style={{ background: color, boxShadow: `0 0 20px ${glow}` }}>
-                  <Icon className="size-5 text-white" />
+        {/* KPI Cards (Matches image_993b82.jpg) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-6">
+          {kpis.map((kpi, i) => (
+            <div 
+              key={i} 
+              className="bg-white rounded-2xl p-5 shadow-sm flex items-center justify-between relative overflow-hidden group border border-slate-100"
+              style={{ borderTop: `4px solid ${kpi.borderColor}` }}
+            >
+              {/* Gradient Glow */}
+              <div 
+                className="absolute right-0 top-0 bottom-0 w-2/3 pointer-events-none" 
+                style={{ background: `linear-gradient(to right, transparent, ${kpi.glow})` }} 
+              />
+              
+              <div className="flex items-center gap-4 relative z-10">
+                <div 
+                  className="size-12 rounded-[14px] flex items-center justify-center text-white shadow-sm"
+                  style={{ backgroundColor: kpi.iconBg }}
+                >
+                  <kpi.icon className="size-6" />
+                </div>
+                <div className="flex flex-col">
+                  <div 
+                    className="text-[28px] font-black leading-none mb-1 tracking-tight"
+                    style={{ color: kpi.valueColor }}
+                  >
+                    {kpi.value}
+                  </div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                    {kpi.label}
+                  </div>
                 </div>
               </div>
-              <div>
-                <p className="text-3xl font-black font-mono tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5" style={{ color, textShadow: `0 0 18px ${color}45` }}>{value}</p>
-                <p className="text-[11px] font-black uppercase tracking-widest text-slate-600 mt-0.5">{label}</p>
+
+              <div className="relative z-10">
+                <span 
+                  className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 shadow-sm border border-black/5"
+                  style={{ backgroundColor: kpi.badgeBg, color: kpi.badgeText }}
+                >
+                  <span className="size-1.5 rounded-full" style={{ backgroundColor: kpi.badgeText }} />
+                  {kpi.chip}
+                </span>
               </div>
             </div>
-
-            <div className="flex flex-col items-end gap-1.5 z-10">
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-xs flex items-center gap-1.5 border transition-all duration-300 group-hover:scale-105" style={{ color, background: `${color}18`, borderColor: `${color}45` }}>
-                <span className="size-1.5 rounded-full animate-ping" style={{ background: color }} />
-                {chip}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Control bar: Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or email…" className="pl-9 bg-white border-[#06b6d4]/50 text-slate-900 font-semibold placeholder:text-slate-400 text-sm shadow-sm" />
-          {query && <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"><X className="size-3.5 text-slate-400 hover:text-slate-700" /></button>}
+          ))}
         </div>
-      </div>
 
-      {/* Main Content Area — Enterprise Directory Table */}
-      <div className="sector-card rounded-2xl overflow-hidden shadow-xl border-slate-200" style={{ background: 'linear-gradient(135deg, #ffffff, #f8fafc)' }}>
-        {loading ? (
-          <div className="p-5 space-y-3">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-11 rounded-xl bg-slate-100 animate-pulse" style={{ animationDelay: `${i * 40}ms` }} />
-            ))}
-          </div>
-        ) : safeUsers.length === 0 ? (
-          <div className="py-16 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
-            <Users className="size-8 text-muted-foreground/30" />No members found.
-          </div>
-        ) : (
-          <div className="px-4">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-200 hover:bg-transparent bg-slate-50/80">
-                  {[
-                    { key: 'name', label: 'Member' },
-                    { key: 'department', label: 'Department' },
-                    { key: 'role', label: 'Role' },
-                    { key: 'status', label: 'Status' },
-                  ].map(({ key, label }) => (
-                    <TableHead key={key} className="text-[11px] font-black uppercase tracking-wider text-slate-600">
-                      <button onClick={() => toggleSort(key as typeof sortKey)} className="flex items-center gap-1 cursor-pointer hover:text-[#0891b2] transition-colors">
-                        {label}
-                        <ArrowUpDown className={`size-3 ${sortKey === key ? 'text-[#06b6d4]' : 'text-slate-300'}`} />
-                      </button>
-                    </TableHead>
-                  ))}
-                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-slate-600 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedUsers.map((user, i) => (
-                  <UserRow key={user.id} user={user} onEdit={openEdit} onToggle={handleToggle} onDelete={setDeleteUser} index={i} />
-                ))}
-              </TableBody>
-            </Table>
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-600 text-sm font-semibold shadow-sm max-w-5xl mx-auto">
+            <ShieldAlert className="size-5 flex-none" /><span className="flex-1">{error}</span>
+            <button onClick={() => setError(null)}><X className="size-4 hover:text-red-800" /></button>
           </div>
         )}
 
-        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={(off) => { setOffset(off); loadData(query, off) }} />
+        {/* Search Bar */}
+        <div className="relative w-full bg-white rounded-full shadow-sm border border-slate-200">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+          <Input 
+            value={query} 
+            onChange={(e) => setQuery(e.target.value)} 
+            placeholder="Search directory by name or email..." 
+            className="pl-12 h-12 w-full rounded-full border-none bg-transparent text-slate-900 font-medium placeholder:text-slate-400 text-sm focus-visible:ring-0 focus-visible:outline-none" 
+          />
+        </div>
+
+        {/* Accordion List */}
+        <div>
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-[76px] rounded-2xl bg-white border border-slate-200 shadow-sm animate-pulse" style={{ animationDelay: `${i * 40}ms` }} />
+              ))}
+            </div>
+          ) : sortedUsers.length === 0 ? (
+            <div className="py-24 text-center text-sm text-slate-500 flex flex-col items-center gap-4 bg-white rounded-3xl border border-slate-200 border-dashed">
+              <div className="size-16 rounded-full bg-slate-50 flex items-center justify-center">
+                <Users className="size-8 text-slate-300" />
+              </div>
+              <p className="font-medium text-slate-600">No members found matching your search.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {sortedUsers.map((user) => (
+                <ExpandableUserCard 
+                  key={user.id} 
+                  user={user} 
+                  isExpanded={expandedId === user.id}
+                  onToggle={() => toggleExpand(user.id)}
+                  onEdit={openEdit}
+                  onStatusToggle={handleToggleStatus}
+                  onDelete={setDeleteUser}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Pagination Controls */}
+        {total > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="text-xs font-medium text-slate-500 text-center sm:text-left">
+               Showing <span className="text-slate-900 font-bold">{total === 0 ? 0 : offset + 1}-{Math.min(offset + PAGE_SIZE, total)}</span> of <span className="text-slate-900 font-bold">{total}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                type="button"
+                variant="outline" 
+                size="sm" 
+                className="h-9 px-4 rounded-xl text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 cursor-pointer transition-colors"
+                disabled={offset === 0}
+                onClick={() => { 
+                  setExpandedId(null); 
+                  setOffset(Math.max(0, offset - PAGE_SIZE)); 
+                  loadData(query, Math.max(0, offset - PAGE_SIZE)); 
+                }}
+              >
+                Previous
+              </Button>
+              <Button 
+                type="button"
+                variant="outline" 
+                size="sm" 
+                className="h-9 px-4 rounded-xl text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 cursor-pointer transition-colors"
+                disabled={offset + PAGE_SIZE >= total}
+                onClick={() => { 
+                  setExpandedId(null); 
+                  setOffset(offset + PAGE_SIZE); 
+                  loadData(query, offset + PAGE_SIZE); 
+                }}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Edit User Modal */}
-      {editUser && (
-        <Dialog open onOpenChange={(n) => !n && setEditUser(null)}>
-          <DialogContent className="sm:max-w-lg border-t-4 border-t-[#06b6d4] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-900 tracking-tight">
-                <div className="size-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-none">
-                  <Edit3 className="size-4 text-[#06b6d4]" />
-                </div>
-                Edit Member — {editUser.name || editUser.email}
-              </DialogTitle>
-            </DialogHeader>
-            <UserFormFields onSubmit={handleSubmitEdit} />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Create User Modal */}
+      {/* Modals */}
       {showCreate && (
         <Dialog open onOpenChange={(n) => !n && setShowCreate(false)}>
-          <DialogContent className="sm:max-w-lg border-t-4 border-t-[#06b6d4] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="w-[95vw] sm:max-w-lg shadow-2xl rounded-3xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-900 tracking-tight">
-                <div className="size-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-none">
-                  <UserPlus className="size-4 text-[#06b6d4]" />
+              <DialogTitle className="flex items-center gap-3 text-lg font-black text-slate-900 tracking-tight">
+                <div className="size-10 rounded-xl bg-cyan-50 border border-cyan-100 flex items-center justify-center flex-none">
+                  <UserPlus className="size-5 text-cyan-500" />
                 </div>
                 Add New Member
               </DialogTitle>
@@ -516,23 +588,44 @@ export default function UsersRoles() {
         </Dialog>
       )}
 
-      {/* Delete User Modal */}
+      {editUser && (
+        <Dialog open onOpenChange={(n) => !n && setEditUser(null)}>
+          <DialogContent className="w-[95vw] sm:max-w-lg shadow-2xl rounded-3xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3 text-lg font-black text-slate-900 tracking-tight">
+                <div className="size-10 rounded-xl bg-cyan-50 border border-cyan-100 flex items-center justify-center flex-none">
+                  <Edit3 className="size-5 text-cyan-500" />
+                </div>
+                Edit Member Details
+              </DialogTitle>
+            </DialogHeader>
+            <UserFormFields onSubmit={handleSubmitEdit} />
+          </DialogContent>
+        </Dialog>
+      )}
+
       {deleteUser && (
         <Dialog open onOpenChange={(n) => !n && setDeleteUser(null)}>
-          <DialogContent className="sm:max-w-md border-t-4 border-t-red-500 shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="w-[95vw] sm:max-w-md shadow-2xl rounded-3xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="text-base font-black text-red-600 flex items-center gap-2.5">
-                <div className="size-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center flex-none">
-                  <Trash2 className="size-4 text-red-600" />
+              <DialogTitle className="flex items-center gap-3 text-lg font-black text-slate-900 tracking-tight">
+                <div className="size-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center flex-none">
+                  <Trash2 className="size-5 text-red-500" />
                 </div>
                 Remove Member
               </DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-slate-700 py-2 font-medium">Permanently remove <span className="font-extrabold text-slate-900">{deleteUser.name || deleteUser.email}</span>?</p>
-            <DialogFooter className="mt-3 gap-2">
-              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
-              <Button variant="destructive" size="sm" className="text-xs font-extrabold cursor-pointer rounded-xl px-5 shadow-md hover:shadow-lg" disabled={submitting} onClick={() => handleDelete(deleteUser)}>
-                {submitting ? <RefreshCw className="size-3.5 animate-spin mr-1" /> : <Trash2 className="size-3.5 mr-1" />}Remove Member
+            <div className="py-4 space-y-4">
+              <p className="text-sm text-slate-600 font-medium">Are you sure you want to permanently remove <span className="font-bold text-slate-900">{deleteUser.name || deleteUser.email}</span>?</p>
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-100 text-red-800 text-xs font-medium">
+                <ShieldAlert className="size-4 flex-none text-red-500 mt-0.5" />
+                <p>They will immediately lose access to all resources and workflows in this workspace.</p>
+              </div>
+            </div>
+            <DialogFooter className="pt-4 border-t border-slate-100 gap-2">
+              <DialogClose asChild><Button variant="outline" size="sm" className="h-10 text-xs font-bold bg-white text-slate-700 border-slate-200 hover:bg-slate-50 cursor-pointer rounded-xl px-5">Cancel</Button></DialogClose>
+              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleDelete(deleteUser)} className="h-10 text-xs font-bold cursor-pointer rounded-xl px-6 shadow-md bg-red-500 hover:bg-red-600">
+                Remove Member
               </Button>
             </DialogFooter>
           </DialogContent>
