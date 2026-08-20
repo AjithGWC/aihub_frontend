@@ -10,7 +10,6 @@ import {
   User,
   Terminal,
   Clock,
-  ArrowLeft,
   Shield,
   Layers,
   Filter,
@@ -120,57 +119,54 @@ function ExpandableLogCard({
 
       {/* Expanded Inline Detail Body */}
       {isExpanded && (
-        <div className="p-4 sm:p-6 bg-white animate-in fade-in slide-in-from-top-2 duration-200 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Metadata Column */}
-          <div className="flex flex-col gap-5 lg:col-span-1">
-            <div>
-              <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-2">Security Trace ID</h4>
+        <div className="p-4 sm:p-6 bg-slate-50/30 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 items-start">
+            
+            {/* Trace ID */}
+            <div className="flex flex-col gap-1.5 md:col-span-2">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Security Trace ID</h4>
               <div className="flex items-center gap-2">
-                <code className="text-xs font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded-md">{event.id}</code>
-                <button type="button" onClick={(e) => handleCopyTrace(e, event.id)} className="text-slate-400 hover:text-green-600 transition-colors p-1.5 rounded-md border border-slate-200 shadow-sm" title="Copy Trace ID">
+                <code className="text-xs font-bold text-slate-800 bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-sm break-all">
+                  {event.id}
+                </code>
+                <button 
+                  type="button" 
+                  onClick={(e) => handleCopyTrace(e, event.id)} 
+                  className="text-slate-400 hover:text-green-600 transition-colors p-2 rounded-md border border-slate-200 bg-white shadow-sm shrink-0 cursor-pointer" 
+                  title="Copy Trace ID"
+                >
                   {copiedId ? <Check className="size-3.5 text-green-600" /> : <Copy className="size-3.5" />}
                 </button>
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-1">Timestamp</h4>
-                <p className="text-xs font-semibold text-slate-700">{new Date(event.createdAt).toLocaleDateString()}</p>
+            {/* Timestamp */}
+            <div className="flex flex-col gap-1.5">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Timestamp</h4>
+              <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-sm h-[32px] flex items-center">
+                <p className="text-xs font-semibold text-slate-700">
+                  {new Date(event.createdAt).toLocaleDateString()} {new Date(event.createdAt).toLocaleTimeString()}
+                </p>
               </div>
-              <div>
-                <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-1">Outcome</h4>
-                <p className="text-xs font-bold capitalize" style={{ color: conf.text }}>{event.outcome}</p>
+            </div>
+            
+            {/* Outcome */}
+            <div className="flex flex-col gap-1.5">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Outcome</h4>
+              <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-sm h-[32px] flex items-center">
+                <p className="text-xs font-bold capitalize flex items-center gap-1.5" style={{ color: conf.text }}>
+                  <StatusIcon className="size-3.5" />
+                  {event.outcome}
+                </p>
               </div>
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 mt-auto hidden lg:block">
-              <div className="flex items-center gap-2 text-slate-600 font-medium text-xs">
-                <Shield className="size-4 text-slate-400" />
-                Policy evaluated at <span className="font-bold">{event.layer || 'gateway'}</span> level.
-              </div>
-            </div>
           </div>
 
-          {/* Raw Payload Column */}
-          <div className="lg:col-span-2 relative flex flex-col">
-            <div className="absolute top-0 left-4 -translate-y-1/2 bg-slate-900 px-3 py-0.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest rounded-full border border-slate-700 z-10 shadow-sm">Raw Payload</div>
-            <pre className="flex-1 p-4 pt-6 rounded-2xl bg-[#0f172a] border border-slate-800 font-mono text-[11px] leading-relaxed text-[#4ade80] overflow-x-auto shadow-inner custom-scrollbar max-h-[300px]">
-              {JSON.stringify({ 
-                trace_id: event.id, 
-                event_name: event.event, 
-                actor: {
-                  email: event.actorEmail,
-                  type: event.actorEmail ? 'user' : 'system'
-                },
-                context: {
-                  layer: event.layer, 
-                  timestamp: event.createdAt
-                },
-                outcome: event.outcome, 
-              }, null, 2)}
-            </pre>
+          {/* Policy Layer Info Box */}
+          <div className="mt-6 p-4 rounded-xl border border-slate-200 bg-white shadow-sm flex items-center gap-3 text-slate-600 font-medium text-xs">
+            <Shield className="size-5 text-slate-400 flex-none" />
+            <p>Policy evaluation verified and executed at the <span className="font-bold text-slate-800 uppercase tracking-wide px-1">{event.layer || 'API GATEWAY'}</span> security layer.</p>
           </div>
         </div>
       )}
@@ -301,7 +297,7 @@ export default function AuditLog() {
               type="button"
               variant="outline" 
               size="sm" 
-              className="h-9 px-4 rounded-xl text-xs font-bold border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:bg-slate-50"
+              className="h-9 px-4 rounded-xl text-xs font-bold border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:bg-slate-50 cursor-pointer"
               disabled={offset === 0}
               onClick={() => { 
                 setExpandedId(null); 
@@ -315,7 +311,7 @@ export default function AuditLog() {
               type="button"
               variant="outline" 
               size="sm" 
-              className="h-9 px-4 rounded-xl text-xs font-bold border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:bg-slate-50"
+              className="h-9 px-4 rounded-xl text-xs font-bold border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50 disabled:bg-slate-50 cursor-pointer"
               disabled={offset + PAGE_SIZE >= total}
               onClick={() => { 
                 setExpandedId(null); 
