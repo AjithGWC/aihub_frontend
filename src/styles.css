@@ -6,7 +6,7 @@
  * :root[data-theme='light'] (not shadcn's usual `.dark` class). So the `dark:`
  * variant is defined as "any time we are NOT in light mode".
  */
-@custom-variant dark (&:where(:root:not([data-theme='light']) *));
+@custom-variant dark (&:where(:root[data-theme='dark'] *));
 
 /*
  * shadcn/ui semantic tokens are mapped onto the palette that already existed
@@ -34,14 +34,14 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --sidebar: var(--sidebar);
+  --sidebar-foreground: var(--sidebar-foreground);
+  --sidebar-primary: var(--sidebar-primary);
+  --sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --sidebar-accent: var(--sidebar-accent);
+  --sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --sidebar-border: var(--sidebar-border);
+  --sidebar-ring: var(--sidebar-ring);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -53,104 +53,109 @@
   box-sizing: border-box;
 }
 
-/* ============ Theme tokens (dark = default) ============ */
+/* ============ Theme tokens (light = default) ============ */
 :root {
-  /* --- shadcn semantic layer (dark) --- */
-  --background: #0f1117;
-  --foreground: #e6e8ef;
-  --card: #1e2230;
-  --card-foreground: #e6e8ef;
-  --popover: #1e2230;
-  --popover-foreground: #e6e8ef;
-  --color-primary-raw: #6366f1;
-  --primary-foreground: #ffffff;
-  --secondary: #1e2230;
-  --secondary-foreground: #e6e8ef;
-  --muted-bg: #1e2230;
-  --muted-foreground: #8b90a1;
-  --accent: #1e2230;
-  --accent-foreground: #e6e8ef;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border-color: #2a2f3f;
-  --input: #2a2f3f;
-  --ring: #6366f1;
-
-  --sidebar: #171a23;
-  --sidebar-foreground: #e6e8ef;
-  --sidebar-primary: #6366f1;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1e2230;
-  --sidebar-accent-foreground: #e6e8ef;
-  --sidebar-border: #2a2f3f;
-  --sidebar-ring: #6366f1;
-
-  --bg: #0f1117;
-  --panel: #1e2230;
-  --panel-2: #1e2230;
-  --border: #2a2f3f;
-  --text: #e6e8ef;
-  --muted: #8b90a1;
-  --primary: #6366f1;
-  --primary-hover: #4f52d9;
-  --danger: #ef4444;
-  --error-text: #fca5a5;
-
-  --primary-soft: rgba(99, 102, 241, 0.14);
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #a855f7 100%);
-  --radius: 12px;
-  --radius-lg: 16px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --topbar-blur: rgba(23, 26, 35, 0.85);
-}
-
-:root[data-theme='light'] {
   /* --- shadcn semantic layer (light) --- */
-  --background: #f4f5fa;
-  --foreground: #1b1e28;
+  --background: #ffffff;
+  --foreground: #09090b;
   --card: #ffffff;
-  --card-foreground: #1b1e28;
+  --card-foreground: #09090b;
   --popover: #ffffff;
-  --popover-foreground: #1b1e28;
-  --color-primary-raw: #6366f1;
+  --popover-foreground: #09090b;
+  --color-primary-raw: #2563eb;
   --primary-foreground: #ffffff;
-  --secondary: #eef0f6;
-  --secondary-foreground: #1b1e28;
-  --muted-bg: #eef0f6;
-  --muted-foreground: #5d6274;
-  --accent: #eef0f6;
-  --accent-foreground: #1b1e28;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #09090b;
+  --muted-bg: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #09090b;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border-color: #d9dce8;
-  --input: #d9dce8;
-  --ring: #6366f1;
+  --border-color: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #2563eb;
 
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1b1e28;
-  --sidebar-primary: #6366f1;
+  --sidebar: #f4f4f5;
+  --sidebar-foreground: #09090b;
+  --sidebar-primary: #2563eb;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef0f6;
-  --sidebar-accent-foreground: #1b1e28;
-  --sidebar-border: #d9dce8;
-  --sidebar-ring: #6366f1;
+  --sidebar-accent: #e4e4e7;
+  --sidebar-accent-foreground: #09090b;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #2563eb;
 
-  --bg: #f4f5fa;
+  --bg: #ffffff;
   --panel: #ffffff;
-  --panel-2: #eef0f6;
-  --border: #d9dce8;
-  --text: #1b1e28;
-  --muted: #5d6274;
-  --primary: #6366f1;
-  --primary-hover: #4f52d9;
+  --panel-2: #f4f4f5;
+  --border: #e4e4e7;
+  --text: #09090b;
+  --muted: #71717a;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
   --danger: #dc2626;
   --error-text: #b91c1c;
 
-  --primary-soft: rgba(99, 102, 241, 0.1);
-  --shadow-sm: 0 1px 2px rgba(24, 30, 66, 0.06);
-  --shadow-md: 0 8px 24px rgba(24, 30, 66, 0.1);
+  --primary-soft: rgba(37, 99, 235, 0.1);
+  --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --radius: 6px;
+  --radius-lg: 8px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
   --topbar-blur: rgba(255, 255, 255, 0.85);
+  --grid-line: rgba(15, 23, 42, 0.05);
+}
+
+:root[data-theme='dark'] {
+  /* --- shadcn semantic layer (dark) --- */
+  --background: #000000;
+  --foreground: #fafafa;
+  --card: #09090b;
+  --card-foreground: #fafafa;
+  --popover: #09090b;
+  --popover-foreground: #fafafa;
+  --color-primary-raw: #3b82f6;
+  --primary-foreground: #09090b;
+  --secondary: #18181b;
+  --secondary-foreground: #fafafa;
+  --muted-bg: #18181b;
+  --muted-foreground: #a1a1aa;
+  --accent: #18181b;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border-color: #27272a;
+  --input: #27272a;
+  --ring: #3b82f6;
+
+  --sidebar: #09090b;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #09090b;
+  --sidebar-accent: #18181b;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #27272a;
+  --sidebar-ring: #3b82f6;
+
+  --bg: #000000;
+  --panel: #09090b;
+  --panel-2: #18181b;
+  --border: #27272a;
+  --text: #fafafa;
+  --muted: #a1a1aa;
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --danger: #ef4444;
+  --error-text: #fca5a5;
+
+  --primary-soft: rgba(59, 130, 246, 0.15);
+  --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+  --radius: 6px;
+  --radius-lg: 8px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --topbar-blur: rgba(9, 9, 11, 0.85);
+  --grid-line: rgba(255, 255, 255, 0.05);
 }
 
 html {
@@ -1582,25 +1587,85 @@ select.input {
 }
 
 /* ==========================================================================
+   Action Icon Buttons (Table & Card Actions)
+   ========================================================================== */
+.table-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 0.5rem;
+  background-color: var(--secondary);
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.table-action-btn:hover {
+  transform: translateY(-1px) scale(1.06);
+  color: var(--foreground);
+  border-color: var(--primary);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.table-action-btn:active {
+  transform: scale(0.94);
+}
+
+/* Color specific hover variants */
+.table-action-btn-danger:hover {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #ef4444 !important;
+}
+
+.table-action-btn-edit:hover {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  color: #3b82f6 !important;
+}
+
+.table-action-btn-success:hover {
+  background-color: rgba(34, 197, 94, 0.12) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  color: #22c55e !important;
+}
+
+.table-action-btn-amber:hover {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  color: #f59e0b !important;
+}
+
+.table-action-btn-purple:hover {
+  background-color: rgba(168, 85, 247, 0.12) !important;
+  border-color: rgba(168, 85, 247, 0.4) !important;
+  color: #a855f7 !important;
+}
+
+/* ==========================================================================
    High-Contrast Outer Page Header Rules (On Light HexagonHub Canvas)
    ========================================================================== */
 .page > header .sector-header-title,
 .page-header-title {
-  color: #0f172a !important;
+  color: var(--foreground) !important;
   font-weight: 900 !important;
   text-shadow: none !important;
 }
 
 .page > header p,
 .page-header-desc {
-  color: #334155 !important;
+  color: var(--muted) !important;
   font-weight: 600 !important;
 }
 
 .page > header .sector-badge {
-  background: #f1f5f9 !important;
-  border: 1.5px solid var(--sector-border, #cbd5e1) !important;
-  color: var(--sector-color, #2563eb) !important;
+  background: var(--panel-2) !important;
+  border: 1.5px solid var(--border) !important;
+  color: var(--sector-color, var(--primary)) !important;
   font-weight: 800 !important;
   box-shadow: none !important;
 }
@@ -1629,7 +1694,7 @@ select.input {
 .sector-card .text-slate-300,
 .cyber-card .text-slate-400,
 .cyber-card .text-slate-300 {
-  color: #475569 !important;
+  color: var(--muted) !important;
   font-weight: 600 !important;
 }
 
@@ -1638,28 +1703,28 @@ select.input {
 .kpi-card .text-foreground,
 .sector-card h1, .sector-card h2, .sector-card h3, .sector-card h4,
 .cyber-card h1, .cyber-card h2, .cyber-card h3, .cyber-card h4 {
-  color: #0f172a !important;
+  color: var(--foreground) !important;
   font-weight: 800 !important;
 }
 
 /* Table & Form Control Contrast Overrides for Pearl White Theme */
 .sector-card table, .cyber-card table, .kpi-card table {
-  color: #0f172a !important;
+  color: var(--foreground) !important;
 }
 .sector-card th, .cyber-card th, .kpi-card th {
-  color: #475569 !important;
+  color: var(--muted) !important;
 }
 .sector-card td, .cyber-card td, .kpi-card td {
-  color: #1e293b !important;
+  color: var(--text) !important;
 }
 .sector-card input, .cyber-card input,
 .sector-card select, .cyber-card select {
-  color: #0f172a !important;
-  background-color: #f8fafc !important;
-  border: 1.5px solid #cbd5e1 !important;
+  color: var(--foreground) !important;
+  background-color: var(--panel-2) !important;
+  border: 1.5px solid var(--border) !important;
 }
 .sector-card input::placeholder, .cyber-card input::placeholder {
-  color: #94a3b8 !important;
+  color: var(--muted) !important;
 }
 
 /* ==========================================================================
@@ -1697,7 +1762,7 @@ select.input {
   width: 100vw !important;
   height: 100vh !important;
   z-index: 999998 !important;
-  background: rgba(15, 23, 42, 0.6) !important;
+  background: rgba(0, 0, 0, 0.5) !important;
   backdrop-filter: blur(6px) !important;
 }
 
@@ -1714,27 +1779,27 @@ select.input {
   max-height: 85vh !important;
   overflow-y: auto !important;
   z-index: 999999 !important;
-  background: #ffffff !important;
-  color: #0f172a !important;
-  border: 1.5px solid rgba(6, 182, 212, 0.5) !important;
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 35px rgba(6, 182, 212, 0.25) !important;
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+  border: 1.5px solid var(--border) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 35px var(--primary-soft) !important;
 }
 
 /* Ensure dialog titles, headers, labels, and text are high-contrast dark slate on Pearl White modal */
 [role="dialog"] h1, [role="dialog"] h2, [role="dialog"] h3,
 [role="dialog"] [class*="DialogTitle"],
 [role="dialog"] [data-slot="dialog-title"] {
-  color: #0f172a !important;
+  color: var(--foreground) !important;
   font-weight: 800 !important;
 }
 
 [role="dialog"] label {
-  color: #334155 !important;
+  color: var(--text) !important;
   font-weight: 700 !important;
 }
 
 [role="dialog"] p, [role="dialog"] [class*="description"] {
-  color: #475569 !important;
+  color: var(--muted) !important;
   font-weight: 500 !important;
 }
 
@@ -1743,29 +1808,29 @@ select.input {
 [role="dialog"] select,
 [role="dialog"] button[role="combobox"],
 [role="dialog"] [data-slot="select-trigger"] {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-  border: 1.5px solid #cbd5e1 !important;
+  background-color: var(--panel-2) !important;
+  color: var(--foreground) !important;
+  border: 1.5px solid var(--border) !important;
   font-weight: 600 !important;
 }
 
 [role="dialog"] input::placeholder {
-  color: #94a3b8 !important;
+  color: var(--muted) !important;
 }
 
 /* Outline / Cancel Buttons inside Dialogs */
 [role="dialog"] button[class*="border"],
 [role="dialog"] button[variant="outline"] {
-  background-color: #f1f5f9 !important;
-  color: #334155 !important;
-  border: 1px solid #cbd5e1 !important;
+  background-color: var(--panel-2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
   font-weight: 700 !important;
 }
 
 [role="dialog"] button[class*="border"]:hover,
 [role="dialog"] button[variant="outline"]:hover {
-  background-color: #e2e8f0 !important;
-  color: #0f172a !important;
+  background-color: var(--secondary) !important;
+  color: var(--foreground) !important;
 }
 
 [role="dialog"] button[class*="border"]:hover,

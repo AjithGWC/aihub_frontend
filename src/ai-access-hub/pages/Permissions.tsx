@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Check,
+  Plus,
   ShieldCheck,
   RotateCcw,
   Save,
@@ -8,13 +9,11 @@ import {
   Layers,
   AlertCircle,
   Crown,
-  Sparkles,
   X,
-  ShieldAlert,
   ArrowLeft
 } from 'lucide-react'
 import { api } from '@/api'
-import type { PermissionAction, PermissionMatrix, Role } from '../types'
+import type { PermissionAction, PermissionMatrix } from '../types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,14 +28,14 @@ import {
 import { Label } from '@/components/ui/label'
 
 const ROLE_COLORS: Record<string, { color: string; glow: string; gradient: string }> = {
-  admin:     { color: '#a855f7', glow: 'rgba(168,85,247,0.7)',  gradient: 'linear-gradient(135deg, #a855f7, #6b21a8)' },
-  owner:     { color: '#f97316', glow: 'rgba(249,115,22,0.7)',  gradient: 'linear-gradient(135deg, #f97316, #9a3412)' },
-  viewer:    { color: '#06b6d4', glow: 'rgba(6,182,212,0.7)',   gradient: 'linear-gradient(135deg, #06b6d4, #155e75)' },
-  editor:    { color: '#22c55e', glow: 'rgba(34,197,94,0.7)',   gradient: 'linear-gradient(135deg, #22c55e, #166534)' },
-  analyst:   { color: '#3b82f6', glow: 'rgba(59,130,246,0.7)',  gradient: 'linear-gradient(135deg, #3b82f6, #1e40af)' },
-  developer: { color: '#f59e0b', glow: 'rgba(245,158,11,0.7)', gradient: 'linear-gradient(135deg, #f59e0b, #92400e)' },
+  admin:     { color: '#a855f7', glow: 'rgba(168,85,247,0.4)',  gradient: 'linear-gradient(135deg, #a855f7, #7c3aed)' },
+  owner:     { color: '#f97316', glow: 'rgba(249,115,22,0.4)',  gradient: 'linear-gradient(135deg, #f97316, #ea580c)' },
+  viewer:    { color: '#06b6d4', glow: 'rgba(6,182,212,0.4)',   gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)' },
+  editor:    { color: '#22c55e', glow: 'rgba(34,197,94,0.4)',   gradient: 'linear-gradient(135deg, #22c55e, #16a34a)' },
+  analyst:   { color: '#3b82f6', glow: 'rgba(59,130,246,0.4)',  gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)' },
+  developer: { color: '#f59e0b', glow: 'rgba(245,158,11,0.4)', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
 }
-const DEFAULT_ROLE = { color: '#64748b', glow: 'rgba(100,116,139,0.5)', gradient: 'linear-gradient(135deg, #64748b, #1e293b)' }
+const DEFAULT_ROLE = { color: 'var(--muted)', glow: 'var(--primary-soft)', gradient: 'linear-gradient(135deg, var(--muted), var(--foreground))' }
 
 const ACTIONS: PermissionAction[] = [
   'viewAdminPortal',
@@ -72,6 +71,7 @@ function getRoleName(r: any): string {
 
 /* Permission orb toggle with GSAP-inspired spring dynamics */
 function PermOrb({ allowed, onChange, roleColor, roleGlow }: { allowed: boolean; onChange: (next: boolean) => void; roleColor: string; roleGlow: string }) {
+  const [hovered, setHovered] = useState(false)
   const [pulsing, setPulsing] = useState(false)
 
   function handleClick() {
@@ -83,20 +83,27 @@ function PermOrb({ allowed, onChange, roleColor, roleGlow }: { allowed: boolean;
   return (
     <button
       onClick={handleClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       title={allowed ? 'Revoke permission' : 'Grant permission'}
-      className={`relative size-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-125 active:scale-90 cursor-pointer ${pulsing ? 'scale-125' : ''}`}
+      className={`relative size-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer ${pulsing ? 'scale-110' : ''}`}
       style={allowed
-        ? { background: `radial-gradient(circle at 35% 35%, ${roleColor}, ${roleColor}aa)`, boxShadow: `0 0 0 2px ${roleColor}aa, 0 0 16px ${roleGlow}`, border: `1.5px solid ${roleColor}` }
-        : { background: 'rgba(241,245,249,0.9)', border: '1.5px solid rgba(203,213,225,0.8)' }
+        ? { background: `radial-gradient(circle at 35% 35%, ${roleColor}, ${roleColor}ee)`, boxShadow: `0 0 0 2px ${roleColor}33, 0 4px 12px ${roleColor}44`, border: `1.5px solid ${roleColor}` }
+        : hovered
+          ? { background: `${roleColor}15`, border: `1.5px solid ${roleColor}`, boxShadow: `0 0 8px ${roleColor}22` }
+          : { background: 'var(--panel-2)', border: '1.5px solid var(--border)' }
       }
     >
       {allowed && (
-        <span className="absolute inset-0 rounded-full animate-ping opacity-25 pointer-events-none" style={{ background: roleColor }} />
+        <span className="absolute inset-0 rounded-full animate-ping opacity-20 pointer-events-none" style={{ background: roleColor }} />
       )}
-      {allowed
-        ? <Check className="size-4.5 text-white" style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.9))' }} />
-        : <span className="size-2.5 rounded-full bg-slate-400" />
-      }
+      {allowed ? (
+        <Check className="size-4 text-white" />
+      ) : hovered ? (
+        <Plus className="size-4 animate-in fade-in zoom-in-50" style={{ color: roleColor }} />
+      ) : (
+        <span className="size-2 rounded-full bg-muted-foreground/30" />
+      )}
     </button>
   )
 }
@@ -117,32 +124,29 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
 
   return (
     <div
-      className="spotlight-card rounded-2xl p-5 space-y-4 animate-slide-left group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-purple-400/60 cursor-pointer relative overflow-hidden"
+      className="group relative overflow-hidden border border-border hover:border-primary/50 bg-card hover:bg-card/85 transition-all duration-300 rounded-xl p-5 space-y-4 shadow-sm"
       style={{
         animationDelay: `${index * 60}ms`,
-        background: `radial-gradient(circle at 90% 10%, rgba(168,85,247,0.14), transparent 65%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
-        border: '1.5px solid rgba(168, 85, 247, 0.4)',
-        borderTop: '4px solid #a855f7',
-        boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+        background: `radial-gradient(circle at 90% 10%, var(--primary-soft), transparent 65%), var(--panel)`,
       }}
     >
       {/* Shimmer sweep effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
 
       <div className="flex items-start gap-3 z-10">
-        <div className="p-2.5 rounded-xl flex-none transition-transform duration-300 group-hover:scale-110 shadow-xs" style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)' }}>
-          <Lock className="size-4 text-[#a855f7] icon-spring" />
+        <div className="p-2.5 rounded-lg flex-none transition-transform duration-300 group-hover:scale-105 shadow-xs" style={{ background: 'var(--primary-soft)', border: '1px solid var(--border)' }}>
+          <Lock className="size-4 text-primary icon-spring" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-black text-slate-900 font-mono group-hover:text-[#7c3aed] transition-colors">{label}</p>
-          <p className="text-[11px] text-slate-600 font-bold mt-0.5">
+          <p className="text-sm font-bold text-foreground transition-colors">{label}</p>
+          <p className="text-[11px] text-muted-foreground font-bold mt-0.5">
             {grantedRoles.length} of {roles.length} roles granted
           </p>
         </div>
       </div>
 
       {/* Orb grid */}
-      <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${Math.min(Math.max(roles.length, 1), 4)}, 1fr)` }}>
+      <div className="grid gap-2.5 font-sans" style={{ gridTemplateColumns: `repeat(${Math.min(Math.max(roles.length, 1), 4)}, 1fr)` }}>
         {(Array.isArray(roles) ? roles : []).map((roleRaw) => {
           const role = getRoleName(roleRaw)
           const conf = ROLE_COLORS[role.toLowerCase()] || DEFAULT_ROLE
@@ -157,7 +161,7 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
               />
               <span
                 className="text-[11px] font-black capitalize text-center leading-tight transition-colors truncate max-w-full"
-                style={{ color: allowed ? conf.color : '#64748b' }}
+                style={{ color: allowed ? conf.color : 'var(--muted)' }}
               >
                 {role}
               </span>
@@ -168,12 +172,12 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
 
       {/* Granted pills */}
       {grantedRoles.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200">
+        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border">
           {grantedRoles.map((rRaw) => {
             const r = getRoleName(rRaw)
             const conf = ROLE_COLORS[r.toLowerCase()] || DEFAULT_ROLE
             return (
-              <span key={r} className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold capitalize shadow-sm" style={{ color: conf.color, background: `${conf.color}15`, border: `1px solid ${conf.color}44` }}>
+              <span key={r} className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold capitalize shadow-xs border" style={{ color: conf.color, background: `${conf.color}15`, borderColor: `${conf.color}33` }}>
                 ✓ {r}
               </span>
             )
@@ -296,39 +300,20 @@ export default function Permissions() {
 
   return (
     <div className="page sector-violet space-y-6 animate-slide-up">
-      {/* Header */}
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-[#a855f7]/40 pb-5">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="cyber-pulse-dot cyber-pulse-dot-violet" />
-            <h1 className="text-2xl font-black tracking-tight sector-header-title">
-              Permission Matrix
-            </h1>
-            <Badge variant="outline" className="sector-badge text-xs font-mono font-bold">
-              RBAC Engine
-            </Badge>
-          </div>
-          <p className="mt-1 text-sm text-slate-300 font-medium">
-            Define which roles can perform which actions. Tap any orb to toggle access, then save.
-          </p>
+      {/* Header Controls */}
+      <header className="flex items-center justify-between border-b border-border pb-4">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="sector-badge text-xs font-mono font-bold border-border">
+            RBAC Engine
+          </Badge>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
-            className="border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 font-extrabold shadow-sm"
-          >
-            <ArrowLeft className="size-3.5 mr-1" />
-            All Sectors
-          </Button>
-
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowAddRole(true)}
-            className="magnetic-btn border-[#a855f7]/40 bg-[#a855f7]/10 hover:bg-[#a855f7]/25 text-[#c084fc] font-extrabold shadow-md"
+            className="border-border bg-secondary text-foreground hover:bg-secondary/80 font-bold shadow-sm cursor-pointer rounded-lg px-3"
           >
             <Crown className="size-3.5 mr-1" />
             Add Role
@@ -339,7 +324,7 @@ export default function Permissions() {
               variant="outline"
               size="sm"
               onClick={loadPermissions}
-              className="magnetic-btn border-white/20 text-slate-300 hover:bg-white/10 font-extrabold"
+              className="border-border text-foreground hover:bg-secondary/80 font-bold shadow-sm cursor-pointer rounded-lg px-3 animate-in fade-in zoom-in-95 duration-150"
             >
               <RotateCcw className="size-3.5 mr-1" />
               Reset
@@ -350,7 +335,7 @@ export default function Permissions() {
             size="sm"
             onClick={handleSave}
             disabled={!dirty || saving}
-            className="magnetic-btn bg-gradient-to-r from-[#a855f7] to-[#7c3aed] text-white font-black shadow-lg shadow-[#a855f7]/30 hover:opacity-95"
+            className="text-primary-foreground font-bold shadow-sm bg-primary hover:bg-primary-hover disabled:opacity-50 cursor-pointer rounded-lg px-4"
           >
             <Save className="size-3.5 mr-1.5" />
             {saving ? 'Saving...' : 'Save Matrix Changes'}
@@ -359,67 +344,43 @@ export default function Permissions() {
       </header>
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-bold flex items-center gap-2">
+        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold flex items-center gap-2">
           <AlertCircle className="size-4 flex-none" />
           {error}
         </div>
       )}
 
-      {/* Stats row */}
+      {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: 'Configured Roles', value: safeRolesList.length, icon: Crown, color: '#a855f7', chip: 'RBAC Roles', glow: 'rgba(168,85,247,0.45)' },
           { label: 'Protected Actions', value: ACTIONS.length, icon: ShieldCheck, color: '#10b981', chip: 'Enforced', glow: 'rgba(16,185,129,0.45)' },
           { label: 'Active Grants', value: totalGrants, icon: Layers, color: '#06b6d4', chip: 'Matrix Sync', glow: 'rgba(6,182,212,0.45)' },
-        ].map(({ label, value, icon: Icon, color, chip, glow }, i) => (
+        ].map(({ label, value, icon: Icon, color, chip }, i) => (
           <div
             key={label}
-            onMouseMove={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect()
-              e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
-              e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
-            }}
-            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+            className="group relative overflow-hidden border border-border hover:border-primary/40 bg-card hover:bg-card/90 transition-all duration-300 rounded-xl p-5 flex items-center justify-between gap-4 shadow-sm hover:shadow-md cursor-pointer animate-slide-up"
             style={{
               animationDelay: `${i * 80}ms`,
-              background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
-              border: `1.5px solid ${color}50`,
-              borderTop: `4px solid ${color}`,
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+              background: `radial-gradient(circle 120px at 90% 10%, ${color}08, transparent 75%), var(--panel)`,
             }}
           >
-            {/* Ambient Corner Energy Glow */}
-            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+            {/* Shimmer sweep */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
 
-            {/* Shimmer sweep effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
-            <div className="flex items-center gap-3.5 z-10">
-              <div className="relative flex items-center justify-center">
-                {/* Inner spinning dashed orbit */}
-                <svg width="52" height="52" className="absolute -rotate-90 pointer-events-none">
-                  <circle
-                    cx="26" cy="26" r="23"
-                    fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 5" opacity="0.6" className="animate-spin" style={{ animationDuration: '10s' }}
-                  />
-                  <circle
-                    cx="26" cy="26" r="18"
-                    fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.35" className="animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}
-                  />
-                </svg>
-                <div className="size-11 rounded-xl flex items-center justify-center text-white flex-none transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md" style={{ background: color, boxShadow: `0 0 20px ${glow}` }}>
-                  <Icon className="size-5 text-white" />
-                </div>
+            <div className="flex items-center gap-4 z-10">
+              <div className="relative size-11 rounded-lg flex items-center justify-center flex-none bg-secondary/50 border border-border group-hover:border-primary/30 transition-colors">
+                <Icon className="size-5 transition-transform duration-300 group-hover:scale-110" style={{ color }} />
               </div>
               <div>
-                <p className="text-3xl font-black font-mono tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5" style={{ color, textShadow: `0 0 18px ${color}45` }}>{value}</p>
-                <p className="text-[11px] font-black uppercase tracking-widest text-slate-600 mt-0.5">{label}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+                <p className="text-3xl font-black font-mono tracking-tight text-foreground mt-1 group-hover:text-primary transition-colors">{value}</p>
               </div>
             </div>
 
             <div className="flex flex-col items-end gap-1.5 z-10">
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-xs flex items-center gap-1.5 border transition-all duration-300 group-hover:scale-105" style={{ color, background: `${color}18`, borderColor: `${color}45` }}>
-                <span className="size-1.5 rounded-full animate-ping" style={{ background: color }} />
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold shadow-xs flex items-center gap-1.5 border transition-all duration-300" style={{ color, background: `${color}15`, borderColor: `${color}25` }}>
+                <span className="size-1.5 rounded-full animate-pulse" style={{ background: color }} />
                 {chip}
               </span>
             </div>
@@ -428,17 +389,17 @@ export default function Permissions() {
       </div>
 
       {/* Role Legend Bar */}
-      <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 shadow-xs overflow-x-auto">
-        <span className="text-xs font-black uppercase text-slate-800 font-mono tracking-wider flex-none flex items-center gap-1">
-          <Crown className="size-3.5 text-[#7c3aed]" /> Role Legend:
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 border border-border shadow-xs overflow-x-auto">
+        <span className="text-xs font-black uppercase text-foreground font-mono tracking-wider flex-none flex items-center gap-1">
+          <Crown className="size-3.5 text-primary" /> Role Legend:
         </span>
         <div className="flex items-center gap-2 flex-wrap">
           {safeRolesList.map((rRaw) => {
             const r = getRoleName(rRaw)
             const conf = ROLE_COLORS[r.toLowerCase()] || DEFAULT_ROLE
             return (
-              <span key={r} className="px-2.5 py-1 rounded-full text-[11px] font-extrabold capitalize flex items-center gap-1.5 shadow-xs" style={{ color: 'white', background: conf.gradient, border: `1.5px solid ${conf.color}` }}>
-                <span className="size-2 rounded-full bg-white shadow-xs" />
+              <span key={r} className="px-2.5 py-1 rounded-full text-[11px] font-extrabold capitalize flex items-center gap-1.5 shadow-xs border" style={{ color: conf.color, background: `${conf.color}15`, borderColor: `${conf.color}33` }}>
+                <span className="size-2 rounded-full shadow-xs" style={{ background: conf.color }} />
                 {r}
               </span>
             )
@@ -450,7 +411,7 @@ export default function Permissions() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-48 rounded-2xl bg-white/5 animate-pulse" />
+            <div key={i} className="h-48 rounded-xl bg-secondary animate-pulse" />
           ))}
         </div>
       ) : (
@@ -470,11 +431,11 @@ export default function Permissions() {
 
       {/* Add Role Dialog */}
       <Dialog open={showAddRole} onOpenChange={setShowAddRole}>
-        <DialogContent className="sm:max-w-md border-t-4 border-t-[#a855f7] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+        <DialogContent className="sm:max-w-md border-t-4 border-t-primary shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-900 tracking-tight">
-              <div className="size-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center flex-none">
-                <Crown className="size-4 text-[#a855f7]" />
+            <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
+              <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-none">
+                <Crown className="size-4 text-primary" />
               </div>
               Add New Role
             </DialogTitle>
@@ -482,19 +443,19 @@ export default function Permissions() {
 
           <form onSubmit={handleCreateRole} className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Role Key / Name</Label>
+              <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Role Key / Name</Label>
               <Input
                 placeholder="e.g. analyst, auditor, devops"
                 value={newRoleName}
                 onChange={(e) => setNewRoleName(e.target.value)}
-                className="bg-slate-50 border-slate-300 text-slate-900 font-semibold font-mono text-xs shadow-xs focus:bg-white focus:border-[#a855f7] focus:ring-2 focus:ring-[#a855f7]/20 transition-all rounded-xl"
+                className="bg-background border-border text-foreground font-semibold font-mono text-xs shadow-xs focus:border-primary transition-all rounded-lg"
                 required
               />
             </div>
 
             <DialogFooter className="pt-3 gap-2">
               <DialogClose asChild>
-                <Button type="button" variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">
+                <Button type="button" variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">
                   Cancel
                 </Button>
               </DialogClose>
@@ -502,7 +463,7 @@ export default function Permissions() {
                 type="submit"
                 size="sm"
                 disabled={addingRole}
-                className="text-xs font-extrabold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-xl px-5" style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)' }}
+                className="text-xs font-extrabold text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer rounded-lg px-5 bg-primary hover:bg-primary-hover"
               >
                 {addingRole ? 'Adding...' : 'Create Role'}
               </Button>
