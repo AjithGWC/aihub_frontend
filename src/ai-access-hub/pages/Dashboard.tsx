@@ -13,7 +13,8 @@ import {
   ArrowUpRight,
   ArrowLeft,
 } from 'lucide-react'
-import { api } from '@/api'
+import { getGovernanceSummary, getMetricsSummary, listModels, listAuditEvents } from '@/api/portal'
+import { normalizeAuditEvent } from '../lib/audit'
 import type { AuditLogEntry } from '../types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -47,13 +48,11 @@ function RingGauge({ value, max, label, sublabel, color, icon: Icon, delay = 0, 
       className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer flex flex-col"
       style={{ animationDelay: `${delay}ms`, minHeight: '200px' }}
     >
-      {/* Subtle color wash in top-right */}
       <div
         className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none opacity-[0.07] blur-2xl transition-opacity duration-300 group-hover:opacity-[0.13]"
         style={{ background: color, transform: 'translate(30%, -30%)' }}
       />
 
-      {/* Top row: label + status pill */}
       <div className="flex items-start justify-between px-5 pt-5 pb-3 z-10">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
@@ -68,13 +67,10 @@ function RingGauge({ value, max, label, sublabel, color, icon: Icon, delay = 0, 
         </span>
       </div>
 
-      {/* Center: Ring + Value */}
       <div className="flex items-center justify-center flex-1 pb-2 z-10">
         <div className="relative flex items-center justify-center">
           <svg width="108" height="108" className="-rotate-90">
-            {/* Background track */}
             <circle cx="54" cy="54" r={r} fill="none" stroke="var(--border)" strokeWidth="6" opacity="0.5" />
-            {/* Colored fill arc */}
             <circle
               cx="54" cy="54" r={r}
               fill="none"
@@ -90,7 +86,6 @@ function RingGauge({ value, max, label, sublabel, color, icon: Icon, delay = 0, 
             />
           </svg>
 
-          {/* Center value */}
           <div className="absolute flex flex-col items-center justify-center">
             <Icon className="size-3.5 mb-0.5 transition-transform duration-300 group-hover:scale-110" style={{ color }} />
             <span className="text-[22px] font-black font-mono leading-none tracking-tight text-foreground">
@@ -100,7 +95,6 @@ function RingGauge({ value, max, label, sublabel, color, icon: Icon, delay = 0, 
         </div>
       </div>
 
-      {/* Bottom: percent bar */}
       <div className="px-5 pb-5 z-10">
         <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
           <div
@@ -142,7 +136,6 @@ function TimelineEvent({ event, delay }: { event: AuditLogEntry; delay: number }
       className="flex items-center gap-3 group cursor-pointer"
       style={{ animationDelay: `${delay}ms` }}
     >
-      {/* Node */}
       <div className="flex-none z-10">
         <div
           className="relative flex items-center justify-center size-7 rounded-full transition-all duration-300 group-hover:scale-110 shadow-xs"
@@ -153,7 +146,6 @@ function TimelineEvent({ event, delay }: { event: AuditLogEntry; delay: number }
         </div>
       </div>
 
-      {/* Content card */}
       <div
         className="flex-1 min-w-0 rounded-xl px-3.5 py-2.5 transition-all duration-300 group-hover:scale-[1.01] group-hover:-translate-y-0.5 border border-border group-hover:border-primary/30 shadow-xs relative overflow-hidden"
         style={{ background: 'var(--card)', borderLeft: `3px solid ${dotColor}` }}
@@ -192,7 +184,6 @@ function QuickTile({ label, color, sublabel, icon: Icon, sectorKey }: { label: s
       onClick={handleClick}
       className="group flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border border-border hover:border-primary/40 transition-all duration-300 relative overflow-hidden shadow-xs cursor-pointer hover:-translate-y-0.5 hover:shadow-md bg-card"
     >
-      {/* Subtle radial wash */}
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
         style={{ background: `radial-gradient(circle at 50% 0%, ${color}15, transparent 70%)` }}
@@ -211,34 +202,35 @@ function QuickTile({ label, color, sublabel, icon: Icon, sectorKey }: { label: s
   )
 }
 
-const RING_DATA = [
-  { label: 'Req / sec', sublabel: 'Gateway throughput', value: 43, max: 100, unit: '', color: '#3b82f6', icon: Zap, delay: 0 },
-  { label: 'Cache Hit', sublabel: 'Provider cache layer', value: 61, max: 100, unit: '%', color: '#06b6d4', icon: Activity, delay: 120 },
-  { label: 'Latency', sublabel: 'Avg inference ms', value: 142, max: 400, unit: 'ms', color: '#a855f7', icon: TrendingUp, delay: 240 },
-  { label: 'Active Users', sublabel: 'Concurrent sessions', value: 128, max: 500, unit: '', color: '#22c55e', icon: Users, delay: 360 },
-]
-
 const QUICK_TILES = [
   { label: 'Users', sublabel: 'Directory', icon: Users, color: '#06b6d4', sectorKey: 'users' },
-  { label: 'API Keys', sublabel: 'AES Vault', icon: Zap, color: '#f97316', sectorKey: 'apikeys' },
+  { label: 'API Keys', sublabel: 'Vault', icon: Zap, color: '#f97316', sectorKey: 'apikeys' },
   { label: 'Models', sublabel: 'Registry', icon: Cpu, color: '#f59e0b', sectorKey: 'models' },
   { label: 'Audit Log', sublabel: 'Telemetry', icon: BarChart3, color: '#22c55e', sectorKey: 'audit' },
 ]
+
+/** Metrics summary schema is declared opaque (`{}`) in the swagger — try common field names, fall back to an illustrative value if absent. */
+function numField(obj: Record<string, unknown> | undefined | null, keys: string[], fallback: number): number {
+  if (!obj) return fallback
+  for (const key of keys) {
+    const v = obj[key]
+    if (typeof v === 'number' && Number.isFinite(v)) return v
+  }
+  return fallback
+}
 
 export default function Dashboard() {
   const [auditEvents, setAuditEvents] = useState<AuditLogEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [ringValues, setRingValues] = useState({ reqPerSec: 43, cacheHitPct: 61, latencyMs: 142, activeUsers: 128 })
+  const [modelCounts, setModelCounts] = useState({ providers: 5, models: 12 })
   const timelineRef = useRef<HTMLDivElement>(null)
 
   function fetchAuditLogs() {
     setRefreshing(true)
-    api
-      .get('/audit-log')
-      .then(({ data }: { data: any }) => {
-        const events = data?.events ?? data?.logs ?? (Array.isArray(data) ? data : [])
-        setAuditEvents(events)
-      })
+    listAuditEvents({ limit: 6 })
+      .then((raw) => setAuditEvents(raw.map(normalizeAuditEvent)))
       .catch(() => setAuditEvents([]))
       .finally(() => {
         setLoading(false)
@@ -248,7 +240,36 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchAuditLogs()
+
+    getMetricsSummary()
+      .then((m) => {
+        setRingValues((prev) => ({
+          reqPerSec: numField(m, ['request_rate', 'requests_per_second', 'req_per_sec'], prev.reqPerSec),
+          cacheHitPct: numField(m, ['cache_hit_rate', 'cache_hit_ratio', 'cache_hit_pct'], prev.cacheHitPct),
+          latencyMs: numField(m, ['latency_ms', 'avg_latency_ms', 'p50_latency_ms'], prev.latencyMs),
+          activeUsers: numField(m, ['active_users', 'concurrent_sessions'], prev.activeUsers),
+        }))
+      })
+      .catch(() => {})
+
+    listModels()
+      .then((models) => {
+        setModelCounts({
+          providers: new Set(models.map((m) => m.backend).filter(Boolean)).size,
+          models: models.length,
+        })
+      })
+      .catch(() => {})
+
+    getGovernanceSummary().catch(() => {})
   }, [])
+
+  const RING_DATA = [
+    { label: 'Req / sec', sublabel: 'Gateway throughput', value: ringValues.reqPerSec, max: 100, unit: '', color: '#3b82f6', icon: Zap, delay: 0 },
+    { label: 'Cache Hit', sublabel: 'Provider cache layer', value: ringValues.cacheHitPct, max: 100, unit: '%', color: '#06b6d4', icon: Activity, delay: 120 },
+    { label: 'Latency', sublabel: 'Avg inference ms', value: ringValues.latencyMs, max: 400, unit: 'ms', color: '#a855f7', icon: TrendingUp, delay: 240 },
+    { label: 'Active Users', sublabel: 'Concurrent sessions', value: ringValues.activeUsers, max: 500, unit: '', color: '#22c55e', icon: Users, delay: 360 },
+  ]
 
   return (
     <div className="page sector-blue space-y-6 animate-slide-up">
@@ -262,7 +283,7 @@ export default function Dashboard() {
             </h1>
             <Badge variant="outline" className="sector-badge text-xs font-mono font-bold flex items-center gap-1 border-border">
               <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
-              Gateway Online • 99.98% Uptime
+              Gateway Online
             </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground font-semibold">
@@ -371,7 +392,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* System Status */}
+          {/* System Status — illustrative; no per-service health endpoint exists yet */}
           <div className="rounded-2xl shadow-sm border border-border bg-card">
             <div className="px-4 pt-4 pb-3 border-b border-border flex items-center gap-1.5">
               <Cpu className="size-3.5 text-primary" />
@@ -418,22 +439,20 @@ export default function Dashboard() {
           <div className="rounded-2xl shadow-sm border border-border bg-card">
             <div className="p-3 grid grid-cols-2 gap-3">
               {[
-                { label: 'Providers', value: '5', icon: ArrowUpRight, color: '#f97316', sectorKey: 'models' },
-                { label: 'Models', value: '12', icon: Cpu, color: '#f59e0b', sectorKey: 'models' },
-                { label: 'Req Today', value: '48k', icon: TrendingUp, color: '#3b82f6', sectorKey: 'audit' },
-                { label: 'Errors', value: '0.2%', icon: AlertCircle, color: '#f43f5e', sectorKey: 'audit' },
+                { label: 'Providers', value: String(modelCounts.providers), icon: ArrowUpRight, color: '#f97316', sectorKey: 'models' },
+                { label: 'Models', value: String(modelCounts.models), icon: Cpu, color: '#f59e0b', sectorKey: 'models' },
+                { label: 'Req Today', value: '—', icon: TrendingUp, color: '#3b82f6', sectorKey: 'audit' },
+                { label: 'Errors', value: '—', icon: AlertCircle, color: '#f43f5e', sectorKey: 'audit' },
               ].map(({ label, value, icon: Icon, color, sectorKey }) => (
                 <div
                   key={label}
                   onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-select-sector', { detail: sectorKey }))}
                   className="group relative overflow-hidden rounded-xl p-3.5 flex flex-col gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer border border-border bg-secondary/30 hover:border-primary/30"
                 >
-                  {/* Subtle color wash */}
                   <div
                     className="absolute top-0 right-0 w-16 h-16 rounded-full pointer-events-none opacity-[0.08] blur-xl group-hover:opacity-[0.15] transition-opacity duration-300"
                     style={{ background: color, transform: 'translate(25%, -25%)' }}
                   />
-                  {/* Shimmer */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
 
                   <div

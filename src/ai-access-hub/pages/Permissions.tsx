@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Check,
   Plus,
@@ -10,22 +10,10 @@ import {
   AlertCircle,
   Crown,
   X,
-  ArrowLeft
 } from 'lucide-react'
-import { api } from '@/api'
-import type { PermissionAction, PermissionMatrix } from '../types'
+import { getPolicyMatrix, patchRolePermissions, type PolicyMatrix } from '@/api/portal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 
 const ROLE_COLORS: Record<string, { color: string; glow: string; gradient: string }> = {
   admin:     { color: '#a855f7', glow: 'rgba(168,85,247,0.4)',  gradient: 'linear-gradient(135deg, #a855f7, #7c3aed)' },
@@ -37,40 +25,12 @@ const ROLE_COLORS: Record<string, { color: string; glow: string; gradient: strin
 }
 const DEFAULT_ROLE = { color: 'var(--muted)', glow: 'var(--primary-soft)', gradient: 'linear-gradient(135deg, var(--muted), var(--foreground))' }
 
-const ACTIONS: PermissionAction[] = [
-  'viewAdminPortal',
-  'manageUsers',
-  'manageApiKeys',
-  'managePermissions',
-  'manageModels',
-  'viewAuditLog',
-]
-
-const ACTION_LABELS: Record<PermissionAction, string> = {
-  viewAdminPortal: 'View Admin Portal',
-  manageUsers: 'Manage Users',
-  manageApiKeys: 'Manage API Keys',
-  managePermissions: 'Manage Permissions',
-  manageModels: 'Manage Models',
-  viewAuditLog: 'View Audit Log',
-}
-
-/* Helper to convert any role object or string into a safe display string */
-function getRoleName(r: any): string {
-  if (!r) return ''
-  if (typeof r === 'string') return r
-  if (typeof r === 'object') {
-    const val = r.role || r.name || r.id || r.key || r.value || r.label || r.title
-    if (val && typeof val === 'string') return val
-    const keys = Object.keys(r)
-    if (keys.length > 0 && typeof r[keys[0]] === 'string') return r[keys[0]]
-  }
-  const str = String(r)
-  return str === '[object Object]' ? 'Role' : str
+function labelize(taskType: string): string {
+  return taskType.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 /* Permission orb toggle with GSAP-inspired spring dynamics */
-function PermOrb({ allowed, onChange, roleColor, roleGlow }: { allowed: boolean; onChange: (next: boolean) => void; roleColor: string; roleGlow: string }) {
+function PermOrb({ allowed, onChange, roleColor }: { allowed: boolean; onChange: (next: boolean) => void; roleColor: string }) {
   const [hovered, setHovered] = useState(false)
   const [pulsing, setPulsing] = useState(false)
 
@@ -109,18 +69,15 @@ function PermOrb({ allowed, onChange, roleColor, roleGlow }: { allowed: boolean;
 }
 
 /* Action row card */
-function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
-  action: PermissionAction
+function ActionCard({ taskType, roles, matrix, onMatrixChange, index }: {
+  taskType: string
   roles: string[]
-  matrix: PermissionMatrix
-  onMatrixChange: (role: string, action: PermissionAction, next: boolean) => void
+  matrix: PolicyMatrix
+  onMatrixChange: (role: string, taskType: string, next: boolean) => void
   index: number
 }) {
-  const grantedRoles = (Array.isArray(roles) ? roles : []).filter((r) => {
-    const rName = getRoleName(r)
-    return matrix[rName]?.[action]
-  })
-  const label = ACTION_LABELS[action] || action
+  const grantedRoles = roles.filter((r) => matrix[r]?.[taskType])
+  const label = labelize(taskType)
 
   return (
     <div
@@ -130,7 +87,6 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
         background: `radial-gradient(circle at 90% 10%, var(--primary-soft), transparent 65%), var(--panel)`,
       }}
     >
-      {/* Shimmer sweep effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
 
       <div className="flex items-start gap-3 z-10">
@@ -145,20 +101,13 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
         </div>
       </div>
 
-      {/* Orb grid */}
       <div className="grid gap-2.5 font-sans" style={{ gridTemplateColumns: `repeat(${Math.min(Math.max(roles.length, 1), 4)}, 1fr)` }}>
-        {(Array.isArray(roles) ? roles : []).map((roleRaw) => {
-          const role = getRoleName(roleRaw)
+        {roles.map((role) => {
           const conf = ROLE_COLORS[role.toLowerCase()] || DEFAULT_ROLE
-          const allowed = !!matrix[role]?.[action]
+          const allowed = !!matrix[role]?.[taskType]
           return (
             <div key={role} className="flex flex-col items-center gap-1.5">
-              <PermOrb
-                allowed={allowed}
-                onChange={(next) => onMatrixChange(role, action, next)}
-                roleColor={conf.color}
-                roleGlow={conf.glow}
-              />
+              <PermOrb allowed={allowed} onChange={(next) => onMatrixChange(role, taskType, next)} roleColor={conf.color} />
               <span
                 className="text-[11px] font-black capitalize text-center leading-tight transition-colors truncate max-w-full"
                 style={{ color: allowed ? conf.color : 'var(--muted)' }}
@@ -170,11 +119,9 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
         })}
       </div>
 
-      {/* Granted pills */}
       {grantedRoles.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border">
-          {grantedRoles.map((rRaw) => {
-            const r = getRoleName(rRaw)
+          {grantedRoles.map((r) => {
             const conf = ROLE_COLORS[r.toLowerCase()] || DEFAULT_ROLE
             return (
               <span key={r} className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold capitalize shadow-xs border" style={{ color: conf.color, background: `${conf.color}15`, borderColor: `${conf.color}33` }}>
@@ -188,115 +135,53 @@ function ActionCard({ action, roles, matrix, onMatrixChange, index }: {
   )
 }
 
-const DEFAULT_MATRIX: PermissionMatrix = {
-  admin: { viewAdminPortal: true, manageUsers: true, manageApiKeys: true, managePermissions: true, manageModels: true, viewAuditLog: true },
-  developer: { viewAdminPortal: true, manageUsers: false, manageApiKeys: true, managePermissions: false, manageModels: true, viewAuditLog: true },
-  analyst: { viewAdminPortal: true, manageUsers: false, manageApiKeys: false, managePermissions: false, manageModels: false, viewAuditLog: true },
-  viewer: { viewAdminPortal: true, manageUsers: false, manageApiKeys: false, managePermissions: false, manageModels: false, viewAuditLog: false },
-}
-
 export default function Permissions() {
-  const [matrix, setMatrix] = useState<PermissionMatrix>(DEFAULT_MATRIX)
-  const [roles, setRoles] = useState<string[]>(['viewer', 'analyst', 'developer', 'admin'])
+  const [matrix, setMatrix] = useState<PolicyMatrix>({})
+  const [originalMatrix, setOriginalMatrix] = useState<PolicyMatrix>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [dirty, setDirty] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showAddRole, setShowAddRole] = useState(false)
-
-  const [newRoleName, setNewRoleName] = useState('')
-  const [addingRole, setAddingRole] = useState(false)
 
   function loadPermissions() {
     setLoading(true)
-    api
-      .get('/permissions')
-      .then(({ data }: { data: any }) => {
-        const mat = data?.matrix && Object.keys(data.matrix).length > 0 ? data.matrix : DEFAULT_MATRIX
-        const rawRoles = data?.roles ?? Object.keys(mat)
-        const safeRoles = Array.isArray(rawRoles) && rawRoles.length > 0
-          ? rawRoles.map(getRoleName).filter(Boolean)
-          : Object.keys(mat)
-        
+    setError(null)
+    getPolicyMatrix()
+      .then((mat) => {
         setMatrix(mat)
-        setRoles(safeRoles)
-        setDirty(false)
+        setOriginalMatrix(mat)
       })
-      .catch((err: any) => {
-        console.warn('Using default permission matrix fallback:', err?.message)
-        setMatrix(DEFAULT_MATRIX)
-        setRoles(['viewer', 'analyst', 'developer', 'admin'])
-      })
+      .catch(() => setError('Failed to load the permission matrix.'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => {
-    loadPermissions()
-  }, [])
+  useEffect(() => { loadPermissions() }, [])
 
-  function handleMatrixChange(role: string, action: PermissionAction, next: boolean) {
-    setMatrix((prev) => ({
-      ...prev,
-      [role]: {
-        ...(prev[role] || {}),
-        [action]: next,
-      },
-    }))
-    setDirty(true)
+  const roles = useMemo(() => Object.keys(matrix), [matrix])
+  const taskTypes = useMemo(
+    () => Array.from(new Set(Object.values(matrix).flatMap((perms) => Object.keys(perms)))),
+    [matrix]
+  )
+  const dirty = JSON.stringify(matrix) !== JSON.stringify(originalMatrix)
+
+  function handleMatrixChange(role: string, taskType: string, next: boolean) {
+    setMatrix((prev) => ({ ...prev, [role]: { ...(prev[role] || {}), [taskType]: next } }))
   }
 
-  function handleSave() {
+  async function handleSave() {
     setSaving(true)
     setError(null)
-    api
-      .put('/permissions', { matrix })
-      .then(() => {
-        setDirty(false)
-      })
-      .catch((err: any) => {
-        setError(err?.response?.data?.message || 'Failed to update permissions')
-      })
-      .finally(() => setSaving(false))
-  }
-
-  function handleCreateRole(e: React.FormEvent) {
-    e.preventDefault()
-    if (!newRoleName.trim()) return
-
-    setAddingRole(true)
-    const normalizedRole = newRoleName.trim().toLowerCase()
-
-    const updatedMatrix = {
-      ...matrix,
-      [normalizedRole]: ACTIONS.reduce((acc, act) => {
-        acc[act] = false
-        return acc
-      }, {} as Record<PermissionAction, boolean>)
+    try {
+      const changedRoles = roles.filter((r) => JSON.stringify(matrix[r]) !== JSON.stringify(originalMatrix[r]))
+      await Promise.all(changedRoles.map((r) => patchRolePermissions(r, matrix[r])))
+      setOriginalMatrix(matrix)
+    } catch {
+      setError('Failed to update permissions')
+    } finally {
+      setSaving(false)
     }
-
-    const updatedRoles = Array.from(new Set([...roles, normalizedRole]))
-
-    api
-      .put('/permissions', { matrix: updatedMatrix })
-      .then(() => {
-        setMatrix(updatedMatrix)
-        setRoles(updatedRoles)
-        setShowAddRole(false)
-        setNewRoleName('')
-      })
-      .catch((err: any) => {
-        setError(err?.response?.data?.message || 'Failed to add role')
-      })
-      .finally(() => setAddingRole(false))
   }
 
-  const safeRolesList = Array.isArray(roles) ? roles : []
-
-  const totalGrants = safeRolesList.reduce((acc, r) => {
-    const roleName = getRoleName(r)
-    const roleMap = matrix[roleName] || {}
-    return acc + Object.values(roleMap).filter(Boolean).length
-  }, 0)
+  const totalGrants = roles.reduce((acc, r) => acc + Object.values(matrix[r] || {}).filter(Boolean).length, 0)
 
   return (
     <div className="page sector-violet space-y-6 animate-slide-up">
@@ -309,16 +194,6 @@ export default function Permissions() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAddRole(true)}
-            className="border-border bg-secondary text-foreground hover:bg-secondary/80 font-bold shadow-sm cursor-pointer rounded-lg px-3"
-          >
-            <Crown className="size-3.5 mr-1" />
-            Add Role
-          </Button>
-
           {dirty && (
             <Button
               variant="outline"
@@ -347,15 +222,16 @@ export default function Permissions() {
         <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold flex items-center gap-2">
           <AlertCircle className="size-4 flex-none" />
           {error}
+          <button onClick={() => setError(null)} className="ml-auto"><X className="size-3.5" /></button>
         </div>
       )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Configured Roles', value: safeRolesList.length, icon: Crown, color: '#a855f7', chip: 'RBAC Roles', glow: 'rgba(168,85,247,0.45)' },
-          { label: 'Protected Actions', value: ACTIONS.length, icon: ShieldCheck, color: '#10b981', chip: 'Enforced', glow: 'rgba(16,185,129,0.45)' },
-          { label: 'Active Grants', value: totalGrants, icon: Layers, color: '#06b6d4', chip: 'Matrix Sync', glow: 'rgba(6,182,212,0.45)' },
+          { label: 'Configured Roles', value: roles.length, icon: Crown, color: '#a855f7', chip: 'RBAC Roles' },
+          { label: 'Task Types', value: taskTypes.length, icon: ShieldCheck, color: '#10b981', chip: 'Enforced' },
+          { label: 'Active Grants', value: totalGrants, icon: Layers, color: '#06b6d4', chip: 'Matrix Sync' },
         ].map(({ label, value, icon: Icon, color, chip }, i) => (
           <div
             key={label}
@@ -365,9 +241,7 @@ export default function Permissions() {
               background: `radial-gradient(circle 120px at 90% 10%, ${color}08, transparent 75%), var(--panel)`,
             }}
           >
-            {/* Shimmer sweep */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
             <div className="flex items-center gap-4 z-10">
               <div className="relative size-11 rounded-lg flex items-center justify-center flex-none bg-secondary/50 border border-border group-hover:border-primary/30 transition-colors">
                 <Icon className="size-5 transition-transform duration-300 group-hover:scale-110" style={{ color }} />
@@ -377,7 +251,6 @@ export default function Permissions() {
                 <p className="text-3xl font-black font-mono tracking-tight text-foreground mt-1 group-hover:text-primary transition-colors">{value}</p>
               </div>
             </div>
-
             <div className="flex flex-col items-end gap-1.5 z-10">
               <span className="px-2.5 py-1 rounded-full text-[10px] font-bold shadow-xs flex items-center gap-1.5 border transition-all duration-300" style={{ color, background: `${color}15`, borderColor: `${color}25` }}>
                 <span className="size-1.5 rounded-full animate-pulse" style={{ background: color }} />
@@ -389,23 +262,24 @@ export default function Permissions() {
       </div>
 
       {/* Role Legend Bar */}
-      <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 border border-border shadow-xs overflow-x-auto">
-        <span className="text-xs font-black uppercase text-foreground font-mono tracking-wider flex-none flex items-center gap-1">
-          <Crown className="size-3.5 text-primary" /> Role Legend:
-        </span>
-        <div className="flex items-center gap-2 flex-wrap">
-          {safeRolesList.map((rRaw) => {
-            const r = getRoleName(rRaw)
-            const conf = ROLE_COLORS[r.toLowerCase()] || DEFAULT_ROLE
-            return (
-              <span key={r} className="px-2.5 py-1 rounded-full text-[11px] font-extrabold capitalize flex items-center gap-1.5 shadow-xs border" style={{ color: conf.color, background: `${conf.color}15`, borderColor: `${conf.color}33` }}>
-                <span className="size-2 rounded-full shadow-xs" style={{ background: conf.color }} />
-                {r}
-              </span>
-            )
-          })}
+      {roles.length > 0 && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 border border-border shadow-xs overflow-x-auto">
+          <span className="text-xs font-black uppercase text-foreground font-mono tracking-wider flex-none flex items-center gap-1">
+            <Crown className="size-3.5 text-primary" /> Role Legend:
+          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            {roles.map((r) => {
+              const conf = ROLE_COLORS[r.toLowerCase()] || DEFAULT_ROLE
+              return (
+                <span key={r} className="px-2.5 py-1 rounded-full text-[11px] font-extrabold capitalize flex items-center gap-1.5 shadow-xs border" style={{ color: conf.color, background: `${conf.color}15`, borderColor: `${conf.color}33` }}>
+                  <span className="size-2 rounded-full shadow-xs" style={{ background: conf.color }} />
+                  {r}
+                </span>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Action Cards Grid */}
       {loading ? (
@@ -414,13 +288,15 @@ export default function Permissions() {
             <div key={i} className="h-48 rounded-xl bg-secondary animate-pulse" />
           ))}
         </div>
+      ) : taskTypes.length === 0 ? (
+        <div className="py-16 text-center text-sm text-muted-foreground">No task types found in the policy matrix.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {ACTIONS.map((action, idx) => (
+          {taskTypes.map((taskType, idx) => (
             <ActionCard
-              key={action}
-              action={action}
-              roles={safeRolesList}
+              key={taskType}
+              taskType={taskType}
+              roles={roles}
               matrix={matrix}
               onMatrixChange={handleMatrixChange}
               index={idx}
@@ -428,49 +304,6 @@ export default function Permissions() {
           ))}
         </div>
       )}
-
-      {/* Add Role Dialog */}
-      <Dialog open={showAddRole} onOpenChange={setShowAddRole}>
-        <DialogContent className="sm:max-w-md border-t-4 border-t-primary shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
-              <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-none">
-                <Crown className="size-4 text-primary" />
-              </div>
-              Add New Role
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleCreateRole} className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Role Key / Name</Label>
-              <Input
-                placeholder="e.g. analyst, auditor, devops"
-                value={newRoleName}
-                onChange={(e) => setNewRoleName(e.target.value)}
-                className="bg-background border-border text-foreground font-semibold font-mono text-xs shadow-xs focus:border-primary transition-all rounded-lg"
-                required
-              />
-            </div>
-
-            <DialogFooter className="pt-3 gap-2">
-              <DialogClose asChild>
-                <Button type="button" variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={addingRole}
-                className="text-xs font-extrabold text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer rounded-lg px-5 bg-primary hover:bg-primary-hover"
-              >
-                {addingRole ? 'Adding...' : 'Create Role'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

@@ -1,53 +1,45 @@
 export type Role = string
 
-export interface RoleRecord {
-  key: string
-  label: string
-}
-
 export interface AppUser {
   id: string
   name: string
-  email: string
-  role: Role
-  department: string
-  status: 'active' | 'inactive'
+  email: string | null
+  roles: string[]
+  department: string | null
+  status: string
   isSystemAdmin: boolean
   createdAt: string
 }
 
 export interface ApiKeyRecord {
   id: string
-  label: string
-  llmName: string
-  masked: string
-  owner: { _id: string; name: string; email: string } | string
+  label: string | null
+  keyPrefix: string
+  modelEntitlements: string[]
+  owner: { id: string; name: string }
   expiresAt: string | null
-  status: 'active' | 'revoked'
+  rateLimitRpm: number
+  status: string
   createdAt: string
 }
 
-export type PermissionAction =
-  | 'viewAdminPortal'
-  | 'manageUsers'
-  | 'manageApiKeys'
-  | 'managePermissions'
-  | 'manageModels'
-  | 'viewAuditLog'
-export type PermissionMatrix = Record<Role, Record<PermissionAction, boolean>>
-
-export type ModelTask = 'chat' | 'code' | 'reasoning' | 'summarization' | 'translation'
+export type PermissionMatrix = Record<Role, Record<string, boolean>>
 
 export interface ModelRecord {
+  /** The model's `name` doubles as its API identifier — the registry has no separate id. */
   id: string
   name: string
+  version: string
   backend: string
-  tasks: ModelTask[]
-  status: 'active' | 'staging' | 'inactive'
-  context: string
+  endpoint: string
+  tasks: string[]
+  status: string
+  maxContextLength: number | null
+  vramRequiredGb: number | null
+  fallbackModel: string | null
+  notes: string | null
   isCloud: boolean
-  apiKeyMasked: string | null
-  allowedRoles: string[]
+  apiKeySet: boolean
 }
 
 export interface AuditLogEntry {
@@ -55,6 +47,6 @@ export interface AuditLogEntry {
   event: string
   actorEmail: string
   layer: string
-  outcome: 'passed' | 'denied' | 'error'
+  outcome: 'passed' | 'denied' | 'error' | string
   createdAt: string
 }

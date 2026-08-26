@@ -7,7 +7,7 @@ import { COLOR, FONT_HEADING, FONT_BODY } from "../components/atlasTheme";
 export default function Login() {
   const { login } = useSession();
   const { startTransition } = useTransition();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login(username, password);
       startTransition(user.role === "admin" ? "/" : "/chat");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Node Authorization Failed");
@@ -100,17 +100,17 @@ export default function Login() {
 
             <div className="flex flex-col gap-2">
               <label className="text-[10px] uppercase tracking-widest font-mono font-medium" style={{ color: COLOR.neutral400 }}>
-                Email
+                Username
               </label>
               <div
                 className="flex items-center h-11 px-3 rounded-sm transition-colors duration-300"
                 style={{ background: "#f8fafc", border: `1px solid ${COLOR.hairline}` }}
               >
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@company.com"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="username"
                   required
                   autoFocus
                   className="flex-1 bg-transparent border-none outline-none text-xs font-mono tracking-wide text-slate-900 placeholder:text-neutral-400 focus:ring-0 h-full p-0"

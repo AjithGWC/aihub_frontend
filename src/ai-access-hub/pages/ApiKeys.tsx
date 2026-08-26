@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   KeyRound,
   ShieldCheck,
@@ -6,8 +6,6 @@ import {
   Copy,
   Check,
   Search,
-  Eye,
-  EyeOff,
   User,
   Zap,
   Trash2,
@@ -19,7 +17,17 @@ import {
   ShieldAlert,
   ArrowLeft,
 } from 'lucide-react'
-import { api } from '@/api'
+import {
+  createUserKey,
+  listAllKeys,
+  listModels,
+  listUsers,
+  revokeUserKey,
+  type ApiKeyCreated,
+  type ApiKeyWithOwner,
+  type PortalModel,
+  type PortalUserOut,
+} from '@/api/portal'
 import type { ApiKeyRecord } from '../types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,6 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -49,7 +58,6 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Pagination } from '../components/Pagination'
-import { COLOR, FONT_HEADING } from '@/components/atlasTheme'
 
 const PAGE_SIZE = 9
 
@@ -60,6 +68,7 @@ const PROVIDER_META: Record<string, { color: string; glow: string; bg: string; g
   cohere:    { color: '#f59e0b', glow: 'rgba(245,158,11,0.4)',  bg: 'rgba(245,158,11,0.1)',  gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', symbol: 'CO' },
   google:    { color: '#f97316', glow: 'rgba(249,115,22,0.4)',  bg: 'rgba(249,115,22,0.1)',  gradient: 'linear-gradient(135deg, #f97316, #ea580c)', symbol: 'GG' },
   mistral:   { color: '#e11d48', glow: 'rgba(225,29,72,0.4)',   bg: 'rgba(225,29,72,0.1)',   gradient: 'linear-gradient(135deg, #e11d48, #e11d48)', symbol: 'MS' },
+  ollama:    { color: '#22c55e', glow: 'rgba(34,197,94,0.4)',   bg: 'rgba(34,197,94,0.1)',   gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', symbol: 'OL' },
 }
 const DEFAULT_META = { color: 'var(--muted)', glow: 'var(--primary-soft)', bg: 'var(--primary-soft)', gradient: 'linear-gradient(135deg, var(--muted), var(--foreground))', symbol: '??' }
 
@@ -84,28 +93,31 @@ function getProviderMeta(name?: string) {
   ]
   const theme = fallbackColors[Math.abs(name.length) % fallbackColors.length]
 
-  return {
-    ...theme,
-    bg: `${theme.color}15`,
-    symbol
-  }
+  return { ...theme, bg: `${theme.color}15`, symbol }
 }
 
-function getOwnerEmail(owner: ApiKeyRecord['owner']): string {
-  if (!owner) return '—'
-  if (typeof owner === 'string') return owner
-  return owner.email || owner.name || '—'
+function toApiKeyRecord(k: ApiKeyWithOwner): ApiKeyRecord {
+  return {
+    id: k.key_id,
+    label: k.label,
+    keyPrefix: k.key_prefix,
+    modelEntitlements: k.model_entitlements ?? [],
+    owner: { id: k.user_id, name: k.owner_username },
+    expiresAt: k.expires_at,
+    rateLimitRpm: k.rate_limit_rpm,
+    status: k.status,
+    createdAt: k.created_at,
+  }
 }
 
 /* ── API Key Vault Row ── */
 function VaultRow({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete: (k: ApiKeyRecord) => void; index: number }) {
-  const [revealed, setRevealed] = useState(false)
   const [copied, setCopied] = useState(false)
-  const meta = getProviderMeta(apiKey.llmName || (apiKey as any).provider || apiKey.label)
+  const meta = getProviderMeta(apiKey.modelEntitlements[0] || apiKey.label || undefined)
   const isActive = apiKey.status === 'active'
 
   function handleCopy() {
-    navigator.clipboard.writeText(apiKey.masked)
+    navigator.clipboard.writeText(apiKey.keyPrefix)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -119,7 +131,7 @@ function VaultRow({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete:
       className="group border-border hover:bg-secondary/40 transition-colors animate-slide-up"
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >
-      {/* Provider + Label */}
+      {/* Models + Label */}
       <TableCell className="py-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
@@ -129,22 +141,21 @@ function VaultRow({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete:
             {meta.symbol}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-foreground capitalize truncate transition-colors">
-              {apiKey.llmName || (apiKey as any).provider || 'Unknown Provider'}
+            <p className="text-sm font-bold text-foreground truncate transition-colors">
+              {apiKey.label || 'Untitled Key'}
             </p>
-            <p className="text-[11px] text-muted-foreground font-semibold truncate">{apiKey.label}</p>
+            <p className="text-[11px] text-muted-foreground font-semibold truncate">
+              {apiKey.modelEntitlements.length > 0 ? apiKey.modelEntitlements.join(', ') : 'All models'}
+            </p>
           </div>
         </div>
       </TableCell>
 
-      {/* Key */}
+      {/* Key prefix */}
       <TableCell className="whitespace-nowrap">
         <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-foreground bg-secondary/50 border border-border w-fit">
-          <span className="tracking-wide font-semibold">{revealed ? apiKey.masked : '••••••••••••'}</span>
-          <button onClick={() => setRevealed(!revealed)} className="p-1 rounded hover:bg-secondary transition-colors cursor-pointer" title={revealed ? 'Hide Secret' : 'Reveal Secret'}>
-            {revealed ? <EyeOff className="size-3 text-muted-foreground" /> : <Eye className="size-3 text-muted-foreground" />}
-          </button>
-          <button onClick={handleCopy} className="p-1 rounded hover:bg-secondary transition-colors cursor-pointer" title="Copy Key">
+          <span className="tracking-wide font-semibold">{apiKey.keyPrefix}…</span>
+          <button onClick={handleCopy} className="p-1 rounded hover:bg-secondary transition-colors cursor-pointer" title="Copy prefix">
             {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground" />}
           </button>
         </div>
@@ -154,7 +165,7 @@ function VaultRow({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete:
       <TableCell className="whitespace-nowrap">
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
           <User className="size-3.5 text-primary" />
-          {getOwnerEmail(apiKey.owner)}
+          {apiKey.owner.name || '—'}
         </span>
       </TableCell>
 
@@ -175,24 +186,20 @@ function VaultRow({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete:
       <TableCell className="whitespace-nowrap">
         <Badge
           variant="outline"
-          className="text-[10px] px-2 py-0.5 font-bold"
+          className="text-[10px] px-2 py-0.5 font-bold capitalize"
           style={{
             color: isActive ? '#16a34a' : 'var(--danger)',
             borderColor: isActive ? 'rgba(34,197,94,0.3)' : 'var(--border)',
             background: isActive ? 'rgba(34,197,94,0.1)' : 'var(--secondary)',
           }}
         >
-          {isActive ? '● Active' : '○ Revoked'}
+          {isActive ? '● Active' : `○ ${apiKey.status}`}
         </Badge>
       </TableCell>
 
       {/* Actions */}
       <TableCell className="text-right whitespace-nowrap">
-        <button
-          onClick={() => onDelete(apiKey)}
-          className="table-action-btn table-action-btn-danger"
-          title="Revoke Key"
-        >
+        <button onClick={() => onDelete(apiKey)} className="table-action-btn table-action-btn-danger" title="Revoke Key">
           <Trash2 className="size-4" />
         </button>
       </TableCell>
@@ -201,43 +208,63 @@ function VaultRow({ apiKey, onDelete, index }: { apiKey: ApiKeyRecord; onDelete:
 }
 
 export default function ApiKeys() {
-  const [keys, setKeys] = useState<ApiKeyRecord[]>([])
-  const [total, setTotal] = useState(0)
+  const [allKeys, setAllKeys] = useState<ApiKeyRecord[]>([])
+  const [users, setUsers] = useState<PortalUserOut[]>([])
+  const [models, setModels] = useState<PortalModel[]>([])
   const [offset, setOffset] = useState(0)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [deleteKey, setDeleteKey] = useState<ApiKeyRecord | null>(null)
+  const [createdKey, setCreatedKey] = useState<ApiKeyCreated | null>(null)
+  const [rawCopied, setRawCopied] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [form, setForm] = useState({ label: '', llmName: '', key: '', expiresAt: '', user: '', status: 'active' as 'active' | 'inactive' })
+  const [form, setForm] = useState({ label: '', userId: '', modelEntitlements: [] as string[], expiresAt: '', rateLimitRpm: 60 })
 
-  async function loadKeys(q: string, off: number) {
+  async function loadAll() {
     setLoading(true)
     setError(null)
     try {
-      const { data } = await api.get('/api-keys', { params: { q: q || undefined, offset: off, limit: PAGE_SIZE } })
-      const loaded = data?.keys ?? data?.apiKeys ?? (Array.isArray(data) ? data : [])
-      setKeys(loaded)
-      setTotal(data?.total ?? loaded.length)
+      const [keys, userList, modelList] = await Promise.all([listAllKeys(), listUsers(), listModels()])
+      setAllKeys(keys.map(toApiKeyRecord))
+      setUsers(userList)
+      setModels(modelList)
     } catch { setError('Failed to load API keys.') }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { loadKeys('', 0) }, [])
-  useEffect(() => {
-    const t = setTimeout(() => { setOffset(0); loadKeys(query, 0) }, 300)
-    return () => clearTimeout(t)
-  }, [query])
+  useEffect(() => { loadAll() }, [])
+  useEffect(() => { setOffset(0) }, [query])
+
+  const filteredKeys = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return allKeys
+    return allKeys.filter((k) =>
+      (k.label || '').toLowerCase().includes(q) ||
+      k.owner.name.toLowerCase().includes(q) ||
+      k.modelEntitlements.some((m) => m.toLowerCase().includes(q))
+    )
+  }, [allKeys, query])
+
+  const total = filteredKeys.length
+  const pagedKeys = filteredKeys.slice(offset, offset + PAGE_SIZE)
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
+    if (!form.userId) { setError('Pick a user to issue the key to.'); return }
     setSubmitting(true)
     try {
-      await api.post('/api-keys', { ...form, expiresAt: form.expiresAt || undefined })
+      const created = await createUserKey(form.userId, {
+        label: form.label || undefined,
+        model_entitlements: form.modelEntitlements,
+        expires_at: form.expiresAt ? new Date(form.expiresAt).toISOString() : undefined,
+        rate_limit_rpm: form.rateLimitRpm,
+      })
       setShowCreate(false)
-      setForm({ label: '', llmName: '', key: '', expiresAt: '', user: '', status: 'active' })
-      loadKeys(query, offset)
+      setForm({ label: '', userId: '', modelEntitlements: [], expiresAt: '', rateLimitRpm: 60 })
+      setCreatedKey(created)
+      loadAll()
     } catch { setError('Failed to create API key.') }
     finally { setSubmitting(false) }
   }
@@ -245,16 +272,22 @@ export default function ApiKeys() {
   async function handleDelete(k: ApiKeyRecord) {
     setSubmitting(true)
     try {
-      await api.delete(`/api-keys/${k.id}`)
+      await revokeUserKey(k.owner.id, k.id)
       setDeleteKey(null)
-      loadKeys(query, offset)
+      loadAll()
     } catch { setError('Failed to revoke API key.') }
     finally { setSubmitting(false) }
   }
 
-  const safeKeys = Array.isArray(keys) ? keys : []
-  const activeCount = safeKeys.filter((k) => k.status === 'active').length
-  const providerSet = new Set(safeKeys.map((k) => k.llmName).filter(Boolean))
+  function handleCopyRaw() {
+    if (!createdKey) return
+    navigator.clipboard.writeText(createdKey.raw_key)
+    setRawCopied(true)
+    setTimeout(() => setRawCopied(false), 2000)
+  }
+
+  const activeCount = allKeys.filter((k) => k.status === 'active').length
+  const providerSet = new Set(allKeys.flatMap((k) => k.modelEntitlements))
 
   return (
     <div className="page sector-orange space-y-6 animate-slide-up">
@@ -263,9 +296,9 @@ export default function ApiKeys() {
           <div className="flex items-center gap-2.5">
             <span className="cyber-pulse-dot cyber-pulse-dot-amber" />
             <h1 className="text-2xl font-bold tracking-tight sector-header-title">API Key Vault</h1>
-            <Badge variant="outline" className="sector-badge text-xs font-mono border-border"><Lock className="size-3 mr-1 inline" />Encrypted at Rest</Badge>
+            <Badge variant="outline" className="sector-badge text-xs font-mono border-border"><Lock className="size-3 mr-1 inline" />Server-Generated</Badge>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Manage provider credentials across inference routes. Keys are AES-256 encrypted.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Issue and revoke per-user gateway credentials. The raw key is shown once, at creation.</p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -281,7 +314,7 @@ export default function ApiKeys() {
           </Button>
 
           <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg shadow-sm">
-            <Plus className="size-3.5" />Add API Key
+            <Plus className="size-3.5" />Issue API Key
           </Button>
         </div>
       </header>
@@ -295,9 +328,9 @@ export default function ApiKeys() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Total Vault Keys', value: total, icon: KeyRound, color: '#f97316', chip: 'AES-256', glow: 'rgba(249,115,22,0.45)' },
-          { label: 'Active Credentials', value: activeCount, icon: ShieldCheck, color: '#22c55e', chip: 'Healthy', glow: 'rgba(34,197,94,0.45)' },
-          { label: 'Connected LLMs', value: providerSet.size, icon: Zap, color: '#8b5cf6', chip: 'Live Providers', glow: 'rgba(139,92,246,0.45)' },
+          { label: 'Total Vault Keys', value: allKeys.length, icon: KeyRound, color: '#f97316', chip: 'Issued' },
+          { label: 'Active Credentials', value: activeCount, icon: ShieldCheck, color: '#22c55e', chip: 'Healthy' },
+          { label: 'Entitled Models', value: providerSet.size, icon: Zap, color: '#8b5cf6', chip: 'In Use' },
         ].map(({ label, value, icon: Icon, color, chip }, i) => (
           <div
             key={label}
@@ -307,9 +340,7 @@ export default function ApiKeys() {
               background: `radial-gradient(circle 120px at 90% 10%, ${color}08, transparent 75%), var(--panel)`,
             }}
           >
-            {/* Shimmer sweep */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
             <div className="flex items-center gap-4 z-10">
               <div className="relative size-11 rounded-lg flex items-center justify-center flex-none bg-secondary/50 border border-border group-hover:border-primary/30 transition-colors">
                 <Icon className="size-5 transition-transform duration-300 group-hover:scale-110" style={{ color }} />
@@ -319,7 +350,6 @@ export default function ApiKeys() {
                 <p className="text-3xl font-black font-mono tracking-tight text-foreground mt-1 group-hover:text-primary transition-colors">{value}</p>
               </div>
             </div>
-
             <div className="flex flex-col items-end gap-1.5 z-10">
               <span className="px-2.5 py-1 rounded-full text-[10px] font-bold shadow-xs flex items-center gap-1.5 border transition-all duration-300" style={{ color, background: `${color}15`, borderColor: `${color}25` }}>
                 <span className="size-1.5 rounded-full animate-pulse" style={{ background: color }} />
@@ -330,15 +360,15 @@ export default function ApiKeys() {
         ))}
       </div>
 
-      {total > 0 && (
+      {allKeys.length > 0 && (
         <div className="sector-card rounded-xl p-4 space-y-2 border border-border shadow-xs" style={{ background: 'var(--panel)' }}>
           <div className="flex items-center justify-between text-xs">
             <span className="text-foreground font-extrabold flex items-center gap-1.5"><Vault className="size-3.5 text-primary animate-pulse" /> Vault Capacity</span>
-            <span className="font-mono font-extrabold text-primary">{activeCount}/{total} active</span>
+            <span className="font-mono font-extrabold text-primary">{activeCount}/{allKeys.length} active</span>
           </div>
           <div className="h-2 rounded-full bg-secondary border border-border overflow-hidden relative">
             <div className="h-full rounded-full transition-all duration-1000 relative overflow-hidden" style={{ width: 0, background: 'var(--primary)', boxShadow: '0 0 8px var(--primary-soft)' }}
-              ref={(el) => { if (el) setTimeout(() => { el.style.width = `${(activeCount / total) * 100}%` }, 50) }}
+              ref={(el) => { if (el) setTimeout(() => { el.style.width = `${(activeCount / allKeys.length) * 100}%` }, 50) }}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
             </div>
@@ -348,7 +378,7 @@ export default function ApiKeys() {
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by label or provider…" className="pl-9 bg-background border-border text-foreground font-semibold placeholder:text-muted-foreground text-sm shadow-xs rounded-lg" />
+        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by label, owner, or model…" className="pl-9 bg-background border-border text-foreground font-semibold placeholder:text-muted-foreground text-sm shadow-xs rounded-lg" />
         {query && <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"><X className="size-3.5 text-muted-foreground hover:text-foreground" /></button>}
       </div>
 
@@ -357,7 +387,7 @@ export default function ApiKeys() {
           <div className="p-5 space-y-3">
             {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-11 rounded-xl bg-secondary animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />)}
           </div>
-        ) : safeKeys.length === 0 ? (
+        ) : pagedKeys.length === 0 ? (
           <div className="py-16 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
             <KeyRound className="size-8 text-muted-foreground/30" />No API keys found.
           </div>
@@ -366,8 +396,8 @@ export default function ApiKeys() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent bg-secondary/20">
-                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Provider</TableHead>
                   <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Key</TableHead>
+                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Prefix</TableHead>
                   <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Owner</TableHead>
                   <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Expires</TableHead>
                   <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Status</TableHead>
@@ -375,13 +405,13 @@ export default function ApiKeys() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {safeKeys.map((key, i) => <VaultRow key={key.id} apiKey={key} onDelete={setDeleteKey} index={i} />)}
+                {pagedKeys.map((key, i) => <VaultRow key={key.id} apiKey={key} onDelete={setDeleteKey} index={i} />)}
               </TableBody>
             </Table>
           </div>
         )}
 
-        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={(off) => { setOffset(off); loadKeys(query, off) }} />
+        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={setOffset} />
       </div>
 
       {showCreate && (
@@ -392,48 +422,103 @@ export default function ApiKeys() {
                 <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-none">
                   <KeyRound className="size-4 text-primary" />
                 </div>
-                Add API Key to Vault
+                Issue API Key
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Key Label</Label>
-                  <Input value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} placeholder="Production OpenAI" required className="bg-background border-border text-foreground font-semibold text-xs shadow-xs focus:border-primary transition-all rounded-lg" />
+                  <Input value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} placeholder="Production access" className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Provider (LLM Name)</Label>
-                  <Select value={form.llmName} onValueChange={(v) => setForm((f) => ({ ...f, llmName: v }))}>
-                    <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs focus:border-primary transition-all rounded-lg"><SelectValue placeholder="Select provider" /></SelectTrigger>
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Assign To</Label>
+                  <Select value={form.userId} onValueChange={(v) => setForm((f) => ({ ...f, userId: v }))}>
+                    <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg"><SelectValue placeholder="Select user" /></SelectTrigger>
                     <SelectContent className="bg-card text-foreground border-border shadow-md rounded-lg">
-                      {['openai', 'anthropic', 'azure', 'cohere', 'google', 'mistral'].map((p) => (
-                        <SelectItem key={p} value={p} className="capitalize text-foreground font-medium cursor-pointer">{p}</SelectItem>
+                      {users.map((u) => (
+                        <SelectItem key={u.user_id} value={u.user_id} className="text-foreground font-medium cursor-pointer">{u.username}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">API Key Secret</Label>
-                <Input type="password" value={form.key} onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))} placeholder="sk-..." required className="bg-background border-border text-foreground font-semibold font-mono text-xs shadow-xs focus:border-primary transition-all rounded-lg" />
+                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Model Entitlements</Label>
+                {models.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No models registered yet — the key will default to all active models.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    {models.map((m) => {
+                      const checked = form.modelEntitlements.includes(m.name)
+                      return (
+                        <label key={m.name} className="flex items-center gap-1.5 text-xs font-semibold text-foreground cursor-pointer">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) =>
+                              setForm((f) => ({
+                                ...f,
+                                modelEntitlements: v ? [...f.modelEntitlements, m.name] : f.modelEntitlements.filter((x) => x !== m.name),
+                              }))
+                            }
+                          />
+                          {m.name}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Assigned User</Label>
-                  <Input value={form.user} onChange={(e) => setForm((f) => ({ ...f, user: e.target.value }))} placeholder="alice@co.com" className="bg-background border-border text-foreground font-semibold text-xs shadow-xs focus:border-primary transition-all rounded-lg" />
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Rate Limit (req/min)</Label>
+                  <Input type="number" min={1} value={form.rateLimitRpm} onChange={(e) => setForm((f) => ({ ...f, rateLimitRpm: Number(e.target.value) || 1 }))} className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Expires At</Label>
-                  <Input type="date" value={form.expiresAt} onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))} className="bg-background border-border text-foreground font-semibold text-xs shadow-xs focus:border-primary transition-all rounded-lg" />
+                  <Input type="date" value={form.expiresAt} onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))} className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg" />
                 </div>
               </div>
               <DialogFooter className="pt-3 gap-2">
                 <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
                 <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer rounded-lg px-5 bg-primary hover:bg-primary-hover">
-                  <Lock className="size-3.5 mr-1.5" />Store in Vault
+                  {submitting ? undefined : <Lock className="size-3.5 mr-1.5" />}Issue Key
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Raw key reveal — shown exactly once, right after creation */}
+      {createdKey && (
+        <Dialog open onOpenChange={(n) => !n && setCreatedKey(null)}>
+          <DialogContent className="sm:max-w-lg border-t-4 border-t-emerald-500 shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
+                <div className="size-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-none">
+                  <KeyRound className="size-4 text-emerald-500" />
+                </div>
+                Key Issued
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-danger font-semibold flex items-center gap-1.5">
+                <AlertCircle className="size-3.5 flex-none" />
+                Copy this now — it won't be shown again.
+              </p>
+              <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 font-mono text-xs bg-secondary/50 border border-border break-all">
+                <span className="flex-1">{createdKey.raw_key}</span>
+                <button onClick={handleCopyRaw} className="p-1 rounded hover:bg-secondary transition-colors cursor-pointer flex-none" title="Copy key">
+                  {rawCopied ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4 text-muted-foreground" />}
+                </button>
+              </div>
+            </div>
+            <DialogFooter className="pt-2">
+              <DialogClose asChild>
+                <Button size="sm" className="text-xs font-extrabold text-primary-foreground bg-primary hover:bg-primary-hover cursor-pointer rounded-lg px-5">Done</Button>
+              </DialogClose>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
@@ -449,7 +534,7 @@ export default function ApiKeys() {
                 Revoke API Key
               </DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-foreground py-2 font-medium">Permanently revoke <span className="font-extrabold">{deleteKey.label}</span>? Applications using this key will immediately lose access.</p>
+            <p className="text-sm text-foreground py-2 font-medium">Permanently revoke <span className="font-extrabold">{deleteKey.label || deleteKey.keyPrefix}</span>? Applications using this key will immediately lose access.</p>
             <DialogFooter className="mt-3 gap-2">
               <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
               <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleDelete(deleteKey)} className="text-xs font-extrabold cursor-pointer rounded-lg px-5 shadow-sm hover:shadow-md">

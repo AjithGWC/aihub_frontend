@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Search,
   ScrollText,
@@ -15,11 +15,11 @@ import {
   Clock,
   ArrowLeft,
 } from 'lucide-react'
-import { api } from '@/api'
+import { getGovernanceSummary, listAuditEvents } from '@/api/portal'
+import { normalizeAuditEvent } from '../lib/audit'
 import type { AuditLogEntry } from '../types'
 import { Pagination } from '../components/Pagination'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogClose,
@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
@@ -38,15 +39,16 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table'
-import { COLOR, FONT_HEADING } from '@/components/atlasTheme'
 
 const PAGE_SIZE = 12
+const FETCH_LIMIT = 200
 
-const OUTCOME_CONFIG: Record<AuditLogEntry['outcome'], { icon: any; color: string; bg: string; border: string; label: string; text: string }> = {
+const OUTCOME_CONFIG: Record<string, { icon: any; color: string; bg: string; border: string; label: string; text: string }> = {
   passed: { icon: CheckCircle2, color: '#22c55e', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.25)', label: 'Passed', text: '#22c55e' },
   denied: { icon: AlertCircle, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', label: 'Denied', text: '#f59e0b' },
   error: { icon: XCircle, color: '#f43f5e', bg: 'rgba(244,63,94,0.1)', border: 'rgba(244,63,94,0.25)', label: 'Error', text: '#f43f5e' },
 }
+const DEFAULT_OUTCOME_CONFIG = OUTCOME_CONFIG.passed
 
 const LAYER_ICONS: Record<string, any> = {
   gateway: Shield,
@@ -57,7 +59,7 @@ const LAYER_ICONS: Record<string, any> = {
 
 /* ── Audit Event Row ── */
 function AuditRow({ event, index, onSelect }: { event: AuditLogEntry; index: number; onSelect: () => void }) {
-  const conf = OUTCOME_CONFIG[event.outcome] || OUTCOME_CONFIG.passed
+  const conf = OUTCOME_CONFIG[event.outcome] || DEFAULT_OUTCOME_CONFIG
   const StatusIcon = conf.icon
   const LayerIcon = LAYER_ICONS[event.layer?.toLowerCase()] || Terminal
 
@@ -67,7 +69,6 @@ function AuditRow({ event, index, onSelect }: { event: AuditLogEntry; index: num
       className="group border-border hover:bg-secondary/40 transition-colors cursor-pointer animate-slide-up"
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >
-      {/* Event */}
       <TableCell className="py-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
@@ -82,7 +83,6 @@ function AuditRow({ event, index, onSelect }: { event: AuditLogEntry; index: num
         </div>
       </TableCell>
 
-      {/* Actor */}
       <TableCell className="whitespace-nowrap">
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
           <User className="size-3.5 text-primary flex-none" />
@@ -90,7 +90,6 @@ function AuditRow({ event, index, onSelect }: { event: AuditLogEntry; index: num
         </span>
       </TableCell>
 
-      {/* Layer */}
       <TableCell className="whitespace-nowrap">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-muted-foreground uppercase">
           <LayerIcon className="size-3.5 text-muted-foreground" />
@@ -98,7 +97,6 @@ function AuditRow({ event, index, onSelect }: { event: AuditLogEntry; index: num
         </span>
       </TableCell>
 
-      {/* Outcome */}
       <TableCell className="whitespace-nowrap">
         <Badge
           variant="outline"
@@ -109,7 +107,6 @@ function AuditRow({ event, index, onSelect }: { event: AuditLogEntry; index: num
         </Badge>
       </TableCell>
 
-      {/* Timestamp */}
       <TableCell className="text-right whitespace-nowrap">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground font-mono">
           <Clock className="size-3 text-muted-foreground" />
@@ -121,8 +118,8 @@ function AuditRow({ event, index, onSelect }: { event: AuditLogEntry; index: num
 }
 
 export default function AuditLog() {
-  const [events, setEvents] = useState<AuditLogEntry[]>([])
-  const [total, setTotal] = useState(0)
+  const [allEvents, setAllEvents] = useState<AuditLogEntry[]>([])
+  const [outcomeCounts, setOutcomeCounts] = useState<Record<string, number>>({})
   const [offset, setOffset] = useState(0)
   const [query, setQuery] = useState('')
   const [outcomeFilter, setOutcomeFilter] = useState<string>('all')
@@ -130,41 +127,45 @@ export default function AuditLog() {
   const [loading, setLoading] = useState(true)
   const [selectedEvent, setSelectedEvent] = useState<AuditLogEntry | null>(null)
   const [copiedId, setCopiedId] = useState(false)
-  const [passedCount, setPassedCount] = useState(0)
-  const [deniedCount, setDeniedCount] = useState(0)
-  const [errorCount, setErrorCount] = useState(0)
 
-  async function load(q: string, off: number, outcome: string, layer: string) {
+  async function load() {
     setLoading(true)
     try {
-      const { data } = await api.get('/audit-log', {
-        params: { q: q || undefined, outcome, layer, offset: off, limit: 10 },
-      })
-      const loaded = data?.events ?? data?.logs ?? (Array.isArray(data) ? data : [])
-      setEvents(loaded)
-      setTotal(data?.total ?? loaded.length)
-      setPassedCount(data?.passedCount ?? 0)
-      setDeniedCount(data?.deniedCount ?? 0)
-      setErrorCount(data?.errorCount ?? 0)
+      const [rawEvents, governance] = await Promise.all([
+        listAuditEvents({ limit: FETCH_LIMIT }),
+        getGovernanceSummary().catch(() => null),
+      ])
+      setAllEvents(rawEvents.map(normalizeAuditEvent))
+      setOutcomeCounts(governance?.by_outcome ?? {})
     } catch (err) {
       console.error('Failed to load audit logs', err)
-      setEvents([])
+      setAllEvents([])
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { load('', 0, 'all', 'all') }, [])
+  useEffect(() => { load() }, [])
+  useEffect(() => { setOffset(0) }, [query, outcomeFilter, layerFilter])
 
-  useEffect(() => {
-    const t = setTimeout(() => { setOffset(0); load(query, 0, outcomeFilter, layerFilter) }, 300)
-    return () => clearTimeout(t)
-  }, [query])
+  const layers = useMemo(() => Array.from(new Set(allEvents.map((e) => e.layer).filter(Boolean))), [allEvents])
 
-  useEffect(() => {
-    setOffset(0)
-    load(query, 0, outcomeFilter, layerFilter)
-  }, [outcomeFilter, layerFilter])
+  const filteredEvents = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return allEvents.filter((e) => {
+      if (outcomeFilter !== 'all' && e.outcome !== outcomeFilter) return false
+      if (layerFilter !== 'all' && e.layer !== layerFilter) return false
+      if (q && !e.event.toLowerCase().includes(q) && !e.actorEmail.toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [allEvents, query, outcomeFilter, layerFilter])
+
+  const total = filteredEvents.length
+  const pagedEvents = filteredEvents.slice(offset, offset + PAGE_SIZE)
+
+  const passedCount = outcomeCounts['passed'] ?? allEvents.filter((e) => e.outcome === 'passed').length
+  const deniedCount = outcomeCounts['denied'] ?? allEvents.filter((e) => e.outcome === 'denied').length
+  const errorCount = outcomeCounts['error'] ?? allEvents.filter((e) => e.outcome === 'error').length
 
   function handleCopyTrace(id: string) {
     navigator.clipboard.writeText(id)
@@ -172,11 +173,8 @@ export default function AuditLog() {
     setTimeout(() => setCopiedId(false), 2000)
   }
 
-  const filteredEvents = Array.isArray(events) ? events : []
-
   return (
     <div className="page sector-green space-y-6 animate-slide-up">
-      {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2.5">
@@ -184,7 +182,7 @@ export default function AuditLog() {
             <h1 className="text-2xl font-bold tracking-tight sector-header-title">
               System Audit Stream
             </h1>
-            <Badge variant="outline" className="sector-badge text-xs font-mono border-border">Immutable Trace Log</Badge>
+            <Badge variant="outline" className="sector-badge text-xs font-mono border-border">Most Recent {FETCH_LIMIT}</Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Complete security trail recording authentication, policy evaluations, and API key usages.
@@ -205,7 +203,7 @@ export default function AuditLog() {
       {/* KPI Summary Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Events', value: total, color: '#22c55e', icon: ScrollText, chip: 'Audit Feed' },
+          { label: 'Loaded Events', value: allEvents.length, color: '#22c55e', icon: ScrollText, chip: 'Audit Feed' },
           { label: 'Passed Requests', value: passedCount, color: '#16a34a', icon: CheckCircle2, chip: 'Passed' },
           { label: 'Policy Denied', value: deniedCount, color: '#f59e0b', icon: AlertCircle, chip: 'Denied' },
           { label: 'System Errors', value: errorCount, color: '#f43f5e', icon: XCircle, chip: 'Errors' },
@@ -218,9 +216,7 @@ export default function AuditLog() {
               background: `radial-gradient(circle 120px at 90% 10%, ${color}08, transparent 75%), var(--panel)`,
             }}
           >
-            {/* Shimmer sweep */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
             <div className="flex items-center gap-4 z-10">
               <div className="relative size-11 rounded-lg flex items-center justify-center flex-none bg-secondary/50 border border-border group-hover:border-primary/30 transition-colors">
                 <Icon className="size-5 transition-transform duration-300 group-hover:scale-110" style={{ color }} />
@@ -230,7 +226,6 @@ export default function AuditLog() {
                 <p className="text-3xl font-black font-mono tracking-tight text-foreground mt-1 group-hover:text-primary transition-colors">{value}</p>
               </div>
             </div>
-
             <div className="flex flex-col items-end gap-1.5 z-10">
               <span className="px-2.5 py-1 rounded-full text-[10px] font-bold shadow-xs flex items-center gap-1.5 border transition-all duration-300" style={{ color, background: `${color}15`, borderColor: `${color}25` }}>
                 <span className="size-1.5 rounded-full animate-pulse" style={{ background: color }} />
@@ -264,10 +259,9 @@ export default function AuditLog() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Layers</SelectItem>
-            <SelectItem value="gateway">Gateway</SelectItem>
-            <SelectItem value="auth">Auth</SelectItem>
-            <SelectItem value="rbac">RBAC</SelectItem>
-            <SelectItem value="routing">Routing</SelectItem>
+            {layers.map((l) => (
+              <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -280,7 +274,7 @@ export default function AuditLog() {
               <div key={i} className="h-11 rounded-xl bg-secondary animate-pulse" style={{ animationDelay: `${i * 40}ms` }} />
             ))}
           </div>
-        ) : filteredEvents.length === 0 ? (
+        ) : pagedEvents.length === 0 ? (
           <div className="py-16 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
             <ScrollText className="size-8 text-muted-foreground/30" />
             No matching security audit events found.
@@ -298,7 +292,7 @@ export default function AuditLog() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEvents.map((event, idx) => (
+                {pagedEvents.map((event, idx) => (
                   <AuditRow key={event.id} event={event} index={idx} onSelect={() => setSelectedEvent(event)} />
                 ))}
               </TableBody>
@@ -306,7 +300,7 @@ export default function AuditLog() {
           </div>
         )}
 
-        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={(off) => { setOffset(off); load(query, off, outcomeFilter, layerFilter) }} />
+        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={setOffset} />
       </div>
 
       {/* Event Inspector Modal */}
@@ -321,8 +315,8 @@ export default function AuditLog() {
                   </div>
                   Event Trace Telemetry
                 </DialogTitle>
-                <Badge variant="outline" className="text-[10px] capitalize font-extrabold flex items-center gap-1 shadow-xs" style={{ borderColor: OUTCOME_CONFIG[selectedEvent.outcome]?.border, color: OUTCOME_CONFIG[selectedEvent.outcome]?.color, background: OUTCOME_CONFIG[selectedEvent.outcome]?.bg }}>
-                  <span className="size-1.5 rounded-full animate-ping" style={{ background: OUTCOME_CONFIG[selectedEvent.outcome]?.color }} />
+                <Badge variant="outline" className="text-[10px] capitalize font-extrabold flex items-center gap-1 shadow-xs" style={{ borderColor: (OUTCOME_CONFIG[selectedEvent.outcome] || DEFAULT_OUTCOME_CONFIG).border, color: (OUTCOME_CONFIG[selectedEvent.outcome] || DEFAULT_OUTCOME_CONFIG).color, background: (OUTCOME_CONFIG[selectedEvent.outcome] || DEFAULT_OUTCOME_CONFIG).bg }}>
+                  <span className="size-1.5 rounded-full animate-ping" style={{ background: (OUTCOME_CONFIG[selectedEvent.outcome] || DEFAULT_OUTCOME_CONFIG).color }} />
                   {selectedEvent.outcome}
                 </Badge>
               </div>

@@ -1,22 +1,25 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   Boxes,
   Cloud,
   Server,
   Search,
   Key,
-  Trash2,
+  Archive,
   Zap,
   AlertCircle,
+  CheckCircle2,
   Plus,
   Lock,
   MemoryStick,
   X,
   ChevronRight,
   ShieldAlert,
-  ArrowLeft
+  ArrowLeft,
+  RefreshCw,
+  Download,
 } from 'lucide-react'
-import { api } from '@/api'
+import { listModels, registerModel, setModelApiKey, syncOllama, updateModelStatus, type PortalModel } from '@/api/portal'
 import type { ModelRecord } from '../types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -46,9 +49,10 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Pagination } from '../components/Pagination'
-import { COLOR, FONT_HEADING } from '@/components/atlasTheme'
 
 const PAGE_SIZE = 9
+
+const CLOUD_BACKENDS = new Set(['openai', 'anthropic', 'azure', 'google', 'cohere', 'mistral'])
 
 const PROVIDER_COLORS: Record<string, { color: string; glow: string; gradient: string }> = {
   openai:    { color: '#10b981', glow: 'rgba(16,185,129,0.4)',  gradient: 'linear-gradient(135deg, #10b981, #059669)' },
@@ -57,6 +61,7 @@ const PROVIDER_COLORS: Record<string, { color: string; glow: string; gradient: s
   google:    { color: '#f97316', glow: 'rgba(249,115,22,0.4)',  gradient: 'linear-gradient(135deg, #f97316, #ea580c)' },
   cohere:    { color: '#f59e0b', glow: 'rgba(245,158,11,0.4)',  gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
   mistral:   { color: '#e11d48', glow: 'rgba(225,29,72,0.4)',   gradient: 'linear-gradient(135deg, #e11d48, #e11d48)' },
+  ollama:    { color: '#22c55e', glow: 'rgba(34,197,94,0.4)',   gradient: 'linear-gradient(135deg, #22c55e, #16a34a)' },
 }
 const DEFAULT_PROVIDER = { color: 'var(--muted)', glow: 'var(--primary-soft)', gradient: 'linear-gradient(135deg, var(--muted), var(--foreground))' }
 
@@ -75,20 +80,32 @@ function getModelProviderMeta(name?: string) {
     if (lower.includes(key)) return { ...PROVIDER_COLORS[key], symbol: key.slice(0, 2).toUpperCase() }
   }
   const clean = name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'AI'
+  return { color: '#f59e0b', glow: 'rgba(245,158,11,0.4)', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', symbol: clean }
+}
+
+function toModelRecord(m: PortalModel): ModelRecord {
   return {
-    color: '#f59e0b',
-    glow: 'rgba(245,158,11,0.4)',
-    gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-    symbol: clean
+    id: m.name,
+    name: m.name,
+    version: m.version,
+    backend: m.backend,
+    endpoint: m.endpoint,
+    tasks: m.tasks ?? [],
+    status: m.status,
+    maxContextLength: m.max_context_length ?? null,
+    vramRequiredGb: m.vram_required_gb ?? null,
+    fallbackModel: m.fallback_model ?? null,
+    notes: m.notes ?? null,
+    isCloud: CLOUD_BACKENDS.has((m.backend || '').toLowerCase()),
+    apiKeySet: !!m.api_key_set,
   }
 }
 
 /* ── Model Registry Row ── */
-function ModelRow({ model, onSetKey, onDelete, index }: { model: ModelRecord; onSetKey: (m: ModelRecord) => void; onDelete: (m: ModelRecord) => void; index: number }) {
-  const backend = model.backend?.toLowerCase() || ''
-  const provMeta = getModelProviderMeta(backend || model.name)
+function ModelRow({ model, onSetKey, onRetire, index }: { model: ModelRecord; onSetKey: (m: ModelRecord) => void; onRetire: (m: ModelRecord) => void; index: number }) {
+  const provMeta = getModelProviderMeta(model.backend || model.name)
   const DeployIcon = model.isCloud ? Cloud : Server
-  const statusColors: Record<string, string> = { active: '#22c55e', staging: '#f59e0b', inactive: '#f43f5e' }
+  const statusColors: Record<string, string> = { active: '#22c55e', staging: '#f59e0b', retired: '#f43f5e' }
   const statusColor = statusColors[model.status] || '#22c55e'
 
   return (
@@ -108,7 +125,7 @@ function ModelRow({ model, onSetKey, onDelete, index }: { model: ModelRecord; on
           <div className="min-w-0">
             <p className="text-sm font-bold text-foreground truncate transition-colors">{model.name}</p>
             <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-semibold">
-              <span className="capitalize truncate">{model.backend}</span>
+              <span className="capitalize truncate">{model.backend} · v{model.version}</span>
               <span className="text-muted-foreground/40">·</span>
               <DeployIcon className="size-3 flex-none" style={{ color: model.isCloud ? '#2563eb' : '#16a34a' }} />
               <span>{model.isCloud ? 'Cloud' : 'Local'}</span>
@@ -119,10 +136,10 @@ function ModelRow({ model, onSetKey, onDelete, index }: { model: ModelRecord; on
 
       {/* Context */}
       <TableCell className="whitespace-nowrap">
-        {model.context ? (
+        {model.maxContextLength ? (
           <span className="inline-flex items-center gap-1 text-xs font-bold text-foreground">
             <MemoryStick className="size-3.5 text-primary" />
-            {model.context}
+            {model.maxContextLength.toLocaleString()}
           </span>
         ) : (
           <span className="text-xs text-muted-foreground">—</span>
@@ -132,7 +149,7 @@ function ModelRow({ model, onSetKey, onDelete, index }: { model: ModelRecord; on
       {/* Tasks */}
       <TableCell className="max-w-[220px]">
         <div className="flex flex-wrap gap-1">
-          {(model.tasks ?? []).length > 0 ? model.tasks.map((t) => {
+          {model.tasks.length > 0 ? model.tasks.map((t) => {
             const tc = TASK_COLORS[t?.toLowerCase()] || { color: 'var(--muted)', bg: 'var(--secondary)' }
             return (
               <span key={t} className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wide" style={{ color: tc.color, background: tc.bg, border: `1px solid ${tc.color}33` }}>
@@ -143,20 +160,11 @@ function ModelRow({ model, onSetKey, onDelete, index }: { model: ModelRecord; on
         </div>
       </TableCell>
 
-      {/* Allowed Roles */}
-      <TableCell className="max-w-[160px]">
-        <div className="flex flex-wrap gap-1">
-          {(model.allowedRoles ?? []).length > 0 ? model.allowedRoles.map((r) => (
-            <span key={r} className="px-1.5 py-0.5 rounded text-[9.5px] font-mono capitalize bg-secondary text-muted-foreground border border-border font-extrabold">{r}</span>
-          )) : <span className="text-xs text-muted-foreground">—</span>}
-        </div>
-      </TableCell>
-
       {/* API Key */}
       <TableCell className="whitespace-nowrap">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold" style={{ color: model.apiKeyMasked ? '#16a34a' : 'var(--danger)' }}>
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold" style={{ color: model.apiKeySet ? '#16a34a' : 'var(--danger)' }}>
           <Key className="size-3.5 flex-none" />
-          {model.apiKeyMasked ? 'Set' : 'Not set'}
+          {model.apiKeySet ? 'Set' : 'Not set'}
         </span>
       </TableCell>
 
@@ -170,20 +178,14 @@ function ModelRow({ model, onSetKey, onDelete, index }: { model: ModelRecord; on
       {/* Actions */}
       <TableCell className="text-right whitespace-nowrap">
         <div className="flex items-center justify-end gap-1.5">
-          <button
-            onClick={() => onSetKey(model)}
-            className="table-action-btn table-action-btn-purple"
-            title="Set API Key"
-          >
+          <button onClick={() => onSetKey(model)} className="table-action-btn table-action-btn-purple" title="Set API Key">
             <Key className="size-4" />
           </button>
-          <button
-            onClick={() => onDelete(model)}
-            className="table-action-btn table-action-btn-danger"
-            title="Delete Model"
-          >
-            <Trash2 className="size-4" />
-          </button>
+          {model.status !== 'retired' && (
+            <button onClick={() => onRetire(model)} className="table-action-btn table-action-btn-danger" title="Retire Model">
+              <Archive className="size-4" />
+            </button>
+          )}
         </div>
       </TableCell>
     </TableRow>
@@ -191,50 +193,61 @@ function ModelRow({ model, onSetKey, onDelete, index }: { model: ModelRecord; on
 }
 
 export default function ModelRegistry() {
-  const [models, setModels] = useState<ModelRecord[]>([])
-  const [total, setTotal] = useState(0)
+  const [allModels, setAllModels] = useState<ModelRecord[]>([])
   const [offset, setOffset] = useState(0)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [setKeyModel, setSetKeyModel] = useState<ModelRecord | null>(null)
-  const [deleteModel, setDeleteModel] = useState<ModelRecord | null>(null)
+  const [retireModel, setRetireModel] = useState<ModelRecord | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [createForm, setCreateForm] = useState({
-    name: '', backend: '', isCloud: true, context: '', tasks: '', allowedRoles: '', status: 'active' as 'active' | 'staging' | 'inactive',
+    name: '', version: '', backend: '', endpoint: '', isCloud: true, maxContextLength: '', tasks: '', apiKey: '', status: 'staging' as 'active' | 'staging' | 'retired',
   })
   const [keyValue, setKeyValue] = useState('')
 
-  async function loadModels(q: string, off: number) {
+  async function loadModels() {
     setLoading(true)
     setError(null)
     try {
-      const { data } = await api.get('/models', { params: { q: q || undefined, offset: off, limit: PAGE_SIZE } })
-      const loaded = data?.models ?? (Array.isArray(data) ? data : [])
-      setModels(loaded)
-      setTotal(data?.total ?? loaded.length)
+      const models = await listModels()
+      setAllModels(models.map(toModelRecord))
     } catch { setError('Failed to load model registry.') }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { loadModels('', 0) }, [])
-  useEffect(() => {
-    const t = setTimeout(() => { setOffset(0); loadModels(query, 0) }, 300)
-    return () => clearTimeout(t)
-  }, [query])
+  useEffect(() => { loadModels() }, [])
+  useEffect(() => { setOffset(0) }, [query])
+
+  const filteredModels = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return allModels
+    return allModels.filter((m) => m.name.toLowerCase().includes(q) || m.backend.toLowerCase().includes(q))
+  }, [allModels, query])
+
+  const total = filteredModels.length
+  const pagedModels = filteredModels.slice(offset, offset + PAGE_SIZE)
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
     setSubmitting(true)
     try {
-      await api.post('/models', {
-        ...createForm,
+      await registerModel({
+        name: createForm.name,
+        version: createForm.version,
+        backend: createForm.backend,
+        endpoint: createForm.endpoint,
         tasks: createForm.tasks.split(',').map((t) => t.trim()).filter(Boolean),
-        allowedRoles: createForm.allowedRoles.split(',').map((r) => r.trim()).filter(Boolean),
+        status: createForm.status,
+        max_context_length: createForm.maxContextLength ? Number(createForm.maxContextLength) : undefined,
+        api_key: createForm.isCloud && createForm.apiKey ? createForm.apiKey : undefined,
       })
       setShowCreate(false)
-      loadModels(query, offset)
+      setCreateForm({ name: '', version: '', backend: '', endpoint: '', isCloud: true, maxContextLength: '', tasks: '', apiKey: '', status: 'staging' })
+      loadModels()
     } catch { setError('Failed to register model.') }
     finally { setSubmitting(false) }
   }
@@ -244,26 +257,37 @@ export default function ModelRegistry() {
     if (!setKeyModel) return
     setSubmitting(true)
     try {
-      await api.post(`/models/${setKeyModel.id}/api-key`, { key: keyValue })
+      await setModelApiKey(setKeyModel.name, keyValue)
       setSetKeyModel(null)
       setKeyValue('')
+      loadModels()
     } catch { setError('Failed to assign model API key.') }
     finally { setSubmitting(false) }
   }
 
-  async function handleDelete(m: ModelRecord) {
+  async function handleRetire(m: ModelRecord) {
     setSubmitting(true)
     try {
-      await api.delete(`/models/${m.id}`)
-      setDeleteModel(null)
-      loadModels(query, offset)
-    } catch { setError('Failed to remove model.') }
+      await updateModelStatus(m.name, 'retired')
+      setRetireModel(null)
+      loadModels()
+    } catch { setError('Failed to retire model.') }
     finally { setSubmitting(false) }
   }
 
-  const safeModels = Array.isArray(models) ? models : []
-  const cloudCount = safeModels.filter((m) => m.isCloud).length
-  const backendSet = new Set(safeModels.map((m) => m.backend).filter(Boolean))
+  async function handleSyncOllama() {
+    setSyncing(true)
+    setError(null)
+    try {
+      const result = await syncOllama()
+      setNotice(`Synced Ollama: ${result.registered.length} newly registered, ${result.already_registered.length} already present.`)
+      loadModels()
+    } catch { setError('Failed to sync models from Ollama.') }
+    finally { setSyncing(false) }
+  }
+
+  const cloudCount = allModels.filter((m) => m.isCloud).length
+  const backendSet = new Set(allModels.map((m) => m.backend).filter(Boolean))
 
   return (
     <div className="page sector-amber space-y-6 animate-slide-up">
@@ -274,7 +298,7 @@ export default function ModelRegistry() {
             <h1 className="text-2xl font-bold tracking-tight sector-header-title">Model Registry</h1>
             <Badge variant="outline" className="sector-badge text-xs font-mono border-border">{total} Models</Badge>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Centralized AI model inventory with provider routing, context windows, and access roles.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Centralized AI model inventory with provider routing and context windows.</p>
         </div>
         <div className="flex items-center gap-2.5">
           <Button
@@ -286,6 +310,10 @@ export default function ModelRegistry() {
           >
             <ArrowLeft className="size-3.5 mr-1" />
             All Sectors
+          </Button>
+          <Button onClick={handleSyncOllama} disabled={syncing} variant="outline" size="sm" className="gap-2 text-xs font-bold border-border">
+            {syncing ? <RefreshCw className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+            Sync from Ollama
           </Button>
           <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg shadow-sm">
             <Plus className="size-3.5" />Register Model
@@ -299,13 +327,19 @@ export default function ModelRegistry() {
           <button onClick={() => setError(null)}><X className="size-3.5" /></button>
         </div>
       )}
+      {notice && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-xs">
+          <CheckCircle2 className="size-4 flex-none" /><span className="flex-1">{notice}</span>
+          <button onClick={() => setNotice(null)}><X className="size-3.5" /></button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Registered Models', value: total, icon: Boxes, color: '#f59e0b', chip: 'Registry', glow: 'rgba(245,158,11,0.45)' },
-          { label: 'Cloud-Hosted Instances', value: cloudCount, icon: Cloud, color: '#3b82f6', chip: 'Cloud ML', glow: 'rgba(59,130,246,0.45)' },
-          { label: 'Inference Providers', value: backendSet.size, icon: Zap, color: '#8b5cf6', chip: 'Active Routers', glow: 'rgba(139,92,246,0.45)' },
+          { label: 'Registered Models', value: allModels.length, icon: Boxes, color: '#f59e0b', chip: 'Registry' },
+          { label: 'Cloud-Hosted Instances', value: cloudCount, icon: Cloud, color: '#3b82f6', chip: 'Cloud ML' },
+          { label: 'Inference Providers', value: backendSet.size, icon: Zap, color: '#8b5cf6', chip: 'Active Routers' },
         ].map(({ label, value, icon: Icon, color, chip }, i) => (
           <div
             key={label}
@@ -315,9 +349,7 @@ export default function ModelRegistry() {
               background: `radial-gradient(circle 120px at 90% 10%, ${color}08, transparent 75%), var(--panel)`,
             }}
           >
-            {/* Shimmer sweep */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
             <div className="flex items-center gap-4 z-10">
               <div className="relative size-11 rounded-lg flex items-center justify-center flex-none bg-secondary/50 border border-border group-hover:border-primary/30 transition-colors">
                 <Icon className="size-5 transition-transform duration-300 group-hover:scale-110" style={{ color }} />
@@ -327,7 +359,6 @@ export default function ModelRegistry() {
                 <p className="text-3xl font-black font-mono tracking-tight text-foreground mt-1 group-hover:text-primary transition-colors">{value}</p>
               </div>
             </div>
-
             <div className="flex flex-col items-end gap-1.5 z-10">
               <span className="px-2.5 py-1 rounded-full text-[10px] font-bold shadow-xs flex items-center gap-1.5 border transition-all duration-300" style={{ color, background: `${color}15`, borderColor: `${color}25` }}>
                 <span className="size-1.5 rounded-full animate-pulse" style={{ background: color }} />
@@ -349,7 +380,7 @@ export default function ModelRegistry() {
           <div className="p-5 space-y-3">
             {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-11 rounded-xl bg-secondary animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />)}
           </div>
-        ) : safeModels.length === 0 ? (
+        ) : pagedModels.length === 0 ? (
           <div className="py-16 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
             <Boxes className="size-8 text-muted-foreground/30" />No models registered.
           </div>
@@ -361,20 +392,19 @@ export default function ModelRegistry() {
                   <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Model</TableHead>
                   <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Context</TableHead>
                   <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Tasks</TableHead>
-                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Roles</TableHead>
                   <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">API Key</TableHead>
                   <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Status</TableHead>
                   <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {safeModels.map((model, i) => <ModelRow key={model.id} model={model} onSetKey={setSetKeyModel} onDelete={setDeleteModel} index={i} />)}
+                {pagedModels.map((model, i) => <ModelRow key={model.id} model={model} onSetKey={setSetKeyModel} onRetire={setRetireModel} index={i} />)}
               </TableBody>
             </Table>
           </div>
         )}
 
-        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={(off) => { setOffset(off); loadModels(query, off) }} />
+        <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={setOffset} />
       </div>
 
       {showCreate && (
@@ -392,55 +422,55 @@ export default function ModelRegistry() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Model Name</Label>
-                  <Input value={createForm.name} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))} placeholder="gpt-4o" required className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs focus:border-primary transition-all rounded-lg" />
+                  <Input value={createForm.name} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))} placeholder="gpt-4o" required className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs rounded-lg" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Version</Label>
+                  <Input value={createForm.version} onChange={(e) => setCreateForm((f) => ({ ...f, version: e.target.value }))} placeholder="2024-08-06" required className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs rounded-lg" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Backend Provider</Label>
-                  <Select value={createForm.backend} onValueChange={(v) => setCreateForm((f) => ({ ...f, backend: v }))}>
-                    <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs focus:border-primary transition-all rounded-lg"><SelectValue placeholder="Select provider" /></SelectTrigger>
+                  <Select value={createForm.backend} onValueChange={(v) => setCreateForm((f) => ({ ...f, backend: v, isCloud: CLOUD_BACKENDS.has(v) }))}>
+                    <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg"><SelectValue placeholder="Select provider" /></SelectTrigger>
                     <SelectContent className="bg-card text-foreground border-border shadow-md rounded-lg">
-                      {['openai', 'anthropic', 'azure', 'google', 'cohere', 'mistral'].map((p) => (
+                      {['openai', 'anthropic', 'azure', 'google', 'cohere', 'mistral', 'ollama'].map((p) => (
                         <SelectItem key={p} value={p} className="capitalize text-foreground font-medium cursor-pointer">{p}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Deployment</Label>
-                  <Select value={createForm.isCloud ? 'cloud' : 'local'} onValueChange={(v) => setCreateForm((f) => ({ ...f, isCloud: v === 'cloud' }))}>
-                    <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs focus:border-primary transition-all rounded-lg"><SelectValue /></SelectTrigger>
-                    <SelectContent className="bg-card text-foreground border-border shadow-md rounded-lg">
-                      <SelectItem value="cloud" className="text-foreground font-medium cursor-pointer">Cloud</SelectItem>
-                      <SelectItem value="local" className="text-foreground font-medium cursor-pointer">Local / On-prem</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Max Context Length</Label>
+                  <Input type="number" value={createForm.maxContextLength} onChange={(e) => setCreateForm((f) => ({ ...f, maxContextLength: e.target.value }))} placeholder="128000" className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs rounded-lg" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Context Window</Label>
-                  <Input value={createForm.context} onChange={(e) => setCreateForm((f) => ({ ...f, context: e.target.value }))} placeholder="128k" className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs focus:border-primary transition-all rounded-lg" />
+                <div className="space-y-1.5 col-span-2">
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Endpoint URL</Label>
+                  <Input value={createForm.endpoint} onChange={(e) => setCreateForm((f) => ({ ...f, endpoint: e.target.value }))} placeholder="https://api.openai.com/v1" required className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs rounded-lg" />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Task Types (comma-separated)</Label>
-                <Input value={createForm.tasks} onChange={(e) => setCreateForm((f) => ({ ...f, tasks: e.target.value }))} placeholder="chat, code, reasoning" className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs focus:border-primary transition-all rounded-lg" />
+                <Input value={createForm.tasks} onChange={(e) => setCreateForm((f) => ({ ...f, tasks: e.target.value }))} placeholder="chat, code, reasoning" required className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs rounded-lg" />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Allowed Roles (comma-separated)</Label>
-                <Input value={createForm.allowedRoles} onChange={(e) => setCreateForm((f) => ({ ...f, allowedRoles: e.target.value }))} placeholder="admin, editor" className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs focus:border-primary transition-all rounded-lg" />
-              </div>
+              {createForm.isCloud && (
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Provider API Key</Label>
+                  <Input type="password" value={createForm.apiKey} onChange={(e) => setCreateForm((f) => ({ ...f, apiKey: e.target.value }))} placeholder="sk-..." className="bg-background border-border text-foreground font-semibold font-mono text-xs shadow-xs rounded-lg" />
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Status</Label>
-                <Select value={createForm.status} onValueChange={(v) => setCreateForm((f) => ({ ...f, status: v as 'active' | 'staging' | 'inactive' }))}>
-                  <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs focus:border-primary transition-all rounded-lg"><SelectValue /></SelectTrigger>
+                <Select value={createForm.status} onValueChange={(v) => setCreateForm((f) => ({ ...f, status: v as 'active' | 'staging' | 'retired' }))}>
+                  <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-card text-foreground border-border shadow-md rounded-lg">
-                    <SelectItem value="active" className="text-foreground font-medium cursor-pointer">Active</SelectItem>
                     <SelectItem value="staging" className="text-foreground font-medium cursor-pointer">Staging</SelectItem>
-                    <SelectItem value="inactive" className="text-foreground font-medium cursor-pointer">Inactive</SelectItem>
+                    <SelectItem value="active" className="text-foreground font-medium cursor-pointer">Active</SelectItem>
+                    <SelectItem value="retired" className="text-foreground font-medium cursor-pointer">Retired</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <DialogFooter className="pt-3 gap-2">
-                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
+                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
                 <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer rounded-lg px-5 bg-primary hover:bg-primary-hover">
                   <ChevronRight className="size-3.5 mr-1" />Register Model
                 </Button>
@@ -464,7 +494,7 @@ export default function ModelRegistry() {
             <form onSubmit={handleSetKey} className="space-y-4 py-2">
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">API Key Secret</Label>
-                <Input type="password" value={keyValue} onChange={(e) => setKeyValue(e.target.value)} placeholder="sk-..." required className="bg-background border-border text-foreground font-semibold font-mono text-xs shadow-xs focus:border-primary transition-all rounded-lg" />
+                <Input type="password" value={keyValue} onChange={(e) => setKeyValue(e.target.value)} placeholder="sk-..." required className="bg-background border-border text-foreground font-semibold font-mono text-xs shadow-xs rounded-lg" />
               </div>
               <DialogFooter className="pt-3 gap-2">
                 <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
@@ -477,25 +507,25 @@ export default function ModelRegistry() {
         </Dialog>
       )}
 
-      {deleteModel && (
-        <Dialog open onOpenChange={(n) => !n && setDeleteModel(null)}>
+      {retireModel && (
+        <Dialog open onOpenChange={(n) => !n && setRetireModel(null)}>
           <DialogContent className="sm:max-w-md border-t-4 border-t-danger shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
               <DialogTitle className="text-base font-black text-danger flex items-center gap-2.5">
                 <div className="size-8 rounded-lg bg-danger/10 border border-danger/20 flex items-center justify-center flex-none">
-                  <Trash2 className="size-4 text-danger" />
+                  <Archive className="size-4 text-danger" />
                 </div>
-                Remove Model
+                Retire Model
               </DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-foreground py-2 font-medium">Remove <span className="font-extrabold">{deleteModel.name}</span> from the registry?</p>
+            <p className="text-sm text-foreground py-2 font-medium">Retire <span className="font-extrabold">{retireModel.name}</span>?</p>
             <div className="flex items-center gap-2 p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-bold">
-              <AlertCircle className="size-4 flex-none" />Active routes using this model will be immediately disabled.
+              <AlertCircle className="size-4 flex-none" />Routes using this model will be immediately disabled.
             </div>
             <DialogFooter className="mt-4 gap-2">
               <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
-              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleDelete(deleteModel)} className="text-xs font-extrabold cursor-pointer rounded-lg px-5 shadow-sm hover:shadow-md">
-                <Trash2 className="size-3.5 mr-1" />Remove Model
+              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleRetire(retireModel)} className="text-xs font-extrabold cursor-pointer rounded-lg px-5 shadow-sm hover:shadow-md">
+                <Archive className="size-3.5 mr-1" />Retire Model
               </Button>
             </DialogFooter>
           </DialogContent>
