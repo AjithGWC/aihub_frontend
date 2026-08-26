@@ -45,13 +45,14 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Pagination } from '../components/Pagination'
+import { COLOR, FONT_HEADING } from '@/components/atlasTheme'
 
 const PAGE_SIZE = 12
 const ROLE_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-  admin: { color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.4)' },
-  owner: { color: '#f97316', bg: 'rgba(249,115,22,0.15)', border: 'rgba(249,115,22,0.4)' },
-  viewer: { color: '#06b6d4', bg: 'rgba(6,182,212,0.15)', border: 'rgba(6,182,212,0.4)' },
-  editor: { color: '#22c55e', bg: 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.4)' },
+  admin: { color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.25)' },
+  owner: { color: '#f97316', bg: 'rgba(249,115,22,0.1)', border: 'rgba(249,115,22,0.25)' },
+  viewer: { color: '#06b6d4', bg: 'rgba(6,182,212,0.1)', border: 'rgba(6,182,212,0.25)' },
+  editor: { color: '#22c55e', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.25)' },
 }
 
 function getAvatarGradient(name: string): { gradient: string; glow: string; color: string } {
@@ -59,9 +60,9 @@ function getAvatarGradient(name: string): { gradient: string; glow: string; colo
   const idx = (name?.charCodeAt(0) || 65) % hues.length
   const h = hues[idx]
   return {
-    gradient: `linear-gradient(135deg, hsl(${h},80%,40%), hsl(${h + 40},90%,60%))`,
-    glow: `hsla(${h},80%,60%,0.5)`,
-    color: `hsl(${h},80%,60%)`
+    gradient: `linear-gradient(135deg, hsl(${h},60%,35%), hsl(${h + 40},70%,50%))`,
+    glow: `hsla(${h},70%,50%,0.3)`,
+    color: `hsl(${h},70%,50%)`
   }
 }
 
@@ -83,28 +84,28 @@ function UserRow({ user, onEdit, onToggle, onDelete, index }: {
 }) {
   const { gradient, glow, color } = getAvatarGradient(user.name || user.email)
   const initials = getInitials(user.name || user.email)
-  const roleConf = ROLE_COLORS[user.role?.toLowerCase() || ''] || { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.3)' }
+  const roleConf = ROLE_COLORS[user.role?.toLowerCase() || ''] || { color: 'var(--muted)', bg: 'var(--primary-soft)', border: 'var(--border)' }
   const isActive = user.status === 'active'
 
   return (
     <TableRow
-      className="group border-slate-100 hover:bg-cyan-50/50 transition-colors animate-slide-up"
+      className="group border-border hover:bg-secondary/40 transition-colors animate-slide-up"
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >
       {/* Identity */}
       <TableCell className="py-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className="size-9 rounded-full flex items-center justify-center text-xs font-extrabold text-white select-none flex-none"
-            style={{ background: gradient, boxShadow: `0 0 0 3px #fff, 0 0 10px ${glow}` }}
+            className="size-9 rounded-full flex items-center justify-center text-xs font-extrabold text-white select-none flex-none shadow-sm"
+            style={{ background: gradient, boxShadow: `0 0 0 2px var(--background), 0 0 8px ${glow}` }}
           >
             {initials}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-slate-900 truncate group-hover:text-[#0891b2] transition-colors">
+            <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">
               {user.name || '—'}
             </p>
-            <p className="text-[11px] text-slate-500 font-mono truncate">{user.email}</p>
+            <p className="text-[11px] text-muted-foreground font-mono truncate">{user.email}</p>
           </div>
         </div>
       </TableCell>
@@ -112,12 +113,12 @@ function UserRow({ user, onEdit, onToggle, onDelete, index }: {
       {/* Department */}
       <TableCell className="whitespace-nowrap">
         {user.department ? (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-            <Building2 className="size-3.5 text-[#06b6d4]" />
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
+            <Building2 className="size-3.5 text-primary" />
             {user.department}
           </span>
         ) : (
-          <span className="text-xs text-slate-400">—</span>
+          <span className="text-xs text-muted-foreground">—</span>
         )}
       </TableCell>
 
@@ -129,7 +130,7 @@ function UserRow({ user, onEdit, onToggle, onDelete, index }: {
             {user.role}
           </Badge>
         ) : (
-          <span className="text-xs text-slate-400">—</span>
+          <span className="text-xs text-muted-foreground">—</span>
         )}
       </TableCell>
 
@@ -139,9 +140,9 @@ function UserRow({ user, onEdit, onToggle, onDelete, index }: {
           variant="outline"
           className="text-[10px] px-2 py-0.5 font-bold"
           style={{
-            color: isActive ? '#16a34a' : '#64748b',
-            borderColor: isActive ? 'rgba(34,197,94,0.4)' : 'rgba(100,116,139,0.4)',
-            background: isActive ? 'rgba(34,197,94,0.12)' : 'rgba(100,116,139,0.12)',
+            color: isActive ? '#16a34a' : 'var(--muted)',
+            borderColor: isActive ? 'rgba(34,197,94,0.3)' : 'var(--border)',
+            background: isActive ? 'rgba(34,197,94,0.1)' : 'var(--secondary)',
           }}
         >
           {isActive ? '● Active' : '○ Inactive'}
@@ -150,31 +151,27 @@ function UserRow({ user, onEdit, onToggle, onDelete, index }: {
 
       {/* Actions */}
       <TableCell className="text-right whitespace-nowrap">
-        <div className="flex items-center justify-end gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center justify-end gap-1.5">
           <button
             onClick={() => onEdit(user)}
-            className="magnetic-btn flex items-center justify-center size-8 rounded-lg bg-[#06b6d4]/10 border border-[#06b6d4]/40 hover:bg-[#06b6d4]/20 transition-all text-[#0891b2] cursor-pointer"
+            className="table-action-btn table-action-btn-edit"
             title="Edit Member"
           >
-            <Edit3 className="size-3.5 icon-spring" />
+            <Edit3 className="size-4" />
           </button>
           <button
             onClick={() => onToggle(user)}
-            className={`magnetic-btn flex items-center justify-center size-8 rounded-lg transition-all cursor-pointer ${
-              isActive
-                ? 'bg-amber-500/10 border border-amber-500/40 hover:bg-amber-500/20 text-amber-700'
-                : 'bg-green-500/10 border border-green-500/40 hover:bg-green-500/20 text-green-700'
-            }`}
+            className={`table-action-btn ${isActive ? 'table-action-btn-amber' : 'table-action-btn-success'}`}
             title={isActive ? 'Disable Member' : 'Enable Member'}
           >
-            {isActive ? <UserX className="size-3.5 icon-spring" /> : <UserCheck className="size-3.5 icon-spring" />}
+            {isActive ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
           </button>
           <button
             onClick={() => onDelete(user)}
-            className="magnetic-btn flex items-center justify-center size-8 rounded-lg bg-red-500/10 border border-red-500/40 hover:bg-red-500/20 transition-all text-red-600 cursor-pointer"
+            className="table-action-btn table-action-btn-danger"
             title="Remove Member"
           >
-            <Trash2 className="size-3.5 icon-spring" />
+            <Trash2 className="size-4" />
           </button>
         </div>
       </TableCell>
@@ -289,40 +286,40 @@ export default function UsersRoles() {
     <form onSubmit={onSubmit} className="space-y-4 py-2">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Full Name</Label>
-          <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Alice Chen" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl" />
+          <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Full Name</Label>
+          <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Alice Chen" required className="bg-background border-border text-foreground font-semibold placeholder:text-muted-foreground text-xs shadow-xs focus:border-primary transition-all rounded-lg" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Email</Label>
-          <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="alice@co.com" required className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl" />
+          <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Email</Label>
+          <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="alice@co.com" required className="bg-background border-border text-foreground font-semibold placeholder:text-muted-foreground text-xs shadow-xs focus:border-primary transition-all rounded-lg" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Role</Label>
+          <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Role</Label>
           <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v }))}>
-            <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl"><SelectValue placeholder="Select role" /></SelectTrigger>
-            <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl rounded-xl">
-              {ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize text-slate-900 font-medium cursor-pointer">{r}</SelectItem>)}
+            <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs focus:border-primary transition-all rounded-lg"><SelectValue placeholder="Select role" /></SelectTrigger>
+            <SelectContent className="bg-card text-foreground border-border shadow-md rounded-lg">
+              {ROLES.map((r) => <SelectItem key={r} value={r} className="capitalize text-foreground font-medium cursor-pointer">{r}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Department</Label>
-          <Input value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} placeholder="Engineering" className="bg-slate-50 border-slate-300 text-slate-900 font-semibold placeholder:text-slate-400 text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl" />
+          <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Department</Label>
+          <Input value={form.department} onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))} placeholder="Engineering" className="bg-background border-border text-foreground font-semibold placeholder:text-muted-foreground text-xs shadow-xs focus:border-primary transition-all rounded-lg" />
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label className="text-[11px] font-black uppercase tracking-wider text-slate-700">Status</Label>
+        <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Status</Label>
         <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as 'active' | 'inactive' }))}>
-          <SelectTrigger className="bg-slate-50 border-slate-300 text-slate-900 font-semibold text-xs shadow-xs focus:bg-white focus:border-[#06b6d4] focus:ring-2 focus:ring-[#06b6d4]/20 transition-all rounded-xl"><SelectValue /></SelectTrigger>
-          <SelectContent className="bg-white text-slate-900 border-slate-200 shadow-xl rounded-xl">
-            <SelectItem value="active" className="text-slate-900 font-medium cursor-pointer">● Active</SelectItem>
-            <SelectItem value="inactive" className="text-slate-900 font-medium cursor-pointer">○ Inactive</SelectItem>
+          <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs focus:border-primary transition-all rounded-lg"><SelectValue /></SelectTrigger>
+          <SelectContent className="bg-card text-foreground border-border shadow-md rounded-lg">
+            <SelectItem value="active" className="text-foreground font-medium cursor-pointer">● Active</SelectItem>
+            <SelectItem value="inactive" className="text-foreground font-medium cursor-pointer">○ Inactive</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <DialogFooter className="pt-3 gap-2">
-        <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
-        <Button type="submit" size="sm" className="text-xs font-extrabold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-xl px-5" disabled={submitting} style={{ background: 'linear-gradient(135deg, #06b6d4, #0284c7)' }}>
+        <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
+        <Button type="submit" size="sm" className="text-xs font-extrabold text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer rounded-lg px-5 bg-primary hover:bg-primary-hover" disabled={submitting}>
           {submitting ? <RefreshCw className="size-3 animate-spin mr-1" /> : null}Save Member
         </Button>
       </DialogFooter>
@@ -331,12 +328,12 @@ export default function UsersRoles() {
 
   return (
     <div className="page sector-cyan space-y-6 animate-slide-up">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#06b6d4]/30 pb-5">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2.5">
             <span className="cyber-pulse-dot cyber-pulse-dot-cyan" />
             <h1 className="text-2xl font-bold tracking-tight sector-header-title">Identity Directory</h1>
-            <Badge variant="outline" className="sector-badge text-xs font-mono">{total} Members</Badge>
+            <Badge variant="outline" className="sector-badge text-xs font-mono border-border">{total} Members</Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">Manage user identities, roles, and access levels.</p>
         </div>
@@ -347,13 +344,13 @@ export default function UsersRoles() {
             variant="outline"
             size="sm"
             onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
-            className="border-cyan-300 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 font-extrabold shadow-sm cursor-pointer"
+            className="border-border bg-secondary text-foreground hover:bg-secondary/80 font-extrabold shadow-sm cursor-pointer"
           >
             <ArrowLeft className="size-3.5 mr-1" />
             All Sectors
           </Button>
 
-          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold magnetic-btn cursor-pointer" style={{ background: 'linear-gradient(135deg, #06b6d4, #0284c7)', boxShadow: '0 0 20px rgba(6,182,212,0.3)' }}>
+          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg shadow-sm">
             <UserPlus className="size-3.5" />Add Member
           </Button>
         </div>
@@ -372,55 +369,31 @@ export default function UsersRoles() {
           { label: 'Total Directory Members', value: total, icon: Users, color: '#06b6d4', chip: 'Directory', glow: 'rgba(6,182,212,0.45)' },
           { label: 'Active Sessions Now', value: activeCount, icon: UserCheck, color: '#22c55e', chip: 'Online', glow: 'rgba(34,197,94,0.45)' },
           { label: 'System Administrators', value: adminCount, icon: ShieldAlert, color: '#8b5cf6', chip: 'Super Admin', glow: 'rgba(139,92,246,0.45)' },
-        ].map(({ label, value, icon: Icon, color, chip, glow }, i) => (
+        ].map(({ label, value, icon: Icon, color, chip }, i) => (
           <div
             key={label}
-            onMouseMove={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect()
-              e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
-              e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
-            }}
-            className="spotlight-card rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden group shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
+            className="group relative overflow-hidden border border-border hover:border-primary/40 bg-card hover:bg-card/90 transition-all duration-300 rounded-xl p-5 flex items-center justify-between gap-4 shadow-sm hover:shadow-md cursor-pointer animate-slide-up"
             style={{
               animationDelay: `${i * 80}ms`,
-              background: `radial-gradient(circle 220px at var(--mouse-x, 90%) var(--mouse-y, 10%), ${color}25, transparent 75%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
-              border: `1.5px solid ${color}50`,
-              borderTop: `4px solid ${color}`,
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06)'
+              background: `radial-gradient(circle 120px at 90% 10%, ${color}08, transparent 75%), var(--panel)`,
             }}
           >
-            {/* Ambient Corner Energy Glow */}
-            <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+            {/* Shimmer sweep */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
 
-            {/* Shimmer sweep effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
-            <div className="flex items-center gap-3.5 z-10">
-              <div className="relative flex items-center justify-center">
-                {/* Inner spinning dashed orbit */}
-                <svg width="52" height="52" className="absolute -rotate-90 pointer-events-none">
-                  <circle
-                    cx="26" cy="26" r="23"
-                    fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 5" opacity="0.6" className="animate-spin" style={{ animationDuration: '10s' }}
-                  />
-                  <circle
-                    cx="26" cy="26" r="18"
-                    fill="none" stroke={color} strokeWidth="1" strokeDasharray="2 3" opacity="0.35" className="animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}
-                  />
-                </svg>
-                <div className="size-11 rounded-xl flex items-center justify-center text-white flex-none transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md" style={{ background: color, boxShadow: `0 0 20px ${glow}` }}>
-                  <Icon className="size-5 text-white" />
-                </div>
+            <div className="flex items-center gap-4 z-10">
+              <div className="relative size-11 rounded-lg flex items-center justify-center flex-none bg-secondary/50 border border-border group-hover:border-primary/30 transition-colors">
+                <Icon className="size-5 transition-transform duration-300 group-hover:scale-110" style={{ color }} />
               </div>
               <div>
-                <p className="text-3xl font-black font-mono tracking-tight transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5" style={{ color, textShadow: `0 0 18px ${color}45` }}>{value}</p>
-                <p className="text-[11px] font-black uppercase tracking-widest text-slate-600 mt-0.5">{label}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+                <p className="text-3xl font-black font-mono tracking-tight text-foreground mt-1 group-hover:text-primary transition-colors">{value}</p>
               </div>
             </div>
 
             <div className="flex flex-col items-end gap-1.5 z-10">
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-xs flex items-center gap-1.5 border transition-all duration-300 group-hover:scale-105" style={{ color, background: `${color}18`, borderColor: `${color}45` }}>
-                <span className="size-1.5 rounded-full animate-ping" style={{ background: color }} />
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold shadow-xs flex items-center gap-1.5 border transition-all duration-300" style={{ color, background: `${color}15`, borderColor: `${color}25` }}>
+                <span className="size-1.5 rounded-full animate-pulse" style={{ background: color }} />
                 {chip}
               </span>
             </div>
@@ -431,18 +404,18 @@ export default function UsersRoles() {
       {/* Control bar: Search */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or email…" className="pl-9 bg-white border-[#06b6d4]/50 text-slate-900 font-semibold placeholder:text-slate-400 text-sm shadow-sm" />
-          {query && <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"><X className="size-3.5 text-slate-400 hover:text-slate-700" /></button>}
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or email…" className="pl-9 bg-background border-border text-foreground font-semibold placeholder:text-muted-foreground text-sm shadow-xs rounded-lg" />
+          {query && <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"><X className="size-3.5 text-muted-foreground hover:text-foreground" /></button>}
         </div>
       </div>
 
       {/* Main Content Area — Enterprise Directory Table */}
-      <div className="sector-card rounded-2xl overflow-hidden shadow-xl border-slate-200" style={{ background: 'linear-gradient(135deg, #ffffff, #f8fafc)' }}>
+      <div className="sector-card rounded-xl overflow-hidden shadow-sm border border-border bg-card">
         {loading ? (
           <div className="p-5 space-y-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-11 rounded-xl bg-slate-100 animate-pulse" style={{ animationDelay: `${i * 40}ms` }} />
+              <div key={i} className="h-11 rounded-xl bg-secondary animate-pulse" style={{ animationDelay: `${i * 40}ms` }} />
             ))}
           </div>
         ) : safeUsers.length === 0 ? (
@@ -453,21 +426,21 @@ export default function UsersRoles() {
           <div className="px-4">
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-200 hover:bg-transparent bg-slate-50/80">
+                <TableRow className="border-border hover:bg-transparent bg-secondary/20">
                   {[
                     { key: 'name', label: 'Member' },
                     { key: 'department', label: 'Department' },
                     { key: 'role', label: 'Role' },
                     { key: 'status', label: 'Status' },
                   ].map(({ key, label }) => (
-                    <TableHead key={key} className="text-[11px] font-black uppercase tracking-wider text-slate-600">
-                      <button onClick={() => toggleSort(key as typeof sortKey)} className="flex items-center gap-1 cursor-pointer hover:text-[#0891b2] transition-colors">
+                    <TableHead key={key} className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                      <button onClick={() => toggleSort(key as typeof sortKey)} className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors">
                         {label}
-                        <ArrowUpDown className={`size-3 ${sortKey === key ? 'text-[#06b6d4]' : 'text-slate-300'}`} />
+                        <ArrowUpDown className={`size-3 ${sortKey === key ? 'text-primary' : 'text-muted-foreground'}`} />
                       </button>
                     </TableHead>
                   ))}
-                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-slate-600 text-right">Actions</TableHead>
+                  <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -485,11 +458,11 @@ export default function UsersRoles() {
       {/* Edit User Modal */}
       {editUser && (
         <Dialog open onOpenChange={(n) => !n && setEditUser(null)}>
-          <DialogContent className="sm:max-w-lg border-t-4 border-t-[#06b6d4] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="sm:max-w-lg border-t-4 border-t-primary shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-900 tracking-tight">
-                <div className="size-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-none">
-                  <Edit3 className="size-4 text-[#06b6d4]" />
+              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
+                <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-none">
+                  <Edit3 className="size-4 text-primary" />
                 </div>
                 Edit Member — {editUser.name || editUser.email}
               </DialogTitle>
@@ -502,11 +475,11 @@ export default function UsersRoles() {
       {/* Create User Modal */}
       {showCreate && (
         <Dialog open onOpenChange={(n) => !n && setShowCreate(false)}>
-          <DialogContent className="sm:max-w-lg border-t-4 border-t-[#06b6d4] shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="sm:max-w-lg border-t-4 border-t-primary shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-slate-900 tracking-tight">
-                <div className="size-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center flex-none">
-                  <UserPlus className="size-4 text-[#06b6d4]" />
+              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
+                <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-none">
+                  <UserPlus className="size-4 text-primary" />
                 </div>
                 Add New Member
               </DialogTitle>
@@ -519,19 +492,19 @@ export default function UsersRoles() {
       {/* Delete User Modal */}
       {deleteUser && (
         <Dialog open onOpenChange={(n) => !n && setDeleteUser(null)}>
-          <DialogContent className="sm:max-w-md border-t-4 border-t-red-500 shadow-2xl rounded-2xl bg-white p-6 border-slate-200 animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="sm:max-w-md border-t-4 border-t-danger shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="text-base font-black text-red-600 flex items-center gap-2.5">
-                <div className="size-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center flex-none">
-                  <Trash2 className="size-4 text-red-600" />
+              <DialogTitle className="text-base font-black text-danger flex items-center gap-2.5">
+                <div className="size-8 rounded-lg bg-danger/10 border border-danger/20 flex items-center justify-center flex-none">
+                  <Trash2 className="size-4 text-danger" />
                 </div>
                 Remove Member
               </DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-slate-700 py-2 font-medium">Permanently remove <span className="font-extrabold text-slate-900">{deleteUser.name || deleteUser.email}</span>?</p>
+            <p className="text-sm text-foreground py-2 font-medium">Permanently remove <span className="font-extrabold">{deleteUser.name || deleteUser.email}</span>?</p>
             <DialogFooter className="mt-3 gap-2">
-              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200 cursor-pointer rounded-xl px-4">Cancel</Button></DialogClose>
-              <Button variant="destructive" size="sm" className="text-xs font-extrabold cursor-pointer rounded-xl px-5 shadow-md hover:shadow-lg" disabled={submitting} onClick={() => handleDelete(deleteUser)}>
+              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
+              <Button variant="destructive" size="sm" className="text-xs font-extrabold cursor-pointer rounded-lg px-5 shadow-sm hover:shadow-md" disabled={submitting} onClick={() => handleDelete(deleteUser)}>
                 {submitting ? <RefreshCw className="size-3.5 animate-spin mr-1" /> : <Trash2 className="size-3.5 mr-1" />}Remove Member
               </Button>
             </DialogFooter>

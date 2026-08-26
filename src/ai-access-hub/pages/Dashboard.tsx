@@ -4,7 +4,6 @@ import {
   Zap,
   Users,
   RefreshCw,
-  Clock,
   TrendingUp,
   CheckCircle2,
   XCircle,
@@ -12,10 +11,7 @@ import {
   Cpu,
   BarChart3,
   ArrowUpRight,
-  ShieldCheck,
-  Server,
   ArrowLeft,
-  Crown
 } from 'lucide-react'
 import { api } from '@/api'
 import type { AuditLogEntry } from '../types'
@@ -29,16 +25,14 @@ interface RingGaugeProps {
   label: string
   sublabel: string
   color: string
-  glow: string
   icon: React.ElementType
   delay?: number
   unit?: string
 }
 
-function RingGauge({ value, max, label, sublabel, color, glow, icon: Icon, delay = 0, unit = '' }: RingGaugeProps) {
+function RingGauge({ value, max, label, sublabel, color, icon: Icon, delay = 0, unit = '' }: RingGaugeProps) {
   const [drawn, setDrawn] = useState(false)
-  const [pos, setPos] = useState({ x: 0, y: 0 })
-  const r = 44
+  const r = 40
   const circumference = 2 * Math.PI * r
   const pct = Math.min(value / max, 1)
   const offset = circumference * (1 - pct)
@@ -48,98 +42,82 @@ function RingGauge({ value, max, label, sublabel, color, glow, icon: Icon, delay
     return () => clearTimeout(t)
   }, [delay])
 
-  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect()
-    setPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-  }
-
   return (
     <div
-      onMouseMove={handleMouseMove}
-      className="spotlight-card rounded-2xl flex flex-col items-center justify-between p-5 animate-stagger-1 group relative overflow-hidden shadow-lg border-slate-200 transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl cursor-pointer"
-      style={{
-        animationDelay: `${delay}ms`,
-        background: `radial-gradient(circle 220px at ${pos.x}px ${pos.y}px, ${color}22, transparent 75%), radial-gradient(circle at 90% 10%, ${color}18, transparent 65%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
-        border: `1.5px solid ${color}50`,
-        borderTop: `4px solid ${color}`,
-        boxShadow: `0 8px 24px rgba(15, 23, 42, 0.06), 0 0 16px ${color}15`,
-        minHeight: '210px'
-      }}
+      className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm hover:shadow-lg transition-all duration-300 hover:border-primary/30 cursor-pointer flex flex-col"
+      style={{ animationDelay: `${delay}ms`, minHeight: '200px' }}
     >
-      {/* Ambient Corner Energy Glow */}
-      <div className="absolute -right-4 -bottom-4 size-20 rounded-full blur-xl opacity-30 animate-pulse pointer-events-none" style={{ background: color }} />
+      {/* Subtle color wash in top-right */}
+      <div
+        className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none opacity-[0.07] blur-2xl transition-opacity duration-300 group-hover:opacity-[0.13]"
+        style={{ background: color, transform: 'translate(30%, -30%)' }}
+      />
 
-      {/* Shimmer sweep effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
-      {/* Top status indicator pill */}
-      <div className="w-full flex items-center justify-between text-[10px] font-extrabold z-10">
-        <Badge variant="outline" className="px-2 py-0.5 rounded-full font-mono text-[9.5px] border-slate-200 bg-slate-100 text-slate-700 shadow-xs">
-          HEALTHY
-        </Badge>
-        <span className="flex items-center gap-1 font-mono font-extrabold" style={{ color }}>
-          <span className="size-1.5 rounded-full animate-ping" style={{ background: color }} />
+      {/* Top row: label + status pill */}
+      <div className="flex items-start justify-between px-5 pt-5 pb-3 z-10">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+          <p className="text-[11px] font-semibold text-muted-foreground/70 mt-0.5 truncate max-w-[120px]">{sublabel}</p>
+        </div>
+        <span
+          className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-full border"
+          style={{ color, background: `${color}15`, borderColor: `${color}30` }}
+        >
+          <span className="size-1.5 rounded-full animate-pulse" style={{ background: color }} />
           LIVE
         </span>
       </div>
 
-      {/* Center SVG Ring Gauge */}
-      <div className="relative flex items-center justify-center my-1 z-10">
-        <svg width="114" height="114" className="-rotate-90">
-          {/* Dual spinning dashed orbit rings */}
-          <circle
-            cx="57" cy="57" r="52"
-            fill="none"
-            stroke={color}
-            strokeWidth="1.5"
-            strokeDasharray="4 6"
-            opacity="0.4"
-            className="animate-spin"
-            style={{ animationDuration: '12s' }}
-          />
-          <circle
-            cx="57" cy="57" r="36"
-            fill="none"
-            stroke={color}
-            strokeWidth="1"
-            strokeDasharray="2 4"
-            opacity="0.25"
-            className="animate-spin"
-            style={{ animationDuration: '7s', animationDirection: 'reverse' }}
-          />
+      {/* Center: Ring + Value */}
+      <div className="flex items-center justify-center flex-1 pb-2 z-10">
+        <div className="relative flex items-center justify-center">
+          <svg width="108" height="108" className="-rotate-90">
+            {/* Background track */}
+            <circle cx="54" cy="54" r={r} fill="none" stroke="var(--border)" strokeWidth="6" opacity="0.5" />
+            {/* Colored fill arc */}
+            <circle
+              cx="54" cy="54" r={r}
+              fill="none"
+              stroke={color}
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={drawn ? offset : circumference}
+              style={{
+                transition: `stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
+                filter: `drop-shadow(0 0 6px ${color}66)`,
+              }}
+            />
+          </svg>
 
-          {/* Track ring */}
-          <circle cx="57" cy="57" r={r} fill="none" stroke="rgba(226, 232, 240, 0.8)" strokeWidth="8" />
-
-          {/* Animated main arc */}
-          <circle
-            cx="57" cy="57" r={r}
-            fill="none"
-            stroke={color}
-            strokeWidth="8"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={drawn ? offset : circumference}
-            style={{
-              transition: `stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
-              filter: `drop-shadow(0 0 6px ${color}66)`
-            }}
-          />
-        </svg>
-
-        {/* Center content */}
-        <div className="absolute flex flex-col items-center justify-center">
-          <Icon className="size-4 mb-0.5 icon-spring transition-transform group-hover:scale-125 duration-300" style={{ color }} />
-          <span className="text-2xl font-black font-mono leading-none tracking-tight text-slate-900 transition-transform duration-300 group-hover:scale-105">
-            {value}{unit}
-          </span>
+          {/* Center value */}
+          <div className="absolute flex flex-col items-center justify-center">
+            <Icon className="size-3.5 mb-0.5 transition-transform duration-300 group-hover:scale-110" style={{ color }} />
+            <span className="text-[22px] font-black font-mono leading-none tracking-tight text-foreground">
+              {value}{unit}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* High-Contrast Bottom Labels */}
-      <div className="text-center z-10 w-full pt-1">
-        <p className="text-xs font-black uppercase tracking-widest text-slate-900 group-hover:text-[#0891b2] transition-colors">{label}</p>
-        <p className="text-[11px] text-slate-600 font-semibold mt-0.5 truncate">{sublabel}</p>
+      {/* Bottom: percent bar */}
+      <div className="px-5 pb-5 z-10">
+        <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-1000"
+            style={{
+              width: drawn ? `${pct * 100}%` : '0%',
+              background: color,
+              boxShadow: `0 0 8px ${color}66`,
+              transitionDelay: `${delay}ms`,
+            }}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-1.5">
+          <span className="text-[10px] text-muted-foreground font-medium">0</span>
+          <span className="text-[10px] font-black" style={{ color }}>{Math.round(pct * 100)}%</span>
+          <span className="text-[10px] text-muted-foreground font-medium">{max}{unit}</span>
+        </div>
       </div>
     </div>
   )
@@ -151,8 +129,8 @@ function TimelineEvent({ event, delay }: { event: AuditLogEntry; delay: number }
   const isDenied = event.outcome === 'denied'
   const StatusIcon = isPassed ? CheckCircle2 : isDenied ? AlertCircle : XCircle
   const dotColor = isPassed ? '#22c55e' : isDenied ? '#f59e0b' : '#f43f5e'
-  const bgColor = isPassed ? 'rgba(34,197,94,0.15)' : isDenied ? 'rgba(245,158,11,0.15)' : 'rgba(244,63,94,0.15)'
-  const borderColor = isPassed ? 'rgba(34,197,94,0.45)' : isDenied ? 'rgba(245,158,11,0.45)' : 'rgba(244,63,94,0.45)'
+  const bgColor = isPassed ? 'rgba(34,197,94,0.1)' : isDenied ? 'rgba(245,158,11,0.1)' : 'rgba(244,63,94,0.1)'
+  const borderColor = isPassed ? 'rgba(34,197,94,0.3)' : isDenied ? 'rgba(245,158,11,0.3)' : 'rgba(244,63,94,0.3)'
 
   function handleNavigateAudit() {
     window.dispatchEvent(new CustomEvent('hexagon-hub-select-sector', { detail: 'audit' }))
@@ -161,44 +139,42 @@ function TimelineEvent({ event, delay }: { event: AuditLogEntry; delay: number }
   return (
     <div
       onClick={handleNavigateAudit}
-      className="flex items-center gap-3 animate-slide-left group cursor-pointer relative"
+      className="flex items-center gap-3 group cursor-pointer"
       style={{ animationDelay: `${delay}ms` }}
     >
-      {/* Node circle (solid bg covers the line behind it) */}
-      <div className="flex flex-col items-center flex-none z-10">
+      {/* Node */}
+      <div className="flex-none z-10">
         <div
-          className="relative flex items-center justify-center size-7 rounded-full bg-white transition-all duration-300 group-hover:scale-125 shadow-xs"
-          style={{ background: '#ffffff', border: `2px solid ${dotColor}`, boxShadow: `0 0 14px ${dotColor}44` }}
+          className="relative flex items-center justify-center size-7 rounded-full transition-all duration-300 group-hover:scale-110 shadow-xs"
+          style={{ background: 'var(--card)', border: `2px solid ${dotColor}`, boxShadow: `0 0 10px ${dotColor}33` }}
         >
-          <div className="size-2.5 rounded-full animate-ping absolute" style={{ background: dotColor, opacity: 0.3 }} />
+          <div className="size-2 rounded-full animate-ping absolute" style={{ background: dotColor, opacity: 0.2 }} />
           <StatusIcon className="size-3.5 relative z-10" style={{ color: dotColor }} />
         </div>
       </div>
 
       {/* Content card */}
       <div
-        className="flex-1 min-w-0 rounded-xl px-4 py-2.5 transition-all duration-300 group-hover:scale-[1.015] group-hover:-translate-y-0.5 border-slate-200 group-hover:border-blue-400/60 shadow-xs group-hover:shadow-md relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-          borderLeft: `4px solid ${dotColor}`,
-          boxShadow: '0 4px 15px rgba(15, 23, 42, 0.05)'
-        }}
+        className="flex-1 min-w-0 rounded-xl px-3.5 py-2.5 transition-all duration-300 group-hover:scale-[1.01] group-hover:-translate-y-0.5 border border-border group-hover:border-primary/30 shadow-xs relative overflow-hidden"
+        style={{ background: 'var(--card)', borderLeft: `3px solid ${dotColor}` }}
       >
-        {/* Shimmer sweep */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
-
-        <div className="flex items-center justify-between gap-2 z-10 relative">
-          <span className="text-xs font-black font-mono text-slate-900 group-hover:text-[#0284c7] transition-colors truncate">{event.event}</span>
-          <Badge variant="outline" className="text-[9.5px] px-2.5 py-0.5 font-mono font-extrabold flex-none capitalize tracking-wider flex items-center gap-1.5 shadow-xs" style={{ borderColor, color: dotColor, background: bgColor }}>
-            <span className="size-1.5 rounded-full animate-ping" style={{ background: dotColor }} />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+        <div className="flex items-center justify-between gap-2 relative z-10">
+          <span className="text-xs font-black font-mono text-foreground truncate">{event.event}</span>
+          <Badge
+            variant="outline"
+            className="text-[9.5px] px-2 py-0.5 font-mono font-extrabold flex-none capitalize tracking-wider flex items-center gap-1 shadow-xs"
+            style={{ borderColor, color: dotColor, background: bgColor }}
+          >
+            <span className="size-1 rounded-full animate-ping" style={{ background: dotColor }} />
             {event.outcome}
           </Badge>
         </div>
-        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-600 font-mono z-10 relative">
-          <span className="truncate font-bold text-slate-800">{event.actorEmail || 'System'}</span>
-          <span className="flex-none text-slate-400">·</span>
-          <span className="flex-none font-medium text-slate-500">{new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          <span className="flex-none uppercase border border-slate-300 px-1.5 py-0.2 rounded text-slate-700 bg-slate-100 font-extrabold text-[9px]">{event.layer}</span>
+        <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground font-mono relative z-10">
+          <span className="truncate font-bold text-foreground">{event.actorEmail || 'System'}</span>
+          <span className="flex-none text-muted-foreground">·</span>
+          <span className="flex-none font-medium">{new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          <span className="flex-none uppercase border border-border px-1.5 rounded text-muted-foreground bg-secondary/50 font-extrabold text-[9px]">{event.layer}</span>
         </div>
       </div>
     </div>
@@ -214,29 +190,32 @@ function QuickTile({ label, color, sublabel, icon: Icon, sectorKey }: { label: s
   return (
     <button
       onClick={handleClick}
-      className="spotlight-card card-hover-lift magnetic-btn flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden shadow-md cursor-pointer hover:-translate-y-1 hover:shadow-xl"
-      style={{
-        background: `radial-gradient(circle at 50% 0%, ${color}15, transparent 70%), linear-gradient(135deg, #ffffff, #f8fafc)`,
-        border: `1.5px solid ${color}50`,
-        boxShadow: `0 6px 18px rgba(15, 23, 42, 0.06)`
-      }}
+      className="group flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border border-border hover:border-primary/40 transition-all duration-300 relative overflow-hidden shadow-xs cursor-pointer hover:-translate-y-0.5 hover:shadow-md bg-card"
     >
-      <div className="p-2.5 rounded-xl transition-transform duration-300 group-hover:scale-110 shadow-xs" style={{ background: `${color}18`, border: `1.5px solid ${color}44` }}>
-        <Icon className="size-4.5 icon-spring" style={{ color }} />
+      {/* Subtle radial wash */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{ background: `radial-gradient(circle at 50% 0%, ${color}15, transparent 70%)` }}
+      />
+      <div
+        className="size-9 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-xs flex-none"
+        style={{ background: `${color}18`, border: `1.5px solid ${color}35` }}
+      >
+        <Icon className="size-4" style={{ color }} />
       </div>
-      <div className="text-center">
-        <span className="text-[11px] font-black uppercase tracking-widest text-slate-900 group-hover:text-slate-950 block">{label}</span>
-        <span className="text-[9.5px] font-extrabold text-slate-500 font-mono block mt-0.5">{sublabel}</span>
+      <div className="text-center relative z-10">
+        <span className="text-[11px] font-black uppercase tracking-widest text-foreground block">{label}</span>
+        <span className="text-[9.5px] font-semibold text-muted-foreground font-mono block mt-0.5">{sublabel}</span>
       </div>
     </button>
   )
 }
 
 const RING_DATA = [
-  { label: 'Req / sec', sublabel: 'Gateway throughput', value: 43, max: 100, unit: '', color: '#3b82f6', glow: 'rgba(59,130,246,0.7)', icon: Zap, delay: 0 },
-  { label: 'Cache Hit', sublabel: 'Provider cache layer', value: 61, max: 100, unit: '%', color: '#06b6d4', glow: 'rgba(6,182,212,0.7)', icon: Activity, delay: 120 },
-  { label: 'Latency', sublabel: 'Avg inference ms', value: 142, max: 400, unit: 'ms', color: '#a855f7', glow: 'rgba(168,85,247,0.7)', icon: TrendingUp, delay: 240 },
-  { label: 'Active Users', sublabel: 'Concurrent sessions', value: 128, max: 500, unit: '', color: '#22c55e', glow: 'rgba(34,197,94,0.7)', icon: Users, delay: 360 },
+  { label: 'Req / sec', sublabel: 'Gateway throughput', value: 43, max: 100, unit: '', color: '#3b82f6', icon: Zap, delay: 0 },
+  { label: 'Cache Hit', sublabel: 'Provider cache layer', value: 61, max: 100, unit: '%', color: '#06b6d4', icon: Activity, delay: 120 },
+  { label: 'Latency', sublabel: 'Avg inference ms', value: 142, max: 400, unit: 'ms', color: '#a855f7', icon: TrendingUp, delay: 240 },
+  { label: 'Active Users', sublabel: 'Concurrent sessions', value: 128, max: 500, unit: '', color: '#22c55e', icon: Users, delay: 360 },
 ]
 
 const QUICK_TILES = [
@@ -274,19 +253,19 @@ export default function Dashboard() {
   return (
     <div className="page sector-blue space-y-6 animate-slide-up">
       {/* Header */}
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-[#3b82f6]/40 pb-5">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2.5">
             <span className="cyber-pulse-dot cyber-pulse-dot-blue" />
             <h1 className="text-2xl font-black tracking-tight sector-header-title">
               Platform Overview
             </h1>
-            <Badge variant="outline" className="sector-badge text-xs font-mono font-bold flex items-center gap-1">
+            <Badge variant="outline" className="sector-badge text-xs font-mono font-bold flex items-center gap-1 border-border">
               <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
               Gateway Online • 99.98% Uptime
             </Badge>
           </div>
-          <p className="mt-1 text-sm text-slate-700 font-bold">
+          <p className="mt-1 text-sm text-muted-foreground font-semibold">
             Live health telemetry across inference routing, provider rate limits, and administrative events.
           </p>
         </div>
@@ -297,7 +276,7 @@ export default function Dashboard() {
             variant="outline"
             size="sm"
             onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
-            className="border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 font-extrabold shadow-sm cursor-pointer"
+            className="border-border bg-secondary text-foreground hover:bg-secondary/80 font-extrabold shadow-sm cursor-pointer"
           >
             <ArrowLeft className="size-3.5 mr-1" />
             All Sectors
@@ -308,7 +287,7 @@ export default function Dashboard() {
             size="sm"
             onClick={fetchAuditLogs}
             disabled={refreshing}
-            className="gap-2 border-[#3b82f6]/50 bg-[#3b82f6]/10 hover:bg-[#3b82f6]/25 transition-all text-[#2563eb] font-extrabold shadow-md cursor-pointer"
+            className="gap-2 border-border bg-secondary text-foreground hover:bg-secondary/80 transition-all font-extrabold shadow-sm cursor-pointer"
           >
             <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh Stream
@@ -326,56 +305,46 @@ export default function Dashboard() {
       {/* Bottom grid: Timeline + Quick Shortcuts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Activity Timeline */}
-        <div
-          className="lg:col-span-2 rounded-2xl p-5 shadow-lg border-slate-200"
-          style={{
-            background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
-            border: '1.5px solid rgba(59, 130, 246, 0.3)',
-            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
-          }}
-        >
-          <div className="flex items-center justify-between mb-5">
+        <div className="lg:col-span-2 rounded-2xl shadow-sm border border-border bg-card">
+          <div className="px-5 pt-5 pb-4 flex items-center justify-between border-b border-border">
             <div>
-              <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                <Activity className="size-4 text-[#3b82f6] animate-pulse" />
+              <h2 className="text-sm font-extrabold text-foreground flex items-center gap-2">
+                <Activity className="size-4 text-primary animate-pulse" />
                 Live Audit Stream
               </h2>
-              <p className="text-[11px] text-slate-600 mt-0.5 font-bold">Realtime security decision telemetry</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">Realtime security decision telemetry</p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] font-mono font-extrabold text-slate-800 bg-slate-100 border-slate-300 px-2.5 py-0.5">
+              <Badge variant="outline" className="text-[10px] font-mono font-extrabold text-foreground bg-secondary/50 border-border px-2.5 py-0.5">
                 {auditEvents.length} events
               </Badge>
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-select-sector', { detail: 'audit' }))}
-                className="text-xs font-extrabold text-[#2563eb] hover:text-[#1d4ed8] flex items-center gap-1 cursor-pointer transition-colors"
+                className="text-xs font-extrabold text-primary hover:text-primary-hover flex items-center gap-1 cursor-pointer transition-colors"
               >
                 View Stream →
               </button>
             </div>
           </div>
 
-          <div ref={timelineRef} className="relative space-y-0">
-            {/* Animated vertical track line perfectly centered behind 28px node circles (at left 13px) */}
+          <div ref={timelineRef} className="relative p-5">
             {auditEvents.length > 0 && (
               <div
-                className="absolute left-[13px] top-3 bottom-3 w-[2px] rounded-full z-0 pointer-events-none"
+                className="absolute left-[33px] top-8 bottom-8 w-[2px] rounded-full z-0 pointer-events-none opacity-30"
                 style={{
-                  background: 'linear-gradient(to bottom, #3b82f6 0%, #a855f7 50%, #22c55e 100%)',
-                  boxShadow: '0 0 8px rgba(59, 130, 246, 0.5)',
-                  animation: 'timelineDraw 1.2s ease-out 0.2s both'
+                  background: 'linear-gradient(to bottom, var(--primary) 0%, var(--primary-hover) 100%)',
                 }}
               />
             )}
 
-            <div className="space-y-3.5 pl-0 relative z-10">
+            <div className="space-y-3.5 relative z-10">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-14 rounded-lg bg-slate-100 animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
+                  <div key={i} className="h-14 rounded-xl bg-secondary animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
                 ))
               ) : auditEvents.length === 0 ? (
-                <div className="py-10 text-center text-sm text-slate-600 flex flex-col items-center gap-2 font-medium">
-                  <CheckCircle2 className="size-8 text-slate-400" />
+                <div className="py-10 text-center text-sm text-muted-foreground flex flex-col items-center gap-2 font-medium">
+                  <CheckCircle2 className="size-8 text-muted-foreground/60" />
                   No audit events recorded yet.
                 </div>
               ) : (
@@ -387,85 +356,67 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right column: Quick Tiles + Status */}
+        {/* Right column: Quick Tiles + Status + Stats */}
         <div className="flex flex-col gap-4">
           {/* Quick Access */}
-          <div
-            className="rounded-2xl p-4 shadow-lg border-slate-200"
-            style={{
-              background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
-              border: '1.5px solid rgba(59, 130, 246, 0.3)',
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
-            }}
-          >
-            <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-              <Zap className="size-3.5 text-[#3b82f6]" />
-              Quick Access
-            </h2>
-            <div className="grid grid-cols-2 gap-2.5">
+          <div className="rounded-2xl shadow-sm border border-border bg-card">
+            <div className="px-4 pt-4 pb-3 border-b border-border flex items-center gap-1.5">
+              <Zap className="size-3.5 text-primary" />
+              <h2 className="text-xs font-black text-foreground uppercase tracking-widest">Quick Access</h2>
+            </div>
+            <div className="p-3 grid grid-cols-2 gap-2.5">
               {QUICK_TILES.map((tile) => (
                 <QuickTile key={tile.label} {...tile} />
               ))}
             </div>
           </div>
 
-          {/* System health strip */}
-          <div
-            className="rounded-2xl p-4 space-y-3 shadow-lg border-slate-200"
-            style={{
-              background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
-              border: '1.5px solid rgba(59, 130, 246, 0.3)',
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
-            }}
-          >
-            <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-1.5">
-              <Cpu className="size-3.5 text-[#3b82f6]" />
-              System Status
-            </h2>
-            {[
-              { label: 'API Gateway', pct: 98, lat: '12ms', color: '#22c55e' },
-              { label: 'Model Router', pct: 87, lat: '45ms', color: '#3b82f6' },
-              { label: 'Auth Service', pct: 100, lat: '4ms', color: '#22c55e' },
-              { label: 'Key Vault', pct: 94, lat: '18ms', color: '#06b6d4' },
-            ].map(({ label, pct, lat, color }, i) => (
-              <div key={label} className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-800 font-extrabold flex items-center gap-1.5">
-                    <span className="size-2 rounded-full animate-ping" style={{ background: color }} />
-                    {label}
-                  </span>
-                  <span style={{ color }} className="font-mono font-extrabold">{pct}% <span className="text-[9.5px] text-slate-500 font-normal">({lat})</span></span>
-                </div>
-                <div className="h-2.5 rounded-full bg-slate-100 border border-slate-300 overflow-hidden relative">
-                  <div
-                    className="h-full rounded-full transition-all relative overflow-hidden"
-                    style={{
-                      width: 0,
-                      background: `linear-gradient(90deg, ${color}bb, ${color})`,
-                      boxShadow: `0 0 10px ${color}aa`,
-                      transition: `width 1.2s cubic-bezier(0.16, 1, 0.3, 1) ${i * 100 + 400}ms`,
-                    }}
-                    ref={(el) => {
-                      if (el) setTimeout(() => { el.style.width = `${pct}%` }, 50)
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-pulse" />
+          {/* System Status */}
+          <div className="rounded-2xl shadow-sm border border-border bg-card">
+            <div className="px-4 pt-4 pb-3 border-b border-border flex items-center gap-1.5">
+              <Cpu className="size-3.5 text-primary" />
+              <h2 className="text-xs font-black text-foreground uppercase tracking-widest">System Status</h2>
+            </div>
+            <div className="p-4 space-y-4">
+              {[
+                { label: 'API Gateway', pct: 98, lat: '12ms', color: '#22c55e' },
+                { label: 'Model Router', pct: 87, lat: '45ms', color: '#3b82f6' },
+                { label: 'Auth Service', pct: 100, lat: '4ms', color: '#22c55e' },
+                { label: 'Key Vault', pct: 94, lat: '18ms', color: '#06b6d4' },
+              ].map(({ label, pct, lat, color }, i) => (
+                <div key={label} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-foreground font-extrabold flex items-center gap-1.5">
+                      <span className="size-1.5 rounded-full flex-none" style={{ background: color }} />
+                      {label}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span style={{ color }} className="font-mono font-black text-[11px]">{pct}%</span>
+                      <span className="text-[9.5px] text-muted-foreground font-medium border border-border px-1.5 py-0.5 rounded bg-secondary/50 font-mono">{lat}</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: 0,
+                        background: `linear-gradient(90deg, ${color}99, ${color})`,
+                        boxShadow: `0 0 6px ${color}66`,
+                        transition: `width 1.2s cubic-bezier(0.16, 1, 0.3, 1) ${i * 100 + 400}ms`,
+                      }}
+                      ref={(el) => {
+                        if (el) setTimeout(() => { el.style.width = `${pct}%` }, 50)
+                      }}
+                    />
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          {/* Stats summary 4-grid */}
-          <div
-            className="rounded-2xl p-4 shadow-lg border-slate-200"
-            style={{
-              background: 'linear-gradient(135deg, #ffffff, #f8fafc)',
-              border: '1.5px solid rgba(59, 130, 246, 0.3)',
-              boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)'
-            }}
-          >
-            <div className="grid grid-cols-2 gap-3 text-center">
+          {/* Stats 4-grid */}
+          <div className="rounded-2xl shadow-sm border border-border bg-card">
+            <div className="p-3 grid grid-cols-2 gap-3">
               {[
                 { label: 'Providers', value: '5', icon: ArrowUpRight, color: '#f97316', sectorKey: 'models' },
                 { label: 'Models', value: '12', icon: Cpu, color: '#f59e0b', sectorKey: 'models' },
@@ -475,21 +426,26 @@ export default function Dashboard() {
                 <div
                   key={label}
                   onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-select-sector', { detail: sectorKey }))}
-                  className="spotlight-card rounded-xl p-3 flex flex-col items-center justify-center gap-1.5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer group relative overflow-hidden"
-                  style={{
-                    background: `radial-gradient(circle at 90% 10%, ${color}15, transparent 65%), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)`,
-                    border: `1.5px solid ${color}50`,
-                    borderTop: `3px solid ${color}`
-                  }}
+                  className="group relative overflow-hidden rounded-xl p-3.5 flex flex-col gap-2 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer border border-border bg-secondary/30 hover:border-primary/30"
                 >
-                  {/* Shimmer overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/35 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+                  {/* Subtle color wash */}
+                  <div
+                    className="absolute top-0 right-0 w-16 h-16 rounded-full pointer-events-none opacity-[0.08] blur-xl group-hover:opacity-[0.15] transition-opacity duration-300"
+                    style={{ background: color, transform: 'translate(25%, -25%)' }}
+                  />
+                  {/* Shimmer */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
 
-                  <div className="size-8 rounded-lg flex items-center justify-center text-white transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-xs" style={{ background: color, boxShadow: `0 0 12px ${color}44` }}>
-                    <Icon className="size-4 text-white" />
+                  <div
+                    className="size-8 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-105 flex-none relative z-10"
+                    style={{ background: `${color}18`, border: `1.5px solid ${color}35` }}
+                  >
+                    <Icon className="size-4" style={{ color }} />
                   </div>
-                  <span className="text-xl font-black font-mono text-slate-900 transition-transform duration-300 group-hover:scale-105 group-hover:translate-x-0.5">{value}</span>
-                  <span className="text-[9.5px] font-black uppercase tracking-widest text-slate-600 group-hover:text-slate-900 transition-colors">{label}</span>
+                  <div className="relative z-10">
+                    <span className="text-xl font-black font-mono text-foreground block leading-none">{value}</span>
+                    <span className="text-[9.5px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5 block group-hover:text-foreground transition-colors">{label}</span>
+                  </div>
                 </div>
               ))}
             </div>

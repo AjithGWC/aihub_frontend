@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Hexagon, Send, LogOut } from "lucide-react";
+import { Hexagon, Send, LogOut, Sun, Moon } from "lucide-react";
 import { useSession } from "../auth/SessionContext";
 import { useNavigate } from "react-router-dom";
 import { COLOR, FONT_HEADING, FONT_BODY } from "../components/atlasTheme";
+import { useTheme } from "../components/AppNavbar";
 
 interface ChatMessage {
   id: number;
@@ -24,6 +25,7 @@ function getBotReply(userMessage: string): string {
 export default function Chatbot() {
   const { user, logout } = useSession();
   const navigate = useNavigate();
+  const [theme, toggleTheme] = useTheme();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 0,
@@ -101,9 +103,17 @@ export default function Chatbot() {
             <span className="text-[10px] uppercase tracking-widest" style={{ color: COLOR.accent500 }}>{user?.roleLabel ?? user?.role}</span>
           </div>
           <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex items-center justify-center size-8.5 rounded-sm transition-colors border border-border bg-card text-muted-foreground hover:text-foreground cursor-pointer"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+          </button>
+          <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest px-3 py-2 rounded-sm transition-colors cursor-pointer"
-            style={{ border: `1px solid ${COLOR.panelBorder}`, color: COLOR.neutral300, background: "#ffffff" }}
+            style={{ border: `1px solid ${COLOR.panelBorder}`, color: COLOR.neutral300, background: "var(--card)" }}
           >
             <LogOut className="size-3.5" />
             Logout
@@ -119,8 +129,8 @@ export default function Chatbot() {
                 className="max-w-[75%] px-4 py-3 rounded-lg text-sm leading-relaxed"
                 style={
                   m.role === "user"
-                    ? { background: COLOR.accent500, color: "#ffffff" }
-                    : { background: COLOR.panelBg, border: `1px solid ${COLOR.panelBorder}`, color: COLOR.neutral100, boxShadow: "0 1px 4px rgba(15,23,42,.05)" }
+                    ? { background: COLOR.accent500, color: "var(--background)" }
+                    : { background: COLOR.panelBg, border: `1px solid ${COLOR.panelBorder}`, color: COLOR.neutral100, boxShadow: "0 1px 4px rgba(0,0,0,.05)" }
                 }
               >
                 {m.text}
@@ -131,7 +141,7 @@ export default function Chatbot() {
             <div className="flex justify-start">
               <div
                 className="px-4 py-3 rounded-lg flex items-center gap-1.5"
-                style={{ background: COLOR.panelBg, border: `1px solid ${COLOR.panelBorder}`, boxShadow: "0 1px 4px rgba(15,23,42,.05)" }}
+                style={{ background: COLOR.panelBg, border: `1px solid ${COLOR.panelBorder}`, boxShadow: "0 1px 4px rgba(0,0,0,.05)" }}
               >
                 {[0, 1, 2].map((i) => (
                   <span
@@ -148,21 +158,21 @@ export default function Chatbot() {
         <form onSubmit={handleSend} className="mt-4 flex items-center gap-3">
           <div
             className="flex-1 flex items-center h-12 px-4 rounded-sm"
-            style={{ background: "#f8fafc", border: `1px solid ${COLOR.hairline}` }}
+            style={{ background: "var(--panel-2)", border: `1px solid ${COLOR.hairline}` }}
           >
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Message the AI Hub assistant…"
-              className="flex-1 bg-transparent border-none outline-none text-sm text-slate-900 placeholder:text-neutral-400 focus:ring-0 h-full p-0"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-neutral-400 focus:ring-0 h-full p-0"
             />
           </div>
           <button
             type="submit"
             disabled={!input.trim()}
             className="h-12 w-12 flex items-center justify-center rounded-sm transition-colors cursor-pointer disabled:opacity-40"
-            style={{ border: `1px solid ${COLOR.accent500}`, color: COLOR.accent600, background: "#ffffff" }}
+            style={{ border: `1px solid ${COLOR.accent500}`, color: "var(--foreground)", background: "var(--card)" }}
           >
             <Send className="size-4" />
           </button>

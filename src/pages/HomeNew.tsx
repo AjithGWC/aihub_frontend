@@ -44,8 +44,8 @@ const CATEGORIES: CategoryConfig[] = [
       'Empowers executive leadership with real-time decision engines, AI-driven anomaly signals, and high-impact macro KPI health indicators across the enterprise.',
     icon: Crown,
     gradient: 'from-amber-500/20 via-orange-500/10 to-transparent border-amber-500/30',
-    accentColor: 'text-amber-400',
-    badgeBg: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
+    accentColor: 'text-amber-500',
+    badgeBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
     dashboards: ['ceo-decision', 'exec-ai-alerts', 'monthly-performance-overview', 'sample-overview'],
     metrics: [
       { label: 'Strategic Focus', value: 'Macro Growth & Risk' },
@@ -61,8 +61,8 @@ const CATEGORIES: CategoryConfig[] = [
       'In-depth sales velocity analysis, multi-store WoW/MoM/YoY trend tracking, store-level performance metrics, and regional revenue distribution.',
     icon: TrendingUp,
     gradient: 'from-blue-500/20 via-indigo-500/10 to-transparent border-blue-500/30',
-    accentColor: 'text-blue-400',
-    badgeBg: 'bg-blue-500/10 text-blue-300 border-blue-500/30',
+    accentColor: 'text-blue-500',
+    badgeBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30',
     dashboards: ['sales-dashboard', 'retail-sales-explorer', 'store-performance-trends', 'sample-sales-analysis'],
     metrics: [
       { label: 'Primary Metrics', value: 'GMV, Units, WoW Growth' },
@@ -78,8 +78,8 @@ const CATEGORIES: CategoryConfig[] = [
       'Comprehensive monitoring of inventory turnover, stockout risks, deadstock prevention, buying cycles, and vendor reliability metrics.',
     icon: Package,
     gradient: 'from-emerald-500/20 via-teal-500/10 to-transparent border-emerald-500/30',
-    accentColor: 'text-emerald-400',
-    badgeBg: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+    accentColor: 'text-emerald-500',
+    badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
     dashboards: ['inventory-analysis', 'inventory-health', 'buying-supplier'],
     metrics: [
       { label: 'Key Indicators', value: 'Sell-Through, Days of Supply' },
@@ -95,8 +95,8 @@ const CATEGORIES: CategoryConfig[] = [
       'Detailed profitability breakdown across categories, pricing strategies, gross margin optimization, and assortment performance.',
     icon: CircleDollarSign,
     gradient: 'from-purple-500/20 via-pink-500/10 to-transparent border-purple-500/30',
-    accentColor: 'text-purple-400',
-    badgeBg: 'bg-purple-500/10 text-purple-300 border-purple-500/30',
+    accentColor: 'text-purple-500',
+    badgeBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30',
     dashboards: ['finance-margin', 'merchandising'],
     metrics: [
       { label: 'Financial Focus', value: 'Gross Margin %, Net Profit' },
@@ -154,30 +154,30 @@ export default function HomeNew() {
   }, [activeDashboards, searchQuery]);
 
   return (
-    <div className="min-h-[calc(100vh-3rem)] p-4 md:p-8 max-w-7xl mx-auto space-y-8">
+    <div className="min-h-[calc(100vh-3rem)] p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-slide-up">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-6 md:p-10 border border-slate-800 shadow-2xl">
-        <div className="absolute right-0 top-0 -mt-10 -mr-10 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-xl bg-secondary/40 p-6 md:p-10 border border-border shadow-xs">
+        <div className="absolute right-0 top-0 -mt-10 -mr-10 w-96 h-96 rounded-full bg-primary-soft blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-soft border border-border text-foreground text-xs font-medium">
               <Sparkles className="size-3.5" />
               <span>Next-Gen Analytics Hub</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
-              Welcome, <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">{user?.username}</span>
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
+              Welcome, <span className="text-primary">{user?.username}</span>
             </h1>
-            <p className="text-slate-400 text-sm md:text-base max-w-2xl">
+            <p className="text-muted-foreground text-sm md:text-base max-w-2xl">
               Explore your business intelligence dashboards organized into specialized operational domains. Click any category below to inspect metrics and launch dashboards.
             </p>
           </div>
-          <div className="flex items-center gap-3 self-start md:self-auto bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 backdrop-blur-md">
-            <div className="p-2.5 rounded-lg bg-indigo-500/20 text-indigo-400">
+          <div className="flex items-center gap-3 self-start md:self-auto bg-secondary p-3 rounded-lg border border-border">
+            <div className="p-2.5 rounded-lg bg-primary-soft text-primary">
               <Layers className="size-6" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-white">{dashboards.length}</div>
-              <div className="text-xs text-slate-400 font-medium">Active Dashboards</div>
+              <div className="text-2xl font-bold text-foreground">{dashboards.length}</div>
+              <div className="text-xs text-muted-foreground font-medium">Active Dashboards</div>
             </div>
           </div>
         </div>
@@ -187,7 +187,7 @@ export default function HomeNew() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
-            <BarChart3 className="size-5 text-indigo-500" />
+            <BarChart3 className="size-5 text-primary" />
             Business Domains & Categories
           </h2>
           <span className="text-xs text-muted-foreground">Select a category to view details</span>
@@ -203,27 +203,27 @@ export default function HomeNew() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`relative group text-left transition-all duration-300 rounded-xl p-5 border text-card-foreground ${
+                className={`relative group text-left transition-all duration-300 rounded-lg p-5 border text-foreground ${
                   isSelected
-                    ? `bg-slate-900/90 border-indigo-500 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500`
+                    ? `bg-secondary border-primary shadow-xs ring-1 ring-primary`
                     : `bg-card/60 hover:bg-card border-border/60 hover:border-border`
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className={`p-2.5 rounded-lg ${isSelected ? 'bg-indigo-500/20 text-indigo-400' : 'bg-secondary text-muted-foreground group-hover:text-foreground'}`}>
+                  <div className={`p-2.5 rounded-lg ${isSelected ? 'bg-primary-soft text-primary' : 'bg-secondary text-muted-foreground group-hover:text-foreground'}`}>
                     <Icon className="size-5" />
                   </div>
-                  <Badge variant="outline" className={isSelected ? cat.badgeBg : 'bg-secondary/50'}>
+                  <Badge variant="outline" className={isSelected ? cat.badgeBg : 'bg-secondary/50 border-border'}>
                     {count} {count === 1 ? 'Dashboard' : 'Dashboards'}
                   </Badge>
                 </div>
-                <h3 className="font-semibold text-sm text-foreground group-hover:text-indigo-400 transition-colors">
+                <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
                   {cat.title}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{cat.subtitle}</p>
 
                 {isSelected && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-indigo-500 rounded-full" />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-primary rounded-full" />
                 )}
               </button>
             );
@@ -232,12 +232,12 @@ export default function HomeNew() {
       </div>
 
       {/* Elaborate Category Detail View */}
-      <div className="relative rounded-2xl border border-border/80 bg-card p-6 md:p-8 space-y-6 shadow-xl">
-        <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r ${activeCategory.gradient}`} />
+      <div className="relative rounded-xl border border-border/80 bg-card p-6 md:p-8 space-y-6 shadow-sm">
+        <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-xl bg-gradient-to-r ${activeCategory.gradient}`} />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border">
           <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-xl bg-indigo-500/10 ${activeCategory.accentColor} border border-indigo-500/20 mt-1`}>
+            <div className={`p-3 rounded-lg bg-primary-soft ${activeCategory.accentColor} border border-border mt-1`}>
               <activeCategory.icon className="size-7" />
             </div>
             <div>
@@ -260,17 +260,17 @@ export default function HomeNew() {
               placeholder="Search category..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-background/50 h-9"
+              className="pl-9 bg-background/50 h-9 rounded-lg"
             />
           </div>
         </div>
 
         {/* Domain Metrics Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-secondary/30 border border-border/50">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg bg-secondary/30 border border-border/50">
           {activeCategory.metrics.map((m, idx) => (
             <div key={idx} className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-background text-muted-foreground">
-                {idx === 0 ? <Zap className="size-4 text-amber-400" /> : idx === 1 ? <Shield className="size-4 text-emerald-400" /> : <LayoutDashboard className="size-4 text-indigo-400" />}
+                {idx === 0 ? <Zap className="size-4 text-amber-400" /> : idx === 1 ? <Shield className="size-4 text-emerald-400" /> : <LayoutDashboard className="size-4 text-primary" />}
               </div>
               <div>
                 <div className="text-xs text-muted-foreground font-medium">{m.label}</div>
@@ -292,7 +292,7 @@ export default function HomeNew() {
           </div>
 
           {filteredDashboards.length === 0 ? (
-            <div className="text-center py-12 rounded-xl border border-dashed border-border bg-background/40">
+            <div className="text-center py-12 rounded-lg border border-dashed border-border bg-background/40">
               <LayoutDashboard className="size-10 text-muted-foreground mx-auto mb-3 opacity-50" />
               <p className="text-sm font-medium text-foreground">No dashboards found in this category</p>
               <p className="text-xs text-muted-foreground mt-1">Try clearing your search query or select another category above.</p>
@@ -302,7 +302,7 @@ export default function HomeNew() {
               {filteredDashboards.map((dash) => (
                 <Card
                   key={dash.id}
-                  className="group relative overflow-hidden border-border/60 hover:border-indigo-500/50 bg-card/50 hover:bg-card transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/5 flex flex-col justify-between"
+                  className="group relative overflow-hidden border-border/60 hover:border-primary/50 bg-card/50 hover:bg-card transition-all duration-300 hover:shadow-md flex flex-col justify-between rounded-lg"
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-2">
@@ -311,7 +311,7 @@ export default function HomeNew() {
                       </Badge>
                       <CheckCircle2 className="size-4 text-emerald-500 opacity-80" />
                     </div>
-                    <CardTitle className="text-base font-bold text-foreground group-hover:text-indigo-400 transition-colors">
+                    <CardTitle className="text-base font-bold text-foreground group-hover:text-primary transition-colors">
                       {dash.name}
                     </CardTitle>
                     <CardDescription className="text-xs line-clamp-2 leading-relaxed mt-1 text-muted-foreground">
@@ -327,7 +327,7 @@ export default function HomeNew() {
 
                     <Button
                       onClick={() => navigate(`/dashboards/${dash.id}`)}
-                      className="w-full gap-2 bg-slate-900 hover:bg-indigo-600 text-white dark:bg-indigo-600 dark:hover:bg-indigo-500 transition-all duration-200"
+                      className="w-full gap-2 bg-primary hover:bg-primary-hover text-primary-foreground transition-all duration-200 rounded-lg cursor-pointer"
                     >
                       <span>Launch Dashboard</span>
                       <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />

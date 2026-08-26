@@ -16,11 +16,14 @@ import {
   Terminal,
   MapPin,
   Zap,
+  Sun,
+  Moon,
   type LucideIcon,
 } from "lucide-react";
 import { IndiaMap } from "india-map-react";
 import { geoMercator } from "d3-geo";
 import { COLOR, SECTOR_COLOR, FONT_HEADING, FONT_BODY, type SectorTone } from "./atlasTheme";
+import { useTheme } from "./AppNavbar";
 
 // Matches india-map-react's internal ComposableMap projection exactly (geoMercator,
 // scale 1000, center [82.8, 22.5], 800x600 viewBox) so overlay callouts land on the
@@ -276,7 +279,7 @@ function OnPremContent() {
           className="relative rounded-xl overflow-hidden"
           style={{
             height: 250,
-            background: `radial-gradient(circle at 50% 30%, ${ONPREM_TONE.ring}14, transparent 70%), linear-gradient(135deg, #faf5ff, #f5f3ff)`,
+            background: `radial-gradient(circle at 50% 30%, ${ONPREM_TONE.ring}14, transparent 70%), var(--panel-2)`,
             border: `1px solid ${ONPREM_TONE.ring}30`,
           }}
         >
@@ -340,7 +343,7 @@ function OnPremContent() {
             </span>
             <span
               className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-extrabold whitespace-nowrap shadow-md"
-              style={{ fontFamily: "monospace", color: "#ec4899", background: "#ffffff", border: "1px solid #ec4899" }}
+              style={{ fontFamily: "monospace", color: "#ec4899", background: "var(--card)", border: "1px solid #ec4899" }}
             >
               <MapPin className="size-2.5" />
               12.7365°N, 77.8326°E
@@ -349,7 +352,7 @@ function OnPremContent() {
         </div>
 
         {/* Bottom: terminal-style telemetry log */}
-        <div className="rounded-xl p-3 space-y-1.5" style={{ background: "#0a0a12", border: "1px solid rgba(255,255,255,.08)" }}>
+        <div className="rounded-xl p-3 space-y-1.5" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>
           <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
             <Terminal className="size-3" />
             Telemetry
@@ -398,7 +401,7 @@ function OnPremMobileDrawer() {
       <div
         onClick={() => setOpen(false)}
         className={`xl:hidden fixed inset-0 z-40 transition-opacity duration-300 ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        style={{ background: "rgba(15,23,42,0.35)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
+        style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
       />
 
       {/* Sliding panel */}
@@ -419,7 +422,7 @@ function OnPremMobileDrawer() {
           <button
             onClick={() => setOpen(false)}
             className="flex items-center justify-center size-8 rounded-full flex-none cursor-pointer transition-colors hover:bg-black/5"
-            style={{ background: "rgba(15,23,42,.06)", color: COLOR.neutral300 }}
+            style={{ background: "var(--panel-2)", color: COLOR.neutral300 }}
             title="Close"
           >
             <ArrowLeft size={16} />
@@ -451,6 +454,7 @@ const HUB_RETURN_MS = 1200;
 
 export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: AtlasHubProps) {
   const { logout } = useSession();
+  const [theme, toggleTheme] = useTheme();
   const fitRef = React.useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -780,7 +784,7 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
             style={{
               opacity: 0.6,
               backgroundImage:
-                "linear-gradient(rgba(15,23,42,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,.04) 1px, transparent 1px)",
+                "linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px)",
               backgroundSize: "60px 60px",
             }}
           />
@@ -891,28 +895,51 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
               transition: "left 1.2s cubic-bezier(.22,1,.36,1), top 1.2s cubic-bezier(.22,1,.36,1)",
             }}
           >
+            {/* ── 1. Outermost soft blur glow aura ── */}
             <div
-              className="absolute rounded-full"
-              style={{ left: -270, top: -270, width: 540, height: 540, border: "1px dashed rgba(37,99,235,.30)", animation: "atlas-spin 70s linear infinite" }}
+              className="absolute rounded-full pointer-events-none"
+              style={{
+                left: -280, top: -280, width: 560, height: 560,
+                background: "radial-gradient(circle, rgba(59,130,246,0.08) 60%, transparent 100%)",
+                filter: "blur(18px)",
+              }}
             />
+
+            {/* ── 2. Outermost spinning dashed orbit — brighter ── */}
             <div
               className="absolute rounded-full"
               style={{
-                left: -222,
-                top: -222,
-                width: 444,
-                height: 444,
-                background: `repeating-conic-gradient(from 0deg, ${COLOR.accent400} 0deg 1.3deg, transparent 1.3deg 7.5deg)`,
-                WebkitMask: "radial-gradient(circle, transparent 0 68%, #000 68% 78%, transparent 78%)",
-                mask: "radial-gradient(circle, transparent 0 68%, #000 68% 78%, transparent 78%)",
-                opacity: 0.55,
-                animation: "atlas-spinback 95s linear infinite",
+                left: -270, top: -270, width: 540, height: 540,
+                border: "1.5px dashed rgba(59,130,246,.55)",
+                animation: "atlas-spin 70s linear infinite",
+                filter: "drop-shadow(0 0 6px rgba(59,130,246,0.4))",
               }}
             />
+
+            {/* ── 3. Conic tick-mark ring — brighter with blur glow ── */}
+            <div
+              className="absolute rounded-full pointer-events-none"
+              style={{
+                left: -228, top: -228, width: 456, height: 456,
+                background: "repeating-conic-gradient(from 0deg, rgba(59,130,246,.75) 0deg 1.3deg, transparent 1.3deg 7.5deg)",
+                WebkitMask: "radial-gradient(circle, transparent 0 68%, #000 68% 78%, transparent 78%)",
+                mask: "radial-gradient(circle, transparent 0 68%, #000 68% 78%, transparent 78%)",
+                animation: "atlas-spinback 95s linear infinite",
+                filter: "blur(0.6px) drop-shadow(0 0 5px rgba(59,130,246,0.5))",
+              }}
+            />
+
+            {/* ── 4. Inner solid glow ring ── */}
             <div
               className="absolute rounded-full"
-              style={{ left: -196, top: -196, width: 392, height: 392, border: "2px solid rgba(37,99,235,.22)", boxShadow: "0 0 70px rgba(37,99,235,.12) inset" }}
+              style={{
+                left: -196, top: -196, width: 392, height: 392,
+                border: "2px solid rgba(59,130,246,.40)",
+                boxShadow: "0 0 28px rgba(59,130,246,.20) inset, 0 0 18px rgba(59,130,246,.15)",
+              }}
             />
+
+            {/* ── 5. Hub card — reduced bg, glassmorphism ── */}
             <div
               className="absolute rounded-full flex flex-col items-center justify-center gap-2"
               style={{
@@ -920,16 +947,18 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
                 top: -148,
                 width: 296,
                 height: 296,
-                background: "radial-gradient(circle at 50% 34%, #ffffff 0%, #eaf1ff 72%)",
-                border: `3px dashed ${COLOR.accent400}`,
-                boxShadow: `0 4px 32px rgba(37,99,235,.16), 0 0 0 16px ${COLOR.bg}`,
+                background: "radial-gradient(circle at 50% 34%, rgba(255,255,255,0.82) 0%, rgba(219,234,254,0.60) 72%)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "2px dashed rgba(59,130,246,.45)",
+                boxShadow: "0 4px 40px rgba(59,130,246,.22), 0 0 0 14px rgba(59,130,246,0.06), 0 0 0 16px var(--background)",
               }}
             >
-              <Cpu size={34} color={COLOR.accent500} />
-              <div style={{ fontFamily: FONT_HEADING, fontSize: 34, color: COLOR.neutral100, textAlign: "center", lineHeight: 1.05 }}>
+              <Cpu size={34} color="#3b82f6" style={{ filter: "drop-shadow(0 0 6px rgba(59,130,246,0.5))" } as React.CSSProperties} />
+              <div style={{ fontFamily: FONT_HEADING, fontSize: 34, color: "#0f172a", textAlign: "center", lineHeight: 1.05 }}>
                 {hubLabel}
               </div>
-              <div className="text-[12px] uppercase font-semibold" style={{ letterSpacing: ".18em", color: COLOR.accent500 }}>
+              <div className="text-[12px] uppercase font-semibold" style={{ letterSpacing: ".18em", color: "#3b82f6" }}>
                 orchestrator
               </div>
             </div>
@@ -979,9 +1008,9 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
                 width: HL_W,
                 height: HL_H,
                 opacity: h.op,
-                background: "#ffffff",
+                background: "var(--card)",
                 border: h.border,
-                boxShadow: "0 1px 4px rgba(15,23,42,.06)",
+                boxShadow: "0 1px 4px rgba(0,0,0,.06)",
                 transform: `scale(${h.scale})`,
                 transition: h.transition,
                 pointerEvents: "none",
@@ -1003,9 +1032,9 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
                   returnToOverview();
                 }}
                 className="fixed z-[9999] flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95 shadow-xl"
-                style={{ left: 24, top: 24, letterSpacing: ".06em", background: "#ffffff", border: "2px solid rgba(15,23,42,.25)", color: "#0f172a" }}
+                style={{ left: 24, top: 24, letterSpacing: ".06em", background: "var(--card)", border: "2px solid var(--border)", color: "var(--foreground)" }}
               >
-                <ArrowLeft size={16} className="stroke-[2.5] text-slate-900" />
+                <ArrowLeft size={16} className="stroke-[2.5] text-foreground" />
                 All
               </button>
 
@@ -1054,10 +1083,10 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
                       style={{
                         width: 56,
                         height: 56,
-                        background: "#ffffff",
+                        background: "var(--card)",
                         border: `2.5px solid ${focusTone.ring}`,
                         '--burst-glow': focusTone.ring,
-                        boxShadow: `0 0 24px ${focusTone.ring}88, 0 2px 12px rgba(15,23,42,.15)`
+                        boxShadow: `0 0 24px ${focusTone.ring}88, 0 2px 12px rgba(0,0,0,.15)`
                       } as React.CSSProperties}
                     >
                       <focusSec.icon size={26} color={focusTone.ink} className="animate-pulse" style={{ filter: `drop-shadow(0 0 8px ${focusTone.ring})` }} />
@@ -1096,14 +1125,23 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
             </div>
           </div>
 
-          <button
-            onClick={() => logout()}
-            className="absolute z-10 flex items-center gap-2 px-4 py-[9px] rounded-full text-[12px] uppercase transition-colors"
-            style={{ right: 24, top: 48, letterSpacing: ".06em", background: "#ffffff", border: "1px solid rgba(15,23,42,.12)", color: COLOR.neutral300, boxShadow: "0 1px 4px rgba(15,23,42,.06)" }}
-          >
-            <LogOut size={14} />
-            Logout
-          </button>
+          <div className="absolute z-10 flex items-center gap-2" style={{ right: 24, top: 48 }}>
+            <button
+              onClick={toggleTheme}
+              className="flex items-center justify-center size-9 rounded-full transition-colors border border-border bg-card text-muted-foreground hover:text-foreground cursor-pointer"
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </button>
+            <button
+              onClick={() => logout()}
+              className="flex items-center gap-2 px-4 py-[9px] rounded-full text-[12px] uppercase transition-colors border border-border bg-card text-muted-foreground hover:text-foreground cursor-pointer"
+              style={{ letterSpacing: ".06em", boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}
+            >
+              <LogOut size={14} />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 

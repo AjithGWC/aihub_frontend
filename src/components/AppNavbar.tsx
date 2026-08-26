@@ -30,7 +30,7 @@ const THEME_KEY = 'ads_theme';
  */
 export function useTheme(): [Theme, () => void] {
   const [theme, setTheme] = useState<Theme>(() =>
-    localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'
+    localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'
   );
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export function useTheme(): [Theme, () => void] {
   }, [theme]);
 
   const toggle = useCallback(() => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   }, []);
 
   return [theme, toggle];
