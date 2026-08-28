@@ -44,9 +44,18 @@ export interface ModelRecord {
 
 export interface AuditLogEntry {
   id: string
-  event: string
-  actorEmail: string
+  requestId: string
+  eventType: string
+  userId: string | null
+  department: string | null
+  modelUsed: string | null
   layer: string
-  outcome: 'passed' | 'denied' | 'error' | string
+  outcome: 'pass' | 'block' | 'error' | string
+  errorCode: string | null
+  promptTokens: number
+  completionTokens: number
+  latencyMs: number
+  piiActions: string[]
+  policyDecisions: string[]
   createdAt: string
 }

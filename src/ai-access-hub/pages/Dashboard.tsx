@@ -4,17 +4,19 @@ import {
   Zap,
   Users,
   RefreshCw,
-  TrendingUp,
   CheckCircle2,
   XCircle,
+  ShieldOff,
   AlertCircle,
   Cpu,
   BarChart3,
-  ArrowUpRight,
   ArrowLeft,
+  Fingerprint,
+  Boxes,
+  Layers,
 } from 'lucide-react'
-import { getGovernanceSummary, getMetricsSummary, listModels, listAuditEvents } from '@/api/portal'
-import { normalizeAuditEvent } from '../lib/audit'
+import { getGovernanceSummary, listModels, listAuditEvents, type GovernanceSummary } from '@/api/portal'
+import { labelizeEvent, normalizeAuditEvent } from '../lib/audit'
 import type { AuditLogEntry } from '../types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -35,7 +37,7 @@ function RingGauge({ value, max, label, sublabel, color, icon: Icon, delay = 0, 
   const [drawn, setDrawn] = useState(false)
   const r = 40
   const circumference = 2 * Math.PI * r
-  const pct = Math.min(value / max, 1)
+  const pct = max > 0 ? Math.min(value / max, 1) : 0
   const offset = circumference * (1 - pct)
 
   useEffect(() => {
@@ -119,12 +121,12 @@ function RingGauge({ value, max, label, sublabel, color, icon: Icon, delay = 0, 
 
 /* ─── Activity Timeline Item ─── */
 function TimelineEvent({ event, delay }: { event: AuditLogEntry; delay: number }) {
-  const isPassed = event.outcome === 'passed'
-  const isDenied = event.outcome === 'denied'
-  const StatusIcon = isPassed ? CheckCircle2 : isDenied ? AlertCircle : XCircle
-  const dotColor = isPassed ? '#22c55e' : isDenied ? '#f59e0b' : '#f43f5e'
-  const bgColor = isPassed ? 'rgba(34,197,94,0.1)' : isDenied ? 'rgba(245,158,11,0.1)' : 'rgba(244,63,94,0.1)'
-  const borderColor = isPassed ? 'rgba(34,197,94,0.3)' : isDenied ? 'rgba(245,158,11,0.3)' : 'rgba(244,63,94,0.3)'
+  const isPassed = event.outcome === 'pass'
+  const isBlocked = event.outcome === 'block'
+  const StatusIcon = isPassed ? CheckCircle2 : isBlocked ? ShieldOff : XCircle
+  const dotColor = isPassed ? '#22c55e' : isBlocked ? '#f59e0b' : '#f43f5e'
+  const bgColor = isPassed ? 'rgba(34,197,94,0.1)' : isBlocked ? 'rgba(245,158,11,0.1)' : 'rgba(244,63,94,0.1)'
+  const borderColor = isPassed ? 'rgba(34,197,94,0.3)' : isBlocked ? 'rgba(245,158,11,0.3)' : 'rgba(244,63,94,0.3)'
 
   function handleNavigateAudit() {
     window.dispatchEvent(new CustomEvent('hexagon-hub-select-sector', { detail: 'audit' }))
@@ -152,7 +154,7 @@ function TimelineEvent({ event, delay }: { event: AuditLogEntry; delay: number }
       >
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
         <div className="flex items-center justify-between gap-2 relative z-10">
-          <span className="text-xs font-black font-mono text-foreground truncate">{event.event}</span>
+          <span className="text-xs font-black font-mono text-foreground truncate">{labelizeEvent(event.eventType)}</span>
           <Badge
             variant="outline"
             className="text-[9.5px] px-2 py-0.5 font-mono font-extrabold flex-none capitalize tracking-wider flex items-center gap-1 shadow-xs"
@@ -163,7 +165,7 @@ function TimelineEvent({ event, delay }: { event: AuditLogEntry; delay: number }
           </Badge>
         </div>
         <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground font-mono relative z-10">
-          <span className="truncate font-bold text-foreground">{event.actorEmail || 'System'}</span>
+          <span className="truncate font-bold text-foreground">{event.userId || 'System'}</span>
           <span className="flex-none text-muted-foreground">·</span>
           <span className="flex-none font-medium">{new Date(event.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           <span className="flex-none uppercase border border-border px-1.5 rounded text-muted-foreground bg-secondary/50 font-extrabold text-[9px]">{event.layer}</span>
@@ -209,67 +211,66 @@ const QUICK_TILES = [
   { label: 'Audit Log', sublabel: 'Telemetry', icon: BarChart3, color: '#22c55e', sectorKey: 'audit' },
 ]
 
-/** Metrics summary schema is declared opaque (`{}`) in the swagger — try common field names, fall back to an illustrative value if absent. */
-function numField(obj: Record<string, unknown> | undefined | null, keys: string[], fallback: number): number {
-  if (!obj) return fallback
-  for (const key of keys) {
-    const v = obj[key]
-    if (typeof v === 'number' && Number.isFinite(v)) return v
-  }
-  return fallback
+const LAYER_COLORS: Record<string, string> = {
+  api_gateway: '#3b82f6',
+  router: '#a855f7',
+  security: '#f43f5e',
+}
+
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}m`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
 }
 
 export default function Dashboard() {
   const [auditEvents, setAuditEvents] = useState<AuditLogEntry[]>([])
+  const [governance, setGovernance] = useState<GovernanceSummary | null>(null)
+  const [modelCount, setModelCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [ringValues, setRingValues] = useState({ reqPerSec: 43, cacheHitPct: 61, latencyMs: 142, activeUsers: 128 })
-  const [modelCounts, setModelCounts] = useState({ providers: 5, models: 12 })
+  const [error, setError] = useState<string | null>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
 
-  function fetchAuditLogs() {
+  function fetchAll() {
     setRefreshing(true)
-    listAuditEvents({ limit: 6 })
-      .then((raw) => setAuditEvents(raw.map(normalizeAuditEvent)))
-      .catch(() => setAuditEvents([]))
+    setError(null)
+    Promise.all([
+      listAuditEvents({ limit: 7 }),
+      getGovernanceSummary(),
+      listModels().catch(() => []),
+    ])
+      .then(([rawEvents, gov, models]) => {
+        setAuditEvents(rawEvents.map(normalizeAuditEvent))
+        setGovernance(gov)
+        setModelCount(models.length)
+      })
+      .catch(() => setError('Failed to load governance data. Check your Portal connection.'))
       .finally(() => {
         setLoading(false)
         setRefreshing(false)
       })
   }
 
-  useEffect(() => {
-    fetchAuditLogs()
+  useEffect(() => { fetchAll() }, [])
 
-    getMetricsSummary()
-      .then((m) => {
-        setRingValues((prev) => ({
-          reqPerSec: numField(m, ['request_rate', 'requests_per_second', 'req_per_sec'], prev.reqPerSec),
-          cacheHitPct: numField(m, ['cache_hit_rate', 'cache_hit_ratio', 'cache_hit_pct'], prev.cacheHitPct),
-          latencyMs: numField(m, ['latency_ms', 'avg_latency_ms', 'p50_latency_ms'], prev.latencyMs),
-          activeUsers: numField(m, ['active_users', 'concurrent_sessions'], prev.activeUsers),
-        }))
-      })
-      .catch(() => {})
-
-    listModels()
-      .then((models) => {
-        setModelCounts({
-          providers: new Set(models.map((m) => m.backend).filter(Boolean)).size,
-          models: models.length,
-        })
-      })
-      .catch(() => {})
-
-    getGovernanceSummary().catch(() => {})
-  }, [])
+  const total = governance?.total_events ?? 0
+  const passCount = governance?.by_outcome?.['pass'] ?? 0
+  const blockCount = governance?.by_outcome?.['block'] ?? 0
+  const errorCount = governance?.by_outcome?.['error'] ?? 0
+  const piiCount = governance?.pii_detections_total ?? 0
 
   const RING_DATA = [
-    { label: 'Req / sec', sublabel: 'Gateway throughput', value: ringValues.reqPerSec, max: 100, unit: '', color: '#3b82f6', icon: Zap, delay: 0 },
-    { label: 'Cache Hit', sublabel: 'Provider cache layer', value: ringValues.cacheHitPct, max: 100, unit: '%', color: '#06b6d4', icon: Activity, delay: 120 },
-    { label: 'Latency', sublabel: 'Avg inference ms', value: ringValues.latencyMs, max: 400, unit: 'ms', color: '#a855f7', icon: TrendingUp, delay: 240 },
-    { label: 'Active Users', sublabel: 'Concurrent sessions', value: ringValues.activeUsers, max: 500, unit: '', color: '#22c55e', icon: Users, delay: 360 },
+    { label: 'Pass Rate', sublabel: 'Requests allowed through', value: total > 0 ? Math.round((passCount / total) * 100) : 0, max: 100, unit: '%', color: '#22c55e', icon: CheckCircle2, delay: 0 },
+    { label: 'Blocked Rate', sublabel: 'Denied by policy/gateway', value: total > 0 ? Math.round((blockCount / total) * 100) : 0, max: 100, unit: '%', color: '#f59e0b', icon: ShieldOff, delay: 120 },
+    { label: 'Error Rate', sublabel: 'Upstream/system failures', value: total > 0 ? Math.round((errorCount / total) * 100) : 0, max: 100, unit: '%', color: '#f43f5e', icon: XCircle, delay: 240 },
+    { label: 'PII Detection Rate', sublabel: 'Requests with PII found', value: total > 0 ? Math.round((piiCount / total) * 100) : 0, max: 100, unit: '%', color: '#a855f7', icon: Fingerprint, delay: 360 },
   ]
+
+  const layerEntries = Object.entries(governance?.by_layer ?? {}).sort((a, b) => b[1] - a[1])
+  const maxLayerCount = Math.max(1, ...layerEntries.map(([, v]) => v))
+
+  const topModelEntry = Object.entries(governance?.model_usage ?? {}).sort((a, b) => b[1] - a[1])[0]
 
   return (
     <div className="page sector-blue space-y-6 animate-slide-up">
@@ -283,11 +284,11 @@ export default function Dashboard() {
             </h1>
             <Badge variant="outline" className="sector-badge text-xs font-mono font-bold flex items-center gap-1 border-border">
               <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
-              Gateway Online
+              {formatCount(total)} Events Audited
             </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground font-semibold">
-            Live health telemetry across inference routing, provider rate limits, and administrative events.
+            Live governance telemetry — request outcomes, policy enforcement, and PII detection, sourced from the Audit Store.
           </p>
         </div>
 
@@ -306,17 +307,23 @@ export default function Dashboard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchAuditLogs}
+            onClick={fetchAll}
             disabled={refreshing}
             className="gap-2 border-border bg-secondary text-foreground hover:bg-secondary/80 transition-all font-extrabold shadow-sm cursor-pointer"
           >
             <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh Stream
+            Refresh
           </Button>
         </div>
       </header>
 
-      {/* Ring Gauges */}
+      {error && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+          <AlertCircle className="size-4 flex-none" /><span className="flex-1">{error}</span>
+        </div>
+      )}
+
+      {/* Ring Gauges — driven by /portal/governance/summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {RING_DATA.map((ring) => (
           <RingGauge key={ring.label} {...ring} />
@@ -333,11 +340,11 @@ export default function Dashboard() {
                 <Activity className="size-4 text-primary animate-pulse" />
                 Live Audit Stream
               </h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">Realtime security decision telemetry</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">Most recent security decision telemetry</p>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-[10px] font-mono font-extrabold text-foreground bg-secondary/50 border-border px-2.5 py-0.5">
-                {auditEvents.length} events
+                {auditEvents.length} shown
               </Badge>
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-select-sector', { detail: 'audit' }))}
@@ -369,7 +376,7 @@ export default function Dashboard() {
                   No audit events recorded yet.
                 </div>
               ) : (
-                auditEvents.slice(0, 6).map((e, idx) => (
+                auditEvents.map((e, idx) => (
                   <TimelineEvent key={e.id} event={e} delay={idx * 80} />
                 ))
               )}
@@ -377,7 +384,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right column: Quick Tiles + Status + Stats */}
+        {/* Right column: Quick Tiles + Layer Breakdown + Stats */}
         <div className="flex flex-col gap-4">
           {/* Quick Access */}
           <div className="rounded-2xl shadow-sm border border-border bg-card">
@@ -392,57 +399,57 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* System Status — illustrative; no per-service health endpoint exists yet */}
+          {/* Events by Layer — real breakdown from governance.by_layer */}
           <div className="rounded-2xl shadow-sm border border-border bg-card">
             <div className="px-4 pt-4 pb-3 border-b border-border flex items-center gap-1.5">
-              <Cpu className="size-3.5 text-primary" />
-              <h2 className="text-xs font-black text-foreground uppercase tracking-widest">System Status</h2>
+              <Layers className="size-3.5 text-primary" />
+              <h2 className="text-xs font-black text-foreground uppercase tracking-widest">Events by Layer</h2>
             </div>
             <div className="p-4 space-y-4">
-              {[
-                { label: 'API Gateway', pct: 98, lat: '12ms', color: '#22c55e' },
-                { label: 'Model Router', pct: 87, lat: '45ms', color: '#3b82f6' },
-                { label: 'Auth Service', pct: 100, lat: '4ms', color: '#22c55e' },
-                { label: 'Key Vault', pct: 94, lat: '18ms', color: '#06b6d4' },
-              ].map(({ label, pct, lat, color }, i) => (
-                <div key={label} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-foreground font-extrabold flex items-center gap-1.5">
-                      <span className="size-1.5 rounded-full flex-none" style={{ background: color }} />
-                      {label}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span style={{ color }} className="font-mono font-black text-[11px]">{pct}%</span>
-                      <span className="text-[9.5px] text-muted-foreground font-medium border border-border px-1.5 py-0.5 rounded bg-secondary/50 font-mono">{lat}</span>
+              {layerEntries.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No layer data yet.</p>
+              ) : (
+                layerEntries.map(([layer, count], i) => {
+                  const color = LAYER_COLORS[layer] || '#64748b'
+                  const pct = Math.round((count / maxLayerCount) * 100)
+                  return (
+                    <div key={layer} className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-foreground font-extrabold flex items-center gap-1.5 capitalize">
+                          <span className="size-1.5 rounded-full flex-none" style={{ background: color }} />
+                          {layer.replace(/_/g, ' ')}
+                        </span>
+                        <span style={{ color }} className="font-mono font-black text-[11px]">{formatCount(count)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: 0,
+                            background: `linear-gradient(90deg, ${color}99, ${color})`,
+                            boxShadow: `0 0 6px ${color}66`,
+                            transition: `width 1.2s cubic-bezier(0.16, 1, 0.3, 1) ${i * 100 + 400}ms`,
+                          }}
+                          ref={(el) => {
+                            if (el) setTimeout(() => { el.style.width = `${pct}%` }, 50)
+                          }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: 0,
-                        background: `linear-gradient(90deg, ${color}99, ${color})`,
-                        boxShadow: `0 0 6px ${color}66`,
-                        transition: `width 1.2s cubic-bezier(0.16, 1, 0.3, 1) ${i * 100 + 400}ms`,
-                      }}
-                      ref={(el) => {
-                        if (el) setTimeout(() => { el.style.width = `${pct}%` }, 50)
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+                  )
+                })
+              )}
             </div>
           </div>
 
-          {/* Stats 4-grid */}
+          {/* Stats 4-grid — mix of governance + model registry counts */}
           <div className="rounded-2xl shadow-sm border border-border bg-card">
             <div className="p-3 grid grid-cols-2 gap-3">
               {[
-                { label: 'Providers', value: String(modelCounts.providers), icon: ArrowUpRight, color: '#f97316', sectorKey: 'models' },
-                { label: 'Models', value: String(modelCounts.models), icon: Cpu, color: '#f59e0b', sectorKey: 'models' },
-                { label: 'Req Today', value: '—', icon: TrendingUp, color: '#3b82f6', sectorKey: 'audit' },
-                { label: 'Errors', value: '—', icon: AlertCircle, color: '#f43f5e', sectorKey: 'audit' },
+                { label: 'Registered Models', value: String(modelCount), icon: Boxes, color: '#f59e0b', sectorKey: 'models' },
+                { label: 'Injection Flags', value: String(governance?.injection_flagged_total ?? 0), icon: ShieldOff, color: '#f43f5e', sectorKey: 'audit' },
+                { label: 'Total Tokens', value: formatCount(governance?.token_usage?.total_tokens ?? 0), icon: Fingerprint, color: '#3b82f6', sectorKey: 'audit' },
+                { label: 'Top Model', value: topModelEntry ? `${topModelEntry[0]} (${topModelEntry[1]})` : '—', icon: Cpu, color: '#a855f7', sectorKey: 'models' },
               ].map(({ label, value, icon: Icon, color, sectorKey }) => (
                 <div
                   key={label}
@@ -461,8 +468,8 @@ export default function Dashboard() {
                   >
                     <Icon className="size-4" style={{ color }} />
                   </div>
-                  <div className="relative z-10">
-                    <span className="text-xl font-black font-mono text-foreground block leading-none">{value}</span>
+                  <div className="relative z-10 min-w-0">
+                    <span className="text-xl font-black font-mono text-foreground block leading-none truncate" title={value}>{value}</span>
                     <span className="text-[9.5px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5 block group-hover:text-foreground transition-colors">{label}</span>
                   </div>
                 </div>

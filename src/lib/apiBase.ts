@@ -17,3 +17,24 @@ export function redirectToLogin() {
     window.location.assign('/login');
   }
 }
+
+/**
+ * Pull a human-readable message out of an error JSON body. Both backends use
+ * a `detail`/`error` field, but inconsistently — sometimes a plain string,
+ * sometimes `{message, ...}`, sometimes FastAPI's own `[{msg}, ...]`
+ * validation-error array. Any of those handed straight to `new Error(x)`
+ * that isn't a string gets coerced via `toString()`, which for a plain
+ * object silently produces the literal text "[object Object]".
+ */
+export function extractErrorMessage(data: any, fallback: string): string {
+  const detail = data?.detail;
+  if (Array.isArray(detail)) return detail[0]?.msg || fallback;
+  if (detail && typeof detail === 'object') return detail.message || detail.error || fallback;
+  if (typeof detail === 'string') return detail;
+
+  const error = data?.error;
+  if (error && typeof error === 'object') return error.message || error.code || fallback;
+  if (typeof error === 'string') return error;
+
+  return data?.message || fallback;
+}

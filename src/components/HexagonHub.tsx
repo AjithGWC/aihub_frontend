@@ -14,25 +14,14 @@ import {
   HardDrive,
   Database,
   Terminal,
-  MapPin,
   Zap,
   Sun,
   Moon,
   type LucideIcon,
 } from "lucide-react";
-import { IndiaMap } from "india-map-react";
-import { geoMercator } from "d3-geo";
 import { COLOR, SECTOR_COLOR, FONT_HEADING, FONT_BODY, type SectorTone } from "./atlasTheme";
 import { useTheme } from "./AppNavbar";
-
-// Matches india-map-react's internal ComposableMap projection exactly (geoMercator,
-// scale 1000, center [82.8, 22.5], 800x600 viewBox) so overlay callouts land on the
-// same point as the rendered marker instead of drifting.
-const INDIA_PROJECTION = geoMercator().center([82.8, 22.5]).scale(1000).translate([400, 300]);
-
-const HSR_LNG = 77.8326;
-const HSR_LAT = 12.7365;
-const HSR_POINT = INDIA_PROJECTION([HSR_LNG, HSR_LAT]) ?? [400, 300];
+import indiaMapSvg from "../assets/india_map.svg?raw";
 import { useSession } from "../auth/SessionContext";
 import AihDashboard from "../ai-access-hub/pages/Dashboard";
 import AihUsersRoles from "../ai-access-hub/pages/UsersRoles";
@@ -112,7 +101,7 @@ const SECTORS: Sector[] = [
     tone: "green",
     body: "Every login, admin action, and policy decision — queryable by user and event.",
     Component: AihAuditLog,
-    highlights: ["Passed", "Denied", "Errors"],
+    highlights: ["Passed", "Blocked", "Errors"],
   },
 ];
 
@@ -192,42 +181,53 @@ const ONPREM_TELEMETRY = [
 ];
 
 function OnPremContent() {
-  const mapBoxRef = useRef<HTMLDivElement>(null);
-  const dotRef = useRef<SVGCircleElement>(null);
-  const badgeRef = useRef<HTMLDivElement>(null);
-  const [leaderLine, setLeaderLine] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
-
-  // Measure the dot's and badge's REAL rendered screen positions (accounting for the
-  // map's zoom/pan transform and the panel's responsive width) rather than guessing
-  // coordinates by hand — guarantees the connector always actually touches both ends.
-  useEffect(() => {
-    function measure() {
-      const box = mapBoxRef.current;
-      const dot = dotRef.current;
-      const badge = badgeRef.current;
-      if (!box || !dot || !badge) return;
-      const boxRect = box.getBoundingClientRect();
-      const dotRect = dot.getBoundingClientRect();
-      const badgeRect = badge.getBoundingClientRect();
-      setLeaderLine({
-        x1: dotRect.left + dotRect.width / 2 - boxRect.left,
-        y1: dotRect.top + dotRect.height / 2 - boxRect.top,
-        x2: badgeRect.left + badgeRect.width / 2 - boxRect.left,
-        y2: badgeRect.top - boxRect.top,
-      });
-    }
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (mapBoxRef.current) ro.observe(mapBoxRef.current);
-    window.addEventListener("resize", measure);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, []);
-
   return (
     <div className="p-6 space-y-4">
+        <style>{`
+          .onprem-map-container svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+          }
+          .onprem-map-container svg .india-outline path,
+          .onprem-map-container svg .india-outline {
+            fill: color-mix(in srgb, var(--accent) 18%, transparent) !important;
+            stroke: color-mix(in srgb, var(--accent) 55%, transparent) !important;
+          }
+          @keyframes radar-glow-pulse {
+            0% { transform: scale(0.95); opacity: 0.25; }
+            50% { transform: scale(1.05); opacity: 0.45; }
+            100% { transform: scale(0.95); opacity: 0.25; }
+          }
+          @keyframes ping-ring {
+            0% { r: 4px; opacity: 1; }
+            100% { r: 35px; opacity: 0; }
+          }
+          @keyframes radar-rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .onprem-map-container .radar-glow {
+            transform-origin: 145px 315px;
+            animation: radar-glow-pulse 3s ease-in-out infinite;
+          }
+          .onprem-map-container .radar-ping-ring {
+            transform-origin: 145px 315px;
+            animation: ping-ring 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+          }
+          .onprem-map-container .radar-ping-ring-2 {
+            transform-origin: 145px 315px;
+            animation: ping-ring 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            animation-delay: 1.25s;
+          }
+          .onprem-map-container #radar-sweep-hand {
+            transform-origin: 145px 315px;
+            animation: radar-rotate 8s linear infinite;
+          }
+          .onprem-map-container .aux-ping {
+            animation: ping-ring 3s ease-out infinite;
+          }
+        `}</style>
         {/* Header */}
         <div>
           <div className="flex items-center justify-between gap-2">
@@ -273,83 +273,22 @@ function OnPremContent() {
           ))}
         </div>
 
-        {/* Middle: real India state-boundary map with node telemetry marker */}
+        {/* Middle: India map with a radar-style ping over the Hosur node —
+            a static annotated SVG (see src/assets/india_map.svg), same asset
+            used by the standalone Portal UI's server details view, rather
+            than a projection library that needed a measured leader-line to
+            stay lined up. */}
         <div
-          ref={mapBoxRef}
-          className="relative rounded-xl overflow-hidden"
+          className="onprem-map-container relative rounded-xl overflow-hidden"
           style={{
             height: 250,
             background: `radial-gradient(circle at 50% 30%, ${ONPREM_TONE.ring}14, transparent 70%), var(--panel-2)`,
             border: `1px solid ${ONPREM_TONE.ring}30`,
+            ["--accent" as any]: ONPREM_TONE.ring,
+            ["--text-muted" as any]: COLOR.neutral400,
           }}
-        >
-          {/* Zoomed/cropped inner layer — keeps the map's 4:3 projection aspect
-              intact so overlay percentages line up, then scales+crops via the
-              parent's overflow-hidden for the "zoomed in" look. Origin is pulled
-              down from center so the host marker (south India) stays fully
-              in frame instead of being pushed past the bottom edge. */}
-          <div className="absolute left-0 right-0 top-0" style={{ aspectRatio: "4 / 3", transform: "scale(1.15)", transformOrigin: "50% 52%" }}>
-            <IndiaMap
-              style={{ width: "100%" }}
-              disabled
-              showTooltip={false}
-              fillColor={`${ONPREM_TONE.ring}22`}
-              hoverColor={`${ONPREM_TONE.ring}22`}
-              strokeColor={`${ONPREM_TONE.ring}55`}
-              strokeWidth={0.6}
-              markers={[
-                { id: "del", label: "Delhi", lat: 28.61, lng: 77.2, color: ONPREM_TONE.ring },
-                { id: "mum", label: "Mumbai", lat: 19.08, lng: 72.88, color: ONPREM_TONE.ring },
-                { id: "kol", label: "Kolkata", lat: 22.57, lng: 88.36, color: ONPREM_TONE.ring },
-                { id: "hsr-city", label: "Hosur", lat: HSR_LAT, lng: HSR_LNG, color: ONPREM_TONE.ring },
-              ]}
-            />
-
-            {/* Host node dot — drawn ourselves instead of via the library's marker
-                renderer, whose internal pin offset never quite lined up with a
-                separately-computed leader line. */}
-            <svg viewBox="0 0 800 600" className="absolute inset-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
-              <circle
-                cx={HSR_POINT[0]} cy={HSR_POINT[1]} r={14}
-                fill="#ec4899" opacity={0.35} className="animate-ping"
-                style={{ transformOrigin: `${HSR_POINT[0]}px ${HSR_POINT[1]}px` }}
-              />
-              <circle ref={dotRef} cx={HSR_POINT[0]} cy={HSR_POINT[1]} r={7} fill="#ec4899" stroke="#fff" strokeWidth={2} />
-            </svg>
-          </div>
-
-          {/* Leader line — drawn in the OUTER box's real pixel space from the dot's and
-              badge's measured on-screen rects (see useEffect above), so it always
-              actually touches both ends regardless of zoom/pan or panel width. */}
-          {leaderLine && (
-            <svg className="absolute inset-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
-              <line
-                x1={leaderLine.x1} y1={leaderLine.y1}
-                x2={leaderLine.x2} y2={leaderLine.y2}
-                stroke="#ec4899" strokeWidth={2.2} strokeDasharray="5 5" opacity={0.85}
-              />
-            </svg>
-          )}
-
-          {/* Two-badge callout: node name + coordinates. Pinned to a fixed corner of the
-              OUTER (un-scaled, clipped) box — never affected by the zoom transform or the
-              projection math above, so it can never get pushed off-panel. */}
-          <div ref={badgeRef} className="absolute bottom-6.5 right-2.5 flex flex-col items-start gap-1 pointer-events-none max-w-[calc(100%-20px)]">
-            <span
-              className="px-2 py-0.5 rounded-full text-[8.5px] font-extrabold text-white whitespace-nowrap shadow-md"
-              style={{ background: "#ec4899" }}
-            >
-              HSR-NODE-01 (HOST)
-            </span>
-            <span
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-extrabold whitespace-nowrap shadow-md"
-              style={{ fontFamily: "monospace", color: "#ec4899", background: "var(--card)", border: "1px solid #ec4899" }}
-            >
-              <MapPin className="size-2.5" />
-              12.7365°N, 77.8326°E
-            </span>
-          </div>
-        </div>
+          dangerouslySetInnerHTML={{ __html: indiaMapSvg }}
+        />
 
         {/* Bottom: terminal-style telemetry log */}
         <div className="rounded-xl p-3 space-y-1.5" style={{ background: "var(--background)", border: "1px solid var(--border)" }}>

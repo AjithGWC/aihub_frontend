@@ -11,7 +11,7 @@ import {
   Crown,
   X,
 } from 'lucide-react'
-import { getPolicyMatrix, patchRolePermissions, type PolicyMatrix } from '@/api/portal'
+import { getRolePermissions, listRoles, patchRolePermissions, type PolicyMatrix } from '@/api/portal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
@@ -142,16 +142,24 @@ export default function Permissions() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function loadPermissions() {
+  async function loadPermissions() {
     setLoading(true)
     setError(null)
-    getPolicyMatrix()
-      .then((mat) => {
-        setMatrix(mat)
-        setOriginalMatrix(mat)
-      })
-      .catch(() => setError('Failed to load the permission matrix.'))
-      .finally(() => setLoading(false))
+    try {
+      // GET /portal/policy/matrix is service-to-service only (401s for a normal
+      // admin session) — build the same matrix from the per-role endpoint instead,
+      // which is properly session-authorized.
+      const roleList = await listRoles()
+      const perRole = await Promise.all(roleList.map((r) => getRolePermissions(r.role_name)))
+      const mat: PolicyMatrix = {}
+      perRole.forEach(({ role_name, permissions }) => { mat[role_name] = permissions })
+      setMatrix(mat)
+      setOriginalMatrix(mat)
+    } catch {
+      setError('Failed to load the permission matrix.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { loadPermissions() }, [])

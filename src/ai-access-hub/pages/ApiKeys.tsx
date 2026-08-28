@@ -39,7 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Checkbox } from '@/components/ui/checkbox'
+import { MultiSelect } from '../components/MultiSelect'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -448,25 +448,12 @@ export default function ApiKeys() {
                 {models.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No models registered yet — the key will default to all active models.</p>
                 ) : (
-                  <div className="flex flex-wrap gap-3">
-                    {models.map((m) => {
-                      const checked = form.modelEntitlements.includes(m.name)
-                      return (
-                        <label key={m.name} className="flex items-center gap-1.5 text-xs font-semibold text-foreground cursor-pointer">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(v) =>
-                              setForm((f) => ({
-                                ...f,
-                                modelEntitlements: v ? [...f.modelEntitlements, m.name] : f.modelEntitlements.filter((x) => x !== m.name),
-                              }))
-                            }
-                          />
-                          {m.name}
-                        </label>
-                      )
-                    })}
-                  </div>
+                  <MultiSelect
+                    options={models.map((m) => ({ value: m.name, label: m.name }))}
+                    selected={form.modelEntitlements}
+                    onChange={(next) => setForm((f) => ({ ...f, modelEntitlements: next }))}
+                    placeholder="All active models"
+                  />
                 )}
               </div>
               <div className="grid grid-cols-2 gap-4">

@@ -1,18 +1,27 @@
-import type { RawAuditEvent } from '@/api/portal'
+import type { AuditEvent } from '@/api/portal'
 import type { AuditLogEntry } from '../types'
 
-/**
- * The audit event response schema is declared opaque (`{}`) in the Portal
- * swagger, so field names aren't guaranteed — try the common alternates
- * before falling back to a safe default.
- */
-export function normalizeAuditEvent(raw: RawAuditEvent, index: number): AuditLogEntry {
-  const id = (raw.request_id ?? raw.id ?? raw.trace_id ?? `event-${index}`) as string
-  const event = (raw.event ?? raw.event_type ?? raw.action ?? raw.type ?? 'unknown_event') as string
-  const actorEmail = (raw.actor_email ?? raw.actor ?? raw.username ?? raw.user ?? raw.user_id ?? '') as string
-  const layer = (raw.layer ?? raw.component ?? 'unknown') as string
-  const outcome = String(raw.outcome ?? raw.status ?? raw.result ?? 'passed').toLowerCase()
-  const createdAt = (raw.timestamp_utc ?? raw.created_at ?? raw.timestamp ?? new Date(0).toISOString()) as string
+export function normalizeAuditEvent(raw: AuditEvent): AuditLogEntry {
+  return {
+    id: raw.audit_id,
+    requestId: raw.request_id,
+    eventType: raw.event_type,
+    userId: raw.user_id,
+    department: raw.department,
+    modelUsed: raw.model_used,
+    layer: raw.layer,
+    outcome: raw.outcome,
+    errorCode: raw.error_code,
+    promptTokens: raw.prompt_tokens,
+    completionTokens: raw.completion_tokens,
+    latencyMs: raw.latency_ms,
+    piiActions: raw.pii_actions ?? [],
+    policyDecisions: raw.policy_decisions ?? [],
+    createdAt: raw.timestamp_utc,
+  }
+}
 
-  return { id, event, actorEmail, layer, outcome, createdAt }
+/** "auth_fail" -> "Auth Fail" */
+export function labelizeEvent(eventType: string): string {
+  return eventType.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }

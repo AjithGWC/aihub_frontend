@@ -42,6 +42,13 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableHeader,
   TableBody,
@@ -174,24 +181,33 @@ function UserRow({ user, onEdit, onToggle, onResetPassword, onDeactivate, index 
         </Badge>
       </TableCell>
 
-      {/* Actions */}
+      {/* Actions — admins are protected from edit/enable-disable/deactivate to avoid accidental lockout */}
       <TableCell className="text-right whitespace-nowrap">
         <div className="flex items-center justify-end gap-1.5">
-          <button onClick={() => onEdit(user)} className="table-action-btn table-action-btn-edit" title="Edit Roles & Status">
-            <Edit3 className="size-4" />
-          </button>
+          {user.isSystemAdmin ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
+              <Crown className="size-3" />
+              Protected
+            </span>
+          ) : (
+            <>
+              <button onClick={() => onEdit(user)} className="table-action-btn table-action-btn-edit" title="Edit Roles & Status">
+                <Edit3 className="size-4" />
+              </button>
+              <button
+                onClick={() => onToggle(user)}
+                className={`table-action-btn ${isActive ? 'table-action-btn-amber' : 'table-action-btn-success'}`}
+                title={isActive ? 'Disable Member' : 'Enable Member'}
+              >
+                {isActive ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
+              </button>
+              <button onClick={() => onDeactivate(user)} className="table-action-btn table-action-btn-danger" title="Deactivate Member">
+                <Ban className="size-4" />
+              </button>
+            </>
+          )}
           <button onClick={() => onResetPassword(user)} className="table-action-btn" title="Reset Password">
             <KeyRound className="size-4" />
-          </button>
-          <button
-            onClick={() => onToggle(user)}
-            className={`table-action-btn ${isActive ? 'table-action-btn-amber' : 'table-action-btn-success'}`}
-            title={isActive ? 'Disable Member' : 'Enable Member'}
-          >
-            {isActive ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
-          </button>
-          <button onClick={() => onDeactivate(user)} className="table-action-btn table-action-btn-danger" title="Deactivate Member">
-            <Ban className="size-4" />
           </button>
         </div>
       </TableCell>
@@ -580,8 +596,15 @@ export default function UsersRoles() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Roles</Label>
-                <RoleCheckboxes roles={roleNames} selected={createForm.roles} onChange={(roles) => setCreateForm((f) => ({ ...f, roles }))} />
+                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Role</Label>
+                <Select value={createForm.roles[0] ?? ''} onValueChange={(v) => setCreateForm((f) => ({ ...f, roles: [v] }))}>
+                  <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg w-full"><SelectValue placeholder="Select a role" /></SelectTrigger>
+                  <SelectContent className="bg-card text-foreground border-border shadow-md rounded-lg">
+                    {roleNames.map((r) => (
+                      <SelectItem key={r} value={r} className="capitalize text-foreground font-medium cursor-pointer">{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Initial Password</Label>

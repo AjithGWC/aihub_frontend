@@ -3,7 +3,7 @@
 // `/portal/...`. Every function here corresponds to one operation in that
 // swagger — see admin.json for exact request/response shapes.
 
-import { ADMIN_API_BASE, redirectToLogin } from '@/lib/apiBase';
+import { ADMIN_API_BASE, extractErrorMessage, redirectToLogin } from '@/lib/apiBase';
 
 interface RequestOpts {
   params?: Record<string, unknown>;
@@ -29,7 +29,7 @@ async function rawFetch(method: string, path: string, opts: RequestOpts = {}) {
   });
   const data = await res.json().catch(() => undefined);
   if (!res.ok) {
-    const err: any = new Error(data?.detail?.[0]?.msg || data?.error || data?.message || res.statusText);
+    const err: any = new Error(extractErrorMessage(data, res.statusText));
     err.response = { status: res.status, data };
     throw err;
   }
@@ -175,7 +175,9 @@ export const patchRolePermissions = (role: string, permissions: Record<string, b
     body: { permissions },
   });
 
-export const getPolicyMatrix = () => portalFetch<PolicyMatrix>('GET', '/portal/policy/matrix');
+// Note: GET /portal/policy/matrix exists in the swagger but is service-to-service
+// only (401s for a normal admin session) — Permissions.tsx builds the same shape
+// from listRoles() + getRolePermissions() per role instead.
 
 // ---------------------------------------------------------------------------
 // Model registry
@@ -234,11 +236,36 @@ export const syncOllama = (body: { model?: string | null; tasks?: string[] } = {
 // Audit / governance / metrics
 // ---------------------------------------------------------------------------
 
-/** Audit event shape is declared opaque (`{}`) in the swagger — read fields defensively. */
-export type RawAuditEvent = Record<string, unknown>;
+/**
+ * Response schema is declared opaque (`{}`) in the swagger, but the live
+ * shape (confirmed against the running Audit Store) is a fixed record per
+ * event — not the generic/guessable shape assumed earlier. Nullable fields
+ * are genuinely null in practice (e.g. user_id/department/model_used on a
+ * pre-auth block, error_code on a passed request).
+ */
+export interface AuditEvent {
+  audit_id: string;
+  request_id: string;
+  timestamp_utc: string;
+  user_id: string | null;
+  department: string | null;
+  model_used: string | null;
+  layer: string;
+  event_type: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  latency_ms: number;
+  pii_actions: string[];
+  policy_decisions: string[];
+  outcome: 'pass' | 'block' | 'error' | string;
+  error_code: string | null;
+}
 
-export const listAuditEvents = (params: { from?: string; to?: string; limit?: number } = {}) =>
-  portalFetch<RawAuditEvent[]>('GET', '/portal/audit/events', { params });
+export const listAuditEvents = (params: { from?: string; to?: string; limit?: number; offset?: number } = {}) =>
+  portalFetch<{ events: AuditEvent[] }>('GET', '/portal/audit/events', { params }).then((res) => res.events);
+
+export const getAuditByRequest = (requestId: string) =>
+  portalFetch<{ events: AuditEvent[] }>('GET', `/portal/audit/requests/${requestId}`).then((res) => res.events);
 
 export interface TokenUsage {
   prompt_tokens: number;
@@ -260,8 +287,3 @@ export interface GovernanceSummary {
 
 export const getGovernanceSummary = (params: { from?: string; to?: string } = {}) =>
   portalFetch<GovernanceSummary>('GET', '/portal/governance/summary', { params });
-
-/** Metrics summary shape is declared opaque (`{}`) in the swagger — read fields defensively. */
-export type RawMetricsSummary = Record<string, unknown>;
-
-export const getMetricsSummary = () => portalFetch<RawMetricsSummary>('GET', '/portal/metrics/summary');
