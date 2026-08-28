@@ -40,15 +40,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { MultiSelect } from '../components/MultiSelect'
+import { Combobox } from '../components/Combobox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Table,
   TableHeader,
@@ -433,14 +427,14 @@ export default function ApiKeys() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Assign To</Label>
-                  <Select value={form.userId} onValueChange={(v) => setForm((f) => ({ ...f, userId: v }))}>
-                    <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg"><SelectValue placeholder="Select user" /></SelectTrigger>
-                    <SelectContent className="bg-card text-foreground border-border shadow-md rounded-lg">
-                      {users.map((u) => (
-                        <SelectItem key={u.user_id} value={u.user_id} className="text-foreground font-medium cursor-pointer">{u.username}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Combobox
+                    options={users.map((u) => ({ value: u.user_id, label: u.username }))}
+                    value={form.userId}
+                    onChange={(v) => setForm((f) => ({ ...f, userId: v }))}
+                    placeholder="Select user"
+                    searchPlaceholder="Search users…"
+                    emptyText="No users found."
+                  />
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -453,6 +447,8 @@ export default function ApiKeys() {
                     selected={form.modelEntitlements}
                     onChange={(next) => setForm((f) => ({ ...f, modelEntitlements: next }))}
                     placeholder="All active models"
+                    searchPlaceholder="Search models…"
+                    emptyText="No models found."
                   />
                 )}
               </div>

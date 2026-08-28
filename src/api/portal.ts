@@ -195,9 +195,14 @@ export interface PortalModel {
   fallback_model?: string | null;
   notes?: string | null;
   api_key_set?: boolean;
+  /** Present in /portal/chat/models — true if the current user is entitled to use this model. */
+  entitled?: boolean;
 }
 
 export const listModels = () => portalFetch<PortalModel[]>('GET', '/portal/models');
+
+/** Returns the active model list filtered by the current session's API key model entitlements. */
+export const listChatModels = () => portalFetch<PortalModel[]>('GET', '/portal/chat/models');
 
 export const registerModel = (body: {
   name: string;

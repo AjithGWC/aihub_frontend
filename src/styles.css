@@ -173,6 +173,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Every clickable button gets a pointer cursor — browsers default <button> to
+   "default", and Tailwind's preflight deliberately doesn't override that. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[data-slot="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
 /* Custom scrollbars (WebKit + Firefox) */
 * {
   scrollbar-width: thin;
@@ -198,6 +206,19 @@ body {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/*
+ * cmdk's search bar (see CommandInput in command.tsx) shows focus via its
+ * wrapper's bottom-border color instead. The generic :focus-visible outline
+ * above wins the cascade tie against the input's own `outline-hidden` class
+ * (same specificity, but this file loads after Tailwind's utilities), which
+ * drew a second, offset rectangle floating inside the already-bordered
+ * popover panel. This selector is more specific, so it wins reliably.
+ */
+[data-slot="command-input"]:focus-visible {
+  outline: none;
+  border-radius: 0;
 }
 
 .muted {
@@ -1766,11 +1787,17 @@ select.input {
   backdrop-filter: blur(6px) !important;
 }
 
+/*
+ * NOTE: these rules key off [data-slot="dialog-content"] — the attribute our
+ * own DialogContent stamps (see dialog.tsx) — rather than the generic
+ * [role="dialog"]. Radix's Popover.Content also carries role="dialog" for
+ * accessibility, so selecting on that role alone hijacks every Popover
+ * (Select/Combobox/MultiSelect dropdowns) too: their content would inherit
+ * this "dead center" positioning instead of anchoring under their trigger.
+ */
+
 /* Dialog content dead center positioning */
-[role="dialog"],
-[data-slot="dialog-content"],
-.sector-card[role="dialog"],
-.sector-card[data-slot="dialog-content"] {
+[data-slot="dialog-content"] {
   position: fixed !important;
   top: 50% !important;
   left: 50% !important;
@@ -1786,55 +1813,53 @@ select.input {
 }
 
 /* Ensure dialog titles, headers, labels, and text are high-contrast dark slate on Pearl White modal */
-[role="dialog"] h1, [role="dialog"] h2, [role="dialog"] h3,
-[role="dialog"] [class*="DialogTitle"],
-[role="dialog"] [data-slot="dialog-title"] {
+[data-slot="dialog-content"] h1, [data-slot="dialog-content"] h2, [data-slot="dialog-content"] h3,
+[data-slot="dialog-content"] [class*="DialogTitle"],
+[data-slot="dialog-content"] [data-slot="dialog-title"] {
   color: var(--foreground) !important;
   font-weight: 800 !important;
 }
 
-[role="dialog"] label {
+[data-slot="dialog-content"] label {
   color: var(--text) !important;
   font-weight: 700 !important;
 }
 
-[role="dialog"] p, [role="dialog"] [class*="description"] {
+[data-slot="dialog-content"] p, [data-slot="dialog-content"] [class*="description"] {
   color: var(--muted) !important;
   font-weight: 500 !important;
 }
 
 /* Form Inputs & Select Triggers inside Dialogs */
-[role="dialog"] input,
-[role="dialog"] select,
-[role="dialog"] button[role="combobox"],
-[role="dialog"] [data-slot="select-trigger"] {
+[data-slot="dialog-content"] input,
+[data-slot="dialog-content"] select,
+[data-slot="dialog-content"] button[role="combobox"],
+[data-slot="dialog-content"] [data-slot="select-trigger"] {
   background-color: var(--panel-2) !important;
   color: var(--foreground) !important;
   border: 1.5px solid var(--border) !important;
   font-weight: 600 !important;
 }
 
-[role="dialog"] input::placeholder {
+[data-slot="dialog-content"] input::placeholder {
   color: var(--muted) !important;
 }
 
 /* Outline / Cancel Buttons inside Dialogs */
-[role="dialog"] button[class*="border"],
-[role="dialog"] button[variant="outline"] {
+[data-slot="dialog-content"] button[class*="border"],
+[data-slot="dialog-content"] button[variant="outline"] {
   background-color: var(--panel-2) !important;
   color: var(--text) !important;
   border: 1px solid var(--border) !important;
   font-weight: 700 !important;
 }
 
-[role="dialog"] button[class*="border"]:hover,
-[role="dialog"] button[variant="outline"]:hover {
+[data-slot="dialog-content"] button[class*="border"]:hover,
+[data-slot="dialog-content"] button[variant="outline"]:hover {
   background-color: var(--secondary) !important;
   color: var(--foreground) !important;
 }
 
-[role="dialog"] button[class*="border"]:hover,
-[role="dialog"] button[variant="outline"]:hover,
 .sector-card button[class*="border"]:hover {
   background-color: #334155 !important;
   color: #ffffff !important;

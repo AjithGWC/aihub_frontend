@@ -116,7 +116,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "relative z-[999999] pointer-events-auto w-full max-w-lg gap-4 rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-2xl duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          "relative z-[999999] pointer-events-auto w-full max-w-lg gap-4 rounded-2xl border border-border bg-card p-6 text-foreground shadow-2xl duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           className
         )}
         style={{
@@ -124,8 +124,6 @@ function DialogContent({
           zIndex: 999999,
           pointerEvents: 'auto',
           margin: 'auto',
-          background: '#ffffff',
-          color: '#0f172a',
           ...style
         }}
         {...props}
@@ -134,7 +132,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="absolute top-4 right-4 rounded-full p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors outline-none"
+            className="absolute top-4 right-4 rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors outline-none cursor-pointer"
           >
             <XIcon className="size-4" />
             <span className="sr-only">Close</span>

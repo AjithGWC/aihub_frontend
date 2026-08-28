@@ -1,8 +1,15 @@
 import { useState } from 'react'
-import { ChevronDownIcon } from 'lucide-react'
+import { CheckIcon, ChevronsUpDownIcon, XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 
 export interface MultiSelectOption {
   value: string
@@ -14,12 +21,16 @@ export function MultiSelect({
   selected,
   onChange,
   placeholder = 'Select…',
+  searchPlaceholder = 'Search…',
+  emptyText = 'No options found.',
   className,
 }: {
   options: MultiSelectOption[]
   selected: string[]
   onChange: (next: string[]) => void
   placeholder?: string
+  searchPlaceholder?: string
+  emptyText?: string
   className?: string
 }) {
   const [open, setOpen] = useState(false)
@@ -28,47 +39,77 @@ export function MultiSelect({
     onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value])
   }
 
-  const summary =
-    selected.length === 0
-      ? placeholder
-      : selected.length <= 2
-        ? options.filter((o) => selected.includes(o.value)).map((o) => o.label).join(', ')
-        : `${selected.length} selected`
+  const selectedOptions = options.filter((o) => selected.includes(o.value))
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
+          role="combobox"
+          aria-expanded={open}
           className={cn(
-            'flex w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-3 py-2 text-xs font-semibold shadow-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 cursor-pointer',
-            selected.length === 0 ? 'text-muted-foreground' : 'text-foreground',
+            'flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 cursor-pointer',
             className
           )}
         >
-          <span className="truncate">{summary}</span>
-          <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+          {selectedOptions.length === 0 ? (
+            <span className="py-0.5 font-semibold text-muted-foreground">{placeholder}</span>
+          ) : (
+            selectedOptions.map((o) => (
+              <span
+                key={o.value}
+                className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[11px] font-bold text-primary"
+              >
+                <span className="truncate max-w-[140px]">{o.label}</span>
+                <span
+                  role="button"
+                  tabIndex={-1}
+                  aria-label={`Remove ${o.label}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggle(o.value)
+                  }}
+                  className="rounded-full p-0.5 hover:bg-primary/20 cursor-pointer"
+                >
+                  <XIcon className="size-2.5" />
+                </span>
+              </span>
+            ))
+          )}
+          <ChevronsUpDownIcon className="ml-auto size-3.5 shrink-0 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-full min-w-[240px] p-2" align="start">
-        {options.length === 0 ? (
-          <p className="px-2 py-1.5 text-xs text-muted-foreground">No options available.</p>
-        ) : (
-          <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto">
-            {options.map((o) => {
-              const checked = selected.includes(o.value)
-              return (
-                <label
-                  key={o.value}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-semibold text-foreground hover:bg-accent cursor-pointer"
-                >
-                  <Checkbox checked={checked} onCheckedChange={() => toggle(o.value)} />
-                  <span className="truncate">{o.label}</span>
-                </label>
-              )
-            })}
-          </div>
-        )}
+      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} className="h-9 text-xs" />
+          <CommandList>
+            <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">{emptyText}</CommandEmpty>
+            <CommandGroup>
+              {options.map((o) => {
+                const checked = selected.includes(o.value)
+                return (
+                  <CommandItem
+                    key={o.value}
+                    value={o.label}
+                    onSelect={() => toggle(o.value)}
+                    className="text-xs font-semibold gap-2 cursor-pointer"
+                  >
+                    <span
+                      className={cn(
+                        'flex size-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors',
+                        checked ? 'border-primary bg-primary text-primary-foreground' : 'border-input'
+                      )}
+                    >
+                      {checked && <CheckIcon className="size-3" />}
+                    </span>
+                    <span className="truncate">{o.label}</span>
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
       </PopoverContent>
     </Popover>
   )
