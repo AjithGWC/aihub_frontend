@@ -11,22 +11,56 @@ export default function MarkdownRenderer({ text, isUser = false }: MarkdownRende
   const headingColorClass = isUser ? 'text-white' : 'text-foreground/90 dark:text-foreground';
   const boldColorClass = isUser ? 'text-white' : 'text-foreground/95 dark:text-foreground';
 
+  // Helper to detect and bold list prefixes like "Collect feedback: Ask customers..."
+  const formatListChildren = (children: React.ReactNode) => {
+    if (typeof children === 'string') {
+      const match = children.match(/^([A-Za-z0-9\s—–-]{2,45}:)(\s+.*)?$/s);
+      if (match) {
+        return (
+          <>
+            <strong className={`font-extrabold ${isUser ? 'text-white' : 'text-foreground dark:text-white'}`}>
+              {match[1]}
+            </strong>
+            {match[2] ?? ''}
+          </>
+        );
+      }
+      return children;
+    }
+
+    if (Array.isArray(children) && typeof children[0] === 'string') {
+      const first = children[0];
+      const match = first.match(/^([A-Za-z0-9\s—–-]{2,45}:)(\s+.*)?$/s);
+      if (match) {
+        return [
+          <strong key="title" className={`font-extrabold ${isUser ? 'text-white' : 'text-foreground dark:text-white'}`}>
+            {match[1]}
+          </strong>,
+          match[2] ?? '',
+          ...children.slice(1),
+        ];
+      }
+    }
+
+    return children;
+  };
+
   return (
     <div className={`markdown-content leading-relaxed ${textColorClass}`}>
       <ReactMarkdown
         components={{
           h1: ({ children }) => (
-            <h1 className={`text-base font-extrabold tracking-tight mt-3 mb-2 ${headingColorClass}`}>
+            <h1 className={`text-base font-extrabold tracking-tight mt-3.5 mb-2 ${headingColorClass}`}>
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className={`text-sm font-extrabold tracking-tight mt-2.5 mb-1.5 ${headingColorClass}`}>
+            <h2 className={`text-sm font-extrabold tracking-tight mt-3 mb-1.5 ${headingColorClass}`}>
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className={`text-xs font-extrabold tracking-tight mt-2 mb-1 ${headingColorClass}`}>
+            <h3 className={`text-xs font-extrabold tracking-tight mt-2.5 mb-1 ${headingColorClass}`}>
               {children}
             </h3>
           ),
@@ -39,31 +73,35 @@ export default function MarkdownRenderer({ text, isUser = false }: MarkdownRende
 
             if (isStandaloneBold) {
               return (
-                <p className={`text-sm font-extrabold tracking-tight mt-2.5 mb-1.5 ${boldColorClass} block`}>
+                <p className={`text-sm font-extrabold tracking-tight mt-3 mb-1.5 ${boldColorClass} block`}>
                   {children}
                 </p>
               );
             }
 
-            return <p className="mb-2 last:mb-0 text-sm leading-relaxed">{children}</p>;
+            return <p className="mb-2.5 last:mb-0 text-sm leading-relaxed">{children}</p>;
           },
           strong: ({ children }) => (
-            <strong className={`font-extrabold ${isUser ? 'text-white' : 'text-foreground dark:text-white'}`}>
+            <strong className={`font-extrabold ${isUser ? 'text-white' : 'text-foreground dark:text-white font-bold'}`}>
               {children}
             </strong>
           ),
-          em: ({ children }) => <em className="italic">{children}</em>,
+          em: ({ children }) => <em className="italic font-semibold opacity-95">{children}</em>,
           ul: ({ children }) => (
-            <ul className="list-disc pl-5 my-2 space-y-1 text-sm">
+            <ul className="list-disc pl-5 my-2.5 space-y-1.5 text-sm">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal pl-5 my-2 space-y-1 text-sm">
+            <ol className="list-decimal pl-5 my-2.5 space-y-1.5 text-sm">
               {children}
             </ol>
           ),
-          li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+          li: ({ children }) => (
+            <li className="leading-relaxed text-sm">
+              {formatListChildren(children)}
+            </li>
+          ),
           a: ({ href, children }) => (
             <a
               href={href}
