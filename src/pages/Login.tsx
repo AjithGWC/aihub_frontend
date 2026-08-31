@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Hexagon, ArrowRight, Eye, EyeOff, Lock, User as UserIcon, AlertCircle } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, User as UserIcon, AlertCircle } from "lucide-react";
 import { useSession } from "../auth/SessionContext";
 import { useTransition } from "../components/TransitionContext";
 import { COLOR, FONT_HEADING, FONT_BODY, SECTOR_COLOR } from "../components/atlasTheme";
+import AiHubLogo from "../components/AiHubLogo";
 
 export default function Login() {
   const { login } = useSession();
@@ -178,18 +179,8 @@ export default function Login() {
       <div className="relative z-10 w-full max-w-[400px] flex flex-col items-center justify-center my-auto">
         {/* Central hub logo */}
         <div className="flex flex-col items-center mb-6 text-center">
-          <div className="w-[84px] h-[76px] relative flex items-center justify-center mb-3 group cursor-pointer transition-transform duration-300 hover:scale-105">
-            <svg className="absolute inset-0 size-full animate-pulse-glow" viewBox="0 0 100 100" fill="none">
-              <polygon
-                points="50,4 92,28 92,76 50,96 8,76 8,28"
-                stroke={COLOR.accent500}
-                strokeWidth="2.5"
-                fill="var(--card)"
-              />
-            </svg>
-            <div className="relative z-10 flex items-center justify-center">
-              <Hexagon className="size-7 transition-colors duration-400" style={{ color: COLOR.accent500 }} />
-            </div>
+          <div className="size-20 relative flex items-center justify-center mb-3 group cursor-pointer transition-transform duration-300 hover:scale-105">
+            <AiHubLogo className="size-20 drop-shadow-lg transition-transform duration-300 group-hover:scale-105" />
           </div>
 
           <h1

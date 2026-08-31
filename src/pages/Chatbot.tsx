@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Hexagon,
   Send,
   LogOut,
   Sun,
@@ -21,6 +20,8 @@ import { useSession } from "../auth/SessionContext";
 import { useNavigate } from "react-router-dom";
 import { COLOR, FONT_HEADING, FONT_BODY } from "../components/atlasTheme";
 import { useTheme } from "../components/AppNavbar";
+import MarkdownRenderer from "../components/MarkdownRenderer";
+import AiHubLogo from "../components/AiHubLogo";
 import {
   chatCompletion,
   clearGatewayKey,
@@ -270,11 +271,8 @@ export default function Chatbot() {
         style={{ background: "var(--card)" }}
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-8 relative flex items-center justify-center cursor-pointer transition-transform hover:scale-105">
-            <svg className="absolute inset-0 size-full animate-pulse-hub" viewBox="0 0 100 100" fill="none">
-              <polygon points="50,3 93,28 93,78 50,97 7,78 7,28" stroke={COLOR.accent500} strokeWidth="3" fill="var(--card)" />
-            </svg>
-            <Hexagon className="size-4 relative z-10" style={{ color: COLOR.accent500 }} />
+          <div className="size-8 relative flex items-center justify-center cursor-pointer transition-transform hover:scale-105">
+            <AiHubLogo className="size-8 drop-shadow-sm" />
           </div>
           <div className="flex flex-col leading-none">
             <span style={{ fontFamily: FONT_HEADING, fontSize: 16, color: COLOR.neutral100 }}>AI HUB</span>
@@ -413,7 +411,7 @@ export default function Chatbot() {
                   )}
 
                   <div
-                    className={`max-w-[78%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap shadow-sm transition-all ${
+                    className={`max-w-[78%] px-4 py-3 rounded-2xl text-sm leading-relaxed break-words shadow-sm transition-all ${
                       isUser
                         ? "rounded-br-sm text-white shadow-md"
                         : "rounded-bl-sm border border-border/80 text-foreground"
@@ -424,7 +422,7 @@ export default function Chatbot() {
                         : { background: "var(--card)" }
                     }
                   >
-                    {m.text}
+                    <MarkdownRenderer text={m.text} isUser={isUser} />
                   </div>
 
                   {isUser && (
