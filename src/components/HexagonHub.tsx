@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { COLOR, SECTOR_COLOR, FONT_HEADING, FONT_BODY, type SectorTone } from "./atlasTheme";
 import { useTheme } from "./AppNavbar";
+import AiHubLogo from "./AiHubLogo";
 import indiaMapSvg from "../assets/india_map.svg?raw";
 import { useSession } from "../auth/SessionContext";
 import AihDashboard from "../ai-access-hub/pages/Dashboard";
@@ -893,7 +894,7 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
                 boxShadow: "0 4px 40px rgba(59,130,246,.22), 0 0 0 14px rgba(59,130,246,0.06), 0 0 0 16px var(--background)",
               }}
             >
-              <Cpu size={34} color="#3b82f6" style={{ filter: "drop-shadow(0 0 6px rgba(59,130,246,0.5))" } as React.CSSProperties} />
+              <AiHubLogo className="size-16 drop-shadow-md" />
               <div style={{ fontFamily: FONT_HEADING, fontSize: 34, color: "#0f172a", textAlign: "center", lineHeight: 1.05 }}>
                 {hubLabel}
               </div>
