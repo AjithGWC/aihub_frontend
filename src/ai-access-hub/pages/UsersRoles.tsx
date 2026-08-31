@@ -15,19 +15,35 @@ import {
   X,
   ArrowLeft,
   ArrowUpDown,
+  Vault,
+  Trash2,
+  Clock,
+  AlertCircle,
+  Plus,
+  Lock,
+  Copy,
+  Check,
 } from 'lucide-react'
 import {
   createUser as apiCreateUser,
+  createUserKey,
   deactivateUser,
+  listModels,
   listRoles,
+  listUserKeys,
   listUsers,
   replaceUserRoles,
   resetUserPassword,
+  revokeUserKey,
   updateUserStatus,
+  type ApiKeyCreated,
+  type ApiKeyOut,
+  type PortalModel,
   type PortalUserOut,
   type RoleOut,
 } from '@/api/portal'
 import type { AppUser } from '../types'
+import { MultiSelect } from '../components/MultiSelect'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -98,12 +114,13 @@ function getInitials(name: string): string {
 }
 
 /* ── Enterprise Directory Row ── */
-function UserRow({ user, onEdit, onToggle, onResetPassword, onDeactivate, index }: {
+function UserRow({ user, onEdit, onToggle, onResetPassword, onDeactivate, onViewKeys, index }: {
   user: AppUser
   onEdit: (u: AppUser) => void
   onToggle: (u: AppUser) => void
   onResetPassword: (u: AppUser) => void
   onDeactivate: (u: AppUser) => void
+  onViewKeys: (u: AppUser) => void
   index: number
 }) {
   const { gradient, glow } = getAvatarGradient(user.name || user.email || '')
@@ -209,6 +226,9 @@ function UserRow({ user, onEdit, onToggle, onResetPassword, onDeactivate, index 
           <button onClick={() => onResetPassword(user)} className="table-action-btn" title="Reset Password">
             <KeyRound className="size-4" />
           </button>
+          <button onClick={() => onViewKeys(user)} className="table-action-btn" title="API Keys">
+            <Vault className="size-4" />
+          </button>
         </div>
       </TableCell>
     </TableRow>
@@ -244,6 +264,25 @@ export default function UsersRoles() {
   const [editUser, setEditUser] = useState<AppUser | null>(null)
   const [resetPasswordUser, setResetPasswordUser] = useState<AppUser | null>(null)
   const [deactivateTarget, setDeactivateTarget] = useState<AppUser | null>(null)
+  const [keysUser, setKeysUser] = useState<AppUser | null>(null)
+  const [userKeys, setUserKeys] = useState<ApiKeyOut[]>([])
+  const [keysLoading, setKeysLoading] = useState(false)
+  const [keysError, setKeysError] = useState<string | null>(null)
+  const [revokeKeyTarget, setRevokeKeyTarget] = useState<ApiKeyOut | null>(null)
+  const [revokingKey, setRevokingKey] = useState(false)
+  const [models, setModels] = useState<PortalModel[]>([])
+  const [showCreateKey, setShowCreateKey] = useState(false)
+  const [createKeyForm, setCreateKeyForm] = useState({ label: '', modelEntitlements: [] as string[], expiresAt: '', rateLimitRpm: 60 })
+  const [creatingKey, setCreatingKey] = useState(false)
+  const [createdKey, setCreatedKey] = useState<ApiKeyCreated | null>(null)
+  const [rawCopied, setRawCopied] = useState(false)
+
+  function handleCopyRaw() {
+    if (!createdKey) return
+    navigator.clipboard.writeText(createdKey.raw_key)
+    setRawCopied(true)
+    setTimeout(() => setRawCopied(false), 2000)
+  }
   const [editForm, setEditForm] = useState<{ roles: string[]; status: string }>({ roles: [], status: 'active' })
   const [newPassword, setNewPassword] = useState('')
   const [createForm, setCreateForm] = useState({ username: '', email: '', department: '', roles: [] as string[], password: '' })
@@ -361,6 +400,49 @@ export default function UsersRoles() {
       loadData()
     } catch { setError('Failed to deactivate user.') }
     finally { setSubmitting(false) }
+  }
+
+  async function openKeys(u: AppUser) {
+    setKeysUser(u)
+    setUserKeys([])
+    setKeysError(null)
+    setKeysLoading(true)
+    try {
+      const [keys, modelList] = await Promise.all([listUserKeys(u.id), listModels().catch(() => [] as PortalModel[])])
+      setUserKeys(keys)
+      setModels(modelList)
+    } catch { setKeysError('Failed to load API keys.') }
+    finally { setKeysLoading(false) }
+  }
+
+  async function handleRevokeKey(key: ApiKeyOut) {
+    if (!keysUser) return
+    setRevokingKey(true)
+    try {
+      await revokeUserKey(keysUser.id, key.key_id)
+      setUserKeys((prev) => prev.filter((k) => k.key_id !== key.key_id))
+      setRevokeKeyTarget(null)
+    } catch { setKeysError('Failed to revoke API key.') }
+    finally { setRevokingKey(false) }
+  }
+
+  async function handleCreateKey(e: FormEvent) {
+    e.preventDefault()
+    if (!keysUser) return
+    setCreatingKey(true)
+    try {
+      const created = await createUserKey(keysUser.id, {
+        label: createKeyForm.label || undefined,
+        model_entitlements: createKeyForm.modelEntitlements,
+        expires_at: createKeyForm.expiresAt ? new Date(createKeyForm.expiresAt).toISOString() : undefined,
+        rate_limit_rpm: createKeyForm.rateLimitRpm,
+      })
+      setShowCreateKey(false)
+      setCreateKeyForm({ label: '', modelEntitlements: [], expiresAt: '', rateLimitRpm: 60 })
+      setCreatedKey(created)
+      setUserKeys((prev) => [created, ...prev])
+    } catch { setKeysError('Failed to create API key.') }
+    finally { setCreatingKey(false) }
   }
 
   const activeCount = allUsers.filter((u) => u.status === 'active').length
@@ -487,7 +569,7 @@ export default function UsersRoles() {
               </TableHeader>
               <TableBody>
                 {pagedUsers.map((user, i) => (
-                  <UserRow key={user.id} user={user} onEdit={openEdit} onToggle={handleToggle} onResetPassword={setResetPasswordUser} onDeactivate={setDeactivateTarget} index={i} />
+                  <UserRow key={user.id} user={user} onEdit={openEdit} onToggle={handleToggle} onResetPassword={setResetPasswordUser} onDeactivate={setDeactivateTarget} onViewKeys={openKeys} index={i} />
                 ))}
               </TableBody>
             </Table>
@@ -639,6 +721,219 @@ export default function UsersRoles() {
               <Button variant="destructive" size="sm" className="text-xs font-extrabold cursor-pointer rounded-lg px-5 shadow-sm hover:shadow-md" disabled={submitting} onClick={() => handleDeactivate(deactivateTarget)}>
                 {submitting ? <RefreshCw className="size-3.5 animate-spin mr-1" /> : <Ban className="size-3.5 mr-1" />}Deactivate Member
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* API Keys Modal */}
+      {keysUser && (
+        <Dialog open onOpenChange={(n) => !n && setKeysUser(null)}>
+          <DialogContent className="sm:max-w-2xl border-t-4 border-t-primary shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <div className="flex flex-wrap items-center justify-between gap-3 pr-6">
+                <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
+                  <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-none">
+                    <Vault className="size-4 text-primary" />
+                  </div>
+                  API Keys — {keysUser.name || keysUser.email}
+                </DialogTitle>
+                <Button onClick={() => setShowCreateKey(true)} size="sm" className="gap-1.5 text-xs font-bold bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg shadow-sm">
+                  <Plus className="size-3.5" />Issue Key
+                </Button>
+              </div>
+            </DialogHeader>
+
+            {keysError && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                <ShieldAlert className="size-4 flex-none" /><span className="flex-1">{keysError}</span>
+                <button onClick={() => setKeysError(null)}><X className="size-3.5" /></button>
+              </div>
+            )}
+
+            <div className="py-2">
+              {keysLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-11 rounded-lg bg-secondary animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />)}
+                </div>
+              ) : userKeys.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+                  <KeyRound className="size-7 text-muted-foreground/30" />No API keys issued to this user.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border hover:bg-transparent bg-secondary/20">
+                      <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Key</TableHead>
+                      <TableHead className="hidden sm:table-cell text-[11px] font-black uppercase tracking-wider text-muted-foreground">Expires</TableHead>
+                      <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Status</TableHead>
+                      <TableHead className="text-[11px] font-black uppercase tracking-wider text-muted-foreground text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {userKeys.map((key) => {
+                      const isActive = key.status === 'active'
+                      const expiresAt = key.expires_at ? new Date(key.expires_at) : null
+                      const isExpired = expiresAt ? expiresAt < new Date() : false
+                      return (
+                        <TableRow key={key.key_id} className="border-border hover:bg-secondary/40">
+                          <TableCell className="py-3 max-w-[140px] sm:max-w-[260px]">
+                            <p className="text-sm font-bold text-foreground truncate">{key.label || 'Untitled Key'}</p>
+                            <p className="text-[11px] text-muted-foreground font-mono">{key.key_prefix}…</p>
+                            {expiresAt && (
+                              <p className={`sm:hidden text-[11px] font-bold ${isExpired ? 'text-danger' : 'text-muted-foreground'}`}>
+                                {isExpired ? 'Expired ' : ''}{expiresAt.toLocaleDateString()}
+                              </p>
+                            )}
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell whitespace-nowrap">
+                            {expiresAt ? (
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${isExpired ? 'text-danger' : 'text-muted-foreground'}`}>
+                                <Clock className="size-3.5 flex-none" />
+                                {isExpired ? 'Expired ' : ''}{expiresAt.toLocaleDateString()}
+                                {isExpired && <AlertCircle className="size-3.5 text-danger" />}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-2 py-0.5 font-bold capitalize"
+                              style={{
+                                color: isActive ? '#16a34a' : 'var(--danger)',
+                                borderColor: isActive ? 'rgba(34,197,94,0.3)' : 'var(--border)',
+                                background: isActive ? 'rgba(34,197,94,0.1)' : 'var(--secondary)',
+                              }}
+                            >
+                              {isActive ? '● Active' : `○ ${key.status}`}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            <button onClick={() => setRevokeKeyTarget(key)} className="table-action-btn table-action-btn-danger" title="Revoke Key">
+                              <Trash2 className="size-4" />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+
+            <DialogFooter className="pt-2">
+              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Close</Button></DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Revoke API Key Confirm */}
+      {revokeKeyTarget && (
+        <Dialog open onOpenChange={(n) => !n && setRevokeKeyTarget(null)}>
+          <DialogContent className="sm:max-w-md border-t-4 border-t-danger shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="text-base font-black text-danger flex items-center gap-2.5">
+                <div className="size-8 rounded-lg bg-danger/10 border border-danger/20 flex items-center justify-center flex-none">
+                  <Trash2 className="size-4 text-danger" />
+                </div>
+                Revoke API Key
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-foreground py-2 font-medium">Permanently revoke <span className="font-extrabold">{revokeKeyTarget.label || revokeKeyTarget.key_prefix}</span>? Applications using this key will immediately lose access.</p>
+            <DialogFooter className="mt-3 gap-2">
+              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
+              <Button variant="destructive" size="sm" disabled={revokingKey} onClick={() => handleRevokeKey(revokeKeyTarget)} className="text-xs font-extrabold cursor-pointer rounded-lg px-5 shadow-sm hover:shadow-md">
+                <Trash2 className="size-3.5 mr-1" />Revoke Key
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Issue API Key Modal (scoped to keysUser) */}
+      {showCreateKey && keysUser && (
+        <Dialog open onOpenChange={(n) => !n && setShowCreateKey(false)}>
+          <DialogContent className="sm:max-w-lg border-t-4 border-t-primary shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
+                <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-none">
+                  <KeyRound className="size-4 text-primary" />
+                </div>
+                Issue API Key — {keysUser.name || keysUser.email}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateKey} className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Key Label</Label>
+                <Input value={createKeyForm.label} onChange={(e) => setCreateKeyForm((f) => ({ ...f, label: e.target.value }))} placeholder="Production access" className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Model Entitlements</Label>
+                {models.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No models registered yet — the key will default to all active models.</p>
+                ) : (
+                  <MultiSelect
+                    options={models.map((m) => ({ value: m.name, label: m.name }))}
+                    selected={createKeyForm.modelEntitlements}
+                    onChange={(next) => setCreateKeyForm((f) => ({ ...f, modelEntitlements: next }))}
+                    placeholder="All active models"
+                    searchPlaceholder="Search models…"
+                    emptyText="No models found."
+                  />
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Rate Limit (req/min)</Label>
+                  <Input type="number" min={1} value={createKeyForm.rateLimitRpm} onChange={(e) => setCreateKeyForm((f) => ({ ...f, rateLimitRpm: Number(e.target.value) || 1 }))} className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Expires At</Label>
+                  <Input type="date" value={createKeyForm.expiresAt} onChange={(e) => setCreateKeyForm((f) => ({ ...f, expiresAt: e.target.value }))} className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg" />
+                </div>
+              </div>
+              <DialogFooter className="pt-3 gap-2">
+                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
+                <Button type="submit" size="sm" disabled={creatingKey} className="text-xs font-extrabold text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer rounded-lg px-5 bg-primary hover:bg-primary-hover">
+                  {creatingKey ? <RefreshCw className="size-3 animate-spin mr-1" /> : <Lock className="size-3.5 mr-1.5" />}Issue Key
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Raw key reveal — shown exactly once, right after creation */}
+      {createdKey && (
+        <Dialog open onOpenChange={(n) => !n && setCreatedKey(null)}>
+          <DialogContent className="sm:max-w-lg border-t-4 border-t-emerald-500 shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
+                <div className="size-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-none">
+                  <KeyRound className="size-4 text-emerald-500" />
+                </div>
+                Key Issued
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-danger font-semibold flex items-center gap-1.5">
+                <AlertCircle className="size-3.5 flex-none" />
+                Copy this now — it won't be shown again.
+              </p>
+              <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 font-mono text-xs bg-secondary/50 border border-border break-all">
+                <span className="flex-1">{createdKey.raw_key}</span>
+                <button onClick={handleCopyRaw} className="p-1 rounded hover:bg-secondary transition-colors cursor-pointer flex-none" title="Copy key">
+                  {rawCopied ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4 text-muted-foreground" />}
+                </button>
+              </div>
+            </div>
+            <DialogFooter className="pt-2">
+              <DialogClose asChild>
+                <Button size="sm" className="text-xs font-extrabold text-primary-foreground bg-primary hover:bg-primary-hover cursor-pointer rounded-lg px-5">Done</Button>
+              </DialogClose>
             </DialogFooter>
           </DialogContent>
         </Dialog>
