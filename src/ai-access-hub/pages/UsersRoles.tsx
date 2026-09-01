@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   UserPlus,
   Users,
@@ -23,6 +23,7 @@ import {
   Lock,
   Copy,
   Check,
+  MoreHorizontal,
 } from 'lucide-react'
 import {
   createUser as apiCreateUser,
@@ -46,6 +47,14 @@ import type { AppUser } from '../types'
 import { MultiSelect } from '../components/MultiSelect'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu'
 import {
   Dialog,
   DialogClose,
@@ -111,6 +120,145 @@ function getInitials(name: string): string {
   if (!name) return '?'
   const parts = name.trim().split(/\s+/)
   return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : parts[0].slice(0, 2).toUpperCase()
+}
+
+/* ── Action Dropdown Menu (•••) ── */
+function ActionDropdown({
+  user,
+  isActive,
+  onEdit,
+  onToggle,
+  onResetPassword,
+  onDeactivate,
+  alignUp = false,
+}: {
+  user: AppUser
+  isActive: boolean
+  onEdit: (u: AppUser) => void
+  onToggle: (u: AppUser) => void
+  onResetPassword: (u: AppUser) => void
+  onDeactivate: (u: AppUser) => void
+  alignUp?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [open])
+
+  return (
+    <div className="relative inline-block text-left" ref={menuRef}>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen((v) => !v)
+        }}
+        className="size-8 p-0 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground cursor-pointer border border-border/70 shadow-xs"
+        title="More Actions"
+      >
+        <MoreHorizontal className="size-4" />
+        <span className="sr-only">Open menu</span>
+      </Button>
+
+      {open && (
+        <div
+          className={`absolute right-0 ${alignUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5'} w-52 rounded-xl border border-border bg-card p-1.5 shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-150`}
+          style={{ background: 'var(--card)' }}
+        >
+          <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground px-2.5 py-1 select-none">
+            Member Actions
+          </div>
+
+          {!user.isSystemAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                onEdit(user)
+              }}
+              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold rounded-lg text-foreground hover:bg-secondary transition-colors cursor-pointer text-left"
+            >
+              <Edit3 className="size-3.5 text-primary flex-none" />
+              <span>Edit Roles & Status</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              onResetPassword(user)
+            }}
+            className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold rounded-lg text-foreground hover:bg-secondary transition-colors cursor-pointer text-left"
+          >
+            <KeyRound className="size-3.5 text-amber-500 flex-none" />
+            <span>Reset Password</span>
+          </button>
+
+          {!user.isSystemAdmin ? (
+            <>
+              <div className="my-1 border-t border-border/60" />
+
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false)
+                  onToggle(user)
+                }}
+                className={`w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer text-left ${isActive
+                    ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                    : 'text-green-600 dark:text-green-400 hover:bg-green-500/10'
+                  }`}
+              >
+                {isActive ? (
+                  <>
+                    <UserX className="size-3.5 text-amber-500 flex-none" />
+                    <span>Suspend Member</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="size-3.5 text-green-500 flex-none" />
+                    <span>Activate Member</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false)
+                  onDeactivate(user)
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold rounded-lg text-destructive dark:text-red-400 hover:bg-destructive/10 transition-colors cursor-pointer text-left"
+              >
+                <Ban className="size-3.5 text-destructive flex-none" />
+                <span>Deactivate Member</span>
+              </button>
+            </>
+          ) : (
+            <div className="mt-1 px-2.5 py-1.5 rounded-lg bg-primary/5 border border-primary/15 text-[10px] font-medium text-muted-foreground flex items-center gap-1.5">
+              <Crown className="size-3 text-primary flex-none" />
+              <span>Protected System Admin</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 /* ── Enterprise Directory Row ── */
@@ -198,37 +346,31 @@ function UserRow({ user, onEdit, onToggle, onResetPassword, onDeactivate, onView
         </Badge>
       </TableCell>
 
-      {/* Actions — admins are protected from edit/enable-disable/deactivate to avoid accidental lockout */}
+      {/* Actions: Direct Key Vault + Sleek Overflow Menu (•••) */}
       <TableCell className="text-right whitespace-nowrap">
-        <div className="flex items-center justify-end gap-1.5">
-          {user.isSystemAdmin ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
-              <Crown className="size-3" />
-              Protected
-            </span>
-          ) : (
-            <>
-              <button onClick={() => onEdit(user)} className="table-action-btn table-action-btn-edit" title="Edit Roles & Status">
-                <Edit3 className="size-4" />
-              </button>
-              <button
-                onClick={() => onToggle(user)}
-                className={`table-action-btn ${isActive ? 'table-action-btn-amber' : 'table-action-btn-success'}`}
-                title={isActive ? 'Disable Member' : 'Enable Member'}
-              >
-                {isActive ? <UserX className="size-4" /> : <UserCheck className="size-4" />}
-              </button>
-              <button onClick={() => onDeactivate(user)} className="table-action-btn table-action-btn-danger" title="Deactivate Member">
-                <Ban className="size-4" />
-              </button>
-            </>
-          )}
-          <button onClick={() => onResetPassword(user)} className="table-action-btn" title="Reset Password">
-            <KeyRound className="size-4" />
-          </button>
-          <button onClick={() => onViewKeys(user)} className="table-action-btn" title="API Keys">
-            <Vault className="size-4" />
-          </button>
+        <div className="flex items-center justify-end gap-2">
+          {/* Direct Key Vault Action */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onViewKeys(user)}
+            className="h-8 px-2.5 text-xs font-bold gap-1.5 border-border bg-card hover:bg-primary/10 hover:text-primary hover:border-primary/40 transition-all cursor-pointer rounded-lg shadow-xs"
+            title="Open Key Vault"
+          >
+            <Vault className="size-3.5 text-primary" />
+            <span className="hidden sm:inline">Keys</span>
+          </Button>
+
+          {/* Overflow Menu (•••) */}
+          <ActionDropdown
+            user={user}
+            isActive={isActive}
+            onEdit={onEdit}
+            onToggle={onToggle}
+            onResetPassword={onResetPassword}
+            onDeactivate={onDeactivate}
+            alignUp={index >= 3}
+          />
         </div>
       </TableCell>
     </TableRow>
@@ -318,10 +460,10 @@ export default function UsersRoles() {
     const base = !q
       ? allUsers
       : allUsers.filter((u) =>
-          (u.name || '').toLowerCase().includes(q) ||
-          (u.email || '').toLowerCase().includes(q) ||
-          (u.department || '').toLowerCase().includes(q)
-        )
+        (u.name || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.department || '').toLowerCase().includes(q)
+      )
     return [...base].sort((a, b) => {
       const av = (sortKey === 'name' ? a.name || a.email || '' : (a as any)[sortKey] || '').toString().toLowerCase()
       const bv = (sortKey === 'name' ? b.name || b.email || '' : (b as any)[sortKey] || '').toString().toLowerCase()

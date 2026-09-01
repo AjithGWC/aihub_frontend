@@ -32,6 +32,7 @@ import {
   MissingApiKeyError,
   setGatewayKey,
   setGatewaySelectedModel,
+  type ChatMessagePayload,
 } from "@/api/gateway";
 import { listChatModels } from "@/api/portal";
 
@@ -166,9 +167,18 @@ export default function Chatbot() {
     setIsTyping(true);
 
     try {
+      const systemInstruction: ChatMessagePayload = {
+        role: "system",
+        content:
+          "You are the AI Hub assistant. Always format your responses cleanly using Markdown. Format key concepts, terminology, important names, and list item headings in bold using **bold text** so they stand out clearly.",
+      };
+
       const data = await chatCompletion(user.id, {
         model: selectedModel,
-        messages: history.map((m) => ({ role: m.role, content: m.text })),
+        messages: [
+          systemInstruction,
+          ...history.map((m) => ({ role: m.role, content: m.text })),
+        ],
         stream: false,
       });
       setMessages((prev) => [...prev, { id: Date.now() + 1, role: "assistant", text: extractReplyText(data) }]);
@@ -190,7 +200,7 @@ export default function Chatbot() {
 
   return (
     <div
-      className="min-h-screen w-full flex flex-col relative overflow-hidden"
+      className="h-screen max-h-screen w-full flex flex-col relative overflow-hidden"
       style={{ fontFamily: FONT_BODY, background: COLOR.bg }}
     >
       <Toaster />
@@ -241,6 +251,17 @@ export default function Chatbot() {
           box-shadow: 0 0 0 1.5px ${COLOR.accent500}, 0 0 16px -2px ${COLOR.accent500}44 !important;
           background-color: var(--card) !important;
         }
+
+        /* Hide scrollbars across browsers while preserving scrollability */
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
       `}</style>
 
       {/* Ambient background glow */}
@@ -267,7 +288,7 @@ export default function Chatbot() {
 
       {/* Header Bar */}
       <header
-        className="relative z-10 flex items-center justify-between px-6 py-3.5 backdrop-blur-md border-b border-border/80"
+        className="relative z-10 flex-none flex items-center justify-between px-6 py-3.5 backdrop-blur-md border-b border-border/80"
         style={{ background: "var(--card)" }}
       >
         <div className="flex items-center gap-3">
@@ -315,11 +336,11 @@ export default function Chatbot() {
       </header>
 
       {/* Main Content Body */}
-      <div className="relative z-10 flex-1 flex min-h-0">
+      <div className="relative z-10 flex-1 flex min-h-0 overflow-hidden">
         {/* Model Selection Sidebar (When Key is Connected) */}
         {hasKey && (
           <aside
-            className="w-64 flex-none overflow-y-auto py-5 px-3.5 border-r border-border/80 backdrop-blur-sm"
+            className="w-64 flex-none h-full overflow-y-auto no-scrollbar py-5 px-3.5 border-r border-border/80 backdrop-blur-sm"
             style={{ background: "var(--card)" }}
           >
             <div className="flex items-center justify-between px-2 mb-3">
@@ -398,23 +419,23 @@ export default function Chatbot() {
         )}
 
         {/* Chat Feed and Message Input */}
-        <div className="flex-1 flex flex-col min-h-0 max-w-3xl w-full mx-auto px-4 sm:px-6 py-6">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto flex flex-col gap-4 pr-1">
+        <div className="flex-1 flex flex-col h-full min-h-0 max-w-3xl w-full mx-auto px-4 sm:px-6 pt-4 pb-4">
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto no-scrollbar flex flex-col gap-5 pr-2 pb-6 scroll-smooth">
             {messages.map((m) => {
               const isUser = m.role === "user";
               return (
-                <div key={m.id} className={`flex items-end gap-2.5 animate-msg-in ${isUser ? "justify-end" : "justify-start"}`}>
+                <div key={m.id} className={`flex items-start gap-3 animate-msg-in ${isUser ? "justify-end" : "justify-start"}`}>
                   {!isUser && (
-                    <div className="size-7 rounded-xl flex items-center justify-center flex-none bg-primary/10 border border-primary/20 text-primary mb-1">
+                    <div className="size-7 rounded-xl flex items-center justify-center flex-none bg-primary/10 border border-primary/20 text-primary mt-1">
                       <Bot className="size-4" />
                     </div>
                   )}
 
                   <div
-                    className={`max-w-[78%] px-4 py-3 rounded-2xl text-sm leading-relaxed break-words shadow-sm transition-all ${
+                    className={`max-w-[82%] px-5 py-3.5 rounded-2xl text-sm leading-relaxed break-words shadow-sm transition-all ${
                       isUser
-                        ? "rounded-br-sm text-white shadow-md"
-                        : "rounded-bl-sm border border-border/80 text-foreground"
+                        ? "text-white shadow-md"
+                        : "border border-border/80 text-foreground"
                     }`}
                     style={
                       isUser
@@ -426,7 +447,7 @@ export default function Chatbot() {
                   </div>
 
                   {isUser && (
-                    <div className="size-7 rounded-xl flex items-center justify-center flex-none bg-secondary text-muted-foreground mb-1 border border-border/60">
+                    <div className="size-7 rounded-xl flex items-center justify-center flex-none bg-secondary text-muted-foreground mt-1 border border-border/60">
                       <UserIcon className="size-3.5" />
                     </div>
                   )}
@@ -435,12 +456,12 @@ export default function Chatbot() {
             })}
 
             {isTyping && (
-              <div className="flex items-center gap-2.5 animate-msg-in">
-                <div className="size-7 rounded-xl flex items-center justify-center flex-none bg-primary/10 border border-primary/20 text-primary">
+              <div className="flex items-start gap-3 animate-msg-in">
+                <div className="size-7 rounded-xl flex items-center justify-center flex-none bg-primary/10 border border-primary/20 text-primary mt-1">
                   <Bot className="size-4" />
                 </div>
                 <div
-                  className="px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-1.5 shadow-sm border border-border/80"
+                  className="px-4 py-3 rounded-2xl flex items-center gap-1.5 shadow-sm border border-border/80"
                   style={{ background: "var(--card)" }}
                 >
                   {[0, 1, 2].map((i) => (
@@ -457,7 +478,7 @@ export default function Chatbot() {
 
           {/* Error Message */}
           {error && (
-            <div className="mt-3 flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-medium border border-destructive/30 bg-destructive/10 text-destructive dark:text-red-400">
+            <div className="flex-none mt-2 flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-medium border border-destructive/30 bg-destructive/10 text-destructive dark:text-red-400">
               <AlertCircle className="size-4 flex-none" />
               <span className="flex-1">{error}</span>
             </div>
@@ -465,7 +486,7 @@ export default function Chatbot() {
 
           {/* Connected Key: Message Input Form */}
           {hasKey ? (
-            <form onSubmit={handleSend} className="mt-4 flex items-center gap-3">
+            <form onSubmit={handleSend} className="flex-none pt-2 pb-1 flex items-center gap-3">
               <div className="chat-input-container flex-1 flex items-center h-12 px-4 rounded-2xl border border-border bg-card/90 backdrop-blur transition-all">
                 <input
                   type="text"
@@ -498,7 +519,7 @@ export default function Chatbot() {
             /* Disconnected Key: Key Link Prompt Card */
             <form
               onSubmit={handleConnectKey}
-              className="mt-4 relative flex flex-col gap-3 p-6 rounded-2xl border border-border/80 shadow-xl backdrop-blur-xl transition-all"
+              className="flex-none mt-3.5 relative flex flex-col gap-3 p-6 rounded-2xl border border-border/80 shadow-xl backdrop-blur-xl transition-all"
               style={{
                 background: "var(--card)",
                 boxShadow: `0 20px 40px -15px rgba(0, 0, 0, 0.15), 0 0 20px -8px ${COLOR.accent500}1a`,
