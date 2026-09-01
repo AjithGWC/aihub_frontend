@@ -49,6 +49,8 @@ interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
+  model?: string;
+  time?: string;
 }
 
 export interface ChatModel {
@@ -59,15 +61,47 @@ export interface ChatModel {
 }
 
 const MODEL_STORAGE_PREFIX = "aihub_chat_model:";
+const SESSION_TIMESTAMPS_PREFIX = "aihub_chat_times:";
+
 const getSavedModel = (userId: string): string => localStorage.getItem(`${MODEL_STORAGE_PREFIX}${userId}`) ?? "";
 const saveModel = (userId: string, modelId: string): void =>
   localStorage.setItem(`${MODEL_STORAGE_PREFIX}${userId}`, modelId);
+
+function getSavedSessionTimes(sessionId: string): Record<number, string> {
+  try {
+    const raw = localStorage.getItem(`${SESSION_TIMESTAMPS_PREFIX}${sessionId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSessionMessageTime(sessionId: string, index: number, timeStr: string): void {
+  try {
+    const current = getSavedSessionTimes(sessionId);
+    current[index] = timeStr;
+    localStorage.setItem(`${SESSION_TIMESTAMPS_PREFIX}${sessionId}`, JSON.stringify(current));
+  } catch {}
+}
+
+function formatMessageDate(date: Date = new Date()): string {
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatMessageTime(date: Date = new Date()): string {
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
 
 function greetingMessage(user: { name?: string } | null | undefined): ChatMessage {
   return {
     id: "greeting",
     role: "assistant",
     text: `Hi ${user?.name?.split(" ")[0] ?? "there"}, I'm the AI Hub assistant. Ask me anything to get started.`,
+    time: formatMessageTime(),
   };
 }
 
@@ -190,9 +224,27 @@ export default function Chatbot() {
 
     try {
       const detail = await getChatSession(session.session_id);
+      const savedTimes = getSavedSessionTimes(session.session_id);
+      const fallbackTime = session.updated_at
+        ? formatMessageTime(new Date(session.updated_at))
+        : formatMessageTime();
+
       const loaded: ChatMessage[] = detail.messages
         .filter((m: ChatTurnMessage) => m.role !== "system")
-        .map((m: ChatTurnMessage, i: number) => ({ id: `${session.session_id}-${i}`, role: m.role as "user" | "assistant", text: m.content }));
+        .map((m: ChatTurnMessage, i: number) => {
+          const rawMsgTime = (m as any).created_at || (m as any).timestamp;
+          const time = rawMsgTime
+            ? formatMessageTime(new Date(rawMsgTime))
+            : savedTimes[i] || fallbackTime;
+
+          return {
+            id: `${session.session_id}-${i}`,
+            role: m.role as "user" | "assistant",
+            text: m.content,
+            model: m.role === "assistant" ? (session.model || undefined) : undefined,
+            time,
+          };
+        });
       setMessages(loaded.length > 0 ? loaded : [greetingMessage(user)]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load that conversation.");
@@ -236,9 +288,10 @@ export default function Chatbot() {
     }
 
     const isNewSession = activeSessionId === null;
-    const userMsg: ChatMessage = { id: `local-${Date.now()}`, role: "user", text };
+    const currentTime = formatMessageTime();
+    const userMsg: ChatMessage = { id: `local-${Date.now()}`, role: "user", text, time: currentTime };
     const assistantId = `local-${Date.now() + 1}`;
-    setMessages((prev) => [...prev, userMsg, { id: assistantId, role: "assistant", text: "" }]);
+    setMessages((prev) => [...prev, userMsg, { id: assistantId, role: "assistant", text: "", time: currentTime }]);
     setInput("");
     setError(null);
     setIsSending(true);
@@ -267,6 +320,10 @@ export default function Chatbot() {
       ]
       : [{ role: "user", content: text }];
 
+    const userTurnIndex = messages.filter((m) => m.id !== "greeting").length;
+    const assistantTurnIndex = userTurnIndex + 1;
+    saveSessionMessageTime(sessionId, userTurnIndex, currentTime);
+
     abortStreamRef.current = streamSessionChatCompletion(
       sessionId,
       { model: selectedModel || undefined, messages: turnMessages, temperature: 0.7 },
@@ -274,9 +331,19 @@ export default function Chatbot() {
         onDelta: (delta: string) => {
           setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, text: m.text + delta } : m)));
         },
-        onDone: () => {
+        onDone: (_finishReason?: string, responseModel?: string) => {
           setIsSending(false);
           abortStreamRef.current = null;
+          const finalModel = responseModel || selectedModel || undefined;
+          const finalTime = formatMessageTime();
+          saveSessionMessageTime(sessionId, assistantTurnIndex, finalTime);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? { ...m, model: finalModel, time: finalTime }
+                : m
+            )
+          );
           refreshSessions();
         },
         onError: (message: string) => {
@@ -318,14 +385,10 @@ export default function Chatbot() {
         }
         @keyframes pulse-glow-hub {
           0%, 100% { opacity: 0.5; filter: drop-shadow(0 0 8px ${COLOR.accent500}); }
-          50% { opacity: 0.9; filter: drop-shadow(0 0 16px ${COLOR.accent500}); }
+          50% { opacity: 0.85; filter: drop-shadow(0 0 16px ${COLOR.accent400}); }
         }
-
         .animate-msg-in {
-          animation: msg-pop-in 0.25s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-        .animate-pulse-hub {
-          animation: pulse-glow-hub 3.5s ease-in-out infinite;
+          animation: msg-pop-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .chat-input-container {
@@ -567,6 +630,12 @@ export default function Chatbot() {
               </div>
             ) : (
               <>
+                <div className="flex items-center justify-center my-1.5 flex-none">
+                  <span className="px-3.5 py-1 rounded-full text-[11px] font-semibold text-muted-foreground/80 bg-secondary/50 border border-border/50 shadow-2xs">
+                    {formatMessageDate()}
+                  </span>
+                </div>
+
                 {visibleMessages.map((m) => {
                   const isUser = m.role === "user";
                   return (
@@ -577,16 +646,41 @@ export default function Chatbot() {
                         </div>
                       )}
 
-                      <div
-                        className={`max-w-[82%] px-5 py-3.5 rounded-2xl text-sm leading-relaxed break-words shadow-sm transition-all ${isUser ? "text-white shadow-md" : "border border-border/80 text-foreground"
+                      <div className={`flex flex-col gap-1 max-w-[82%] ${isUser ? "items-end" : "items-start"}`}>
+                        <div
+                          className={`px-5 py-3.5 rounded-2xl text-sm leading-relaxed break-words shadow-sm transition-all ${
+                            isUser ? "text-white shadow-md" : "border border-border/80 text-foreground"
                           }`}
-                        style={
-                          isUser
-                            ? { background: `linear-gradient(135deg, ${COLOR.accent500} 0%, ${COLOR.accent600} 100%)` }
-                            : { background: "var(--card)" }
-                        }
-                      >
-                        <MarkdownRenderer text={m.text} isUser={isUser} />
+                          style={
+                            isUser
+                              ? { background: `linear-gradient(135deg, ${COLOR.accent500} 0%, ${COLOR.accent600} 100%)` }
+                              : { background: "var(--card)" }
+                          }
+                        >
+                          <MarkdownRenderer text={m.text} isUser={isUser} />
+                        </div>
+
+                        {/* Under user message */}
+                        {isUser && m.time && (
+                          <span className="text-[10px] text-muted-foreground/60 font-sans font-medium px-1">
+                            {m.time}
+                          </span>
+                        )}
+
+                        {/* Under assistant message */}
+                        {!isUser && m.model && m.text.length > 0 && (
+                          <div className="flex items-center gap-2.5 px-1 pt-0.5 text-[11px] font-mono text-muted-foreground/70">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary/60 border border-border/50 text-foreground font-medium text-[10.5px] shadow-2xs">
+                              <Cpu className="size-3 text-primary" />
+                              {m.model}
+                            </span>
+                            {m.time && (
+                              <span className="text-[10px] text-muted-foreground/60 font-sans font-medium">
+                                {m.time}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {isUser && (

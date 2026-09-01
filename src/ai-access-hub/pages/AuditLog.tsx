@@ -238,7 +238,7 @@ export default function AuditLog() {
           variant="outline"
           size="sm"
           onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
-          className="border-border bg-secondary text-foreground hover:bg-secondary/80 font-extrabold shadow-sm cursor-pointer"
+          className="border-1.5 border-border bg-secondary text-foreground hover:bg-secondary/80 hover:border-primary/50 font-extrabold shadow-xs cursor-pointer rounded-xl px-3.5 h-9 text-xs transition-all"
         >
           <ArrowLeft className="size-3.5 mr-1" />
           All Sectors

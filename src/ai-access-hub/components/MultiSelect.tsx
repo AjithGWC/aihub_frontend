@@ -49,7 +49,7 @@ export function MultiSelect({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            'flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 cursor-pointer',
+            'flex min-h-10 w-full flex-wrap items-center gap-1.5 rounded-xl border border-border bg-secondary/40 hover:bg-secondary/60 px-3 py-2 text-xs shadow-xs outline-none transition-all focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 cursor-pointer',
             className
           )}
         >
@@ -59,7 +59,7 @@ export function MultiSelect({
             selectedOptions.map((o) => (
               <span
                 key={o.value}
-                className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[11px] font-bold text-primary"
+                className="inline-flex items-center gap-1 rounded-lg border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary shadow-2xs"
               >
                 <span className="truncate max-w-[140px]">{o.label}</span>
                 <span
@@ -77,12 +77,12 @@ export function MultiSelect({
               </span>
             ))
           )}
-          <ChevronsUpDownIcon className="ml-auto size-3.5 shrink-0 opacity-50" />
+          <ChevronsUpDownIcon className="ml-auto size-3.5 shrink-0 opacity-60 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} className="h-9 text-xs" />
+      <PopoverContent className="w-(--radix-popover-trigger-width) p-0 rounded-xl border border-border bg-card shadow-xl z-[999999]" align="start">
+        <Command className="rounded-xl bg-card text-foreground">
+          <CommandInput placeholder={searchPlaceholder} className="h-10 text-xs border-b border-border" />
           <CommandList>
             <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">{emptyText}</CommandEmpty>
             <CommandGroup>

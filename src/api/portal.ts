@@ -269,7 +269,7 @@ export interface ChatSessionCompletionRequest {
 
 export interface ChatStreamHandlers {
   onDelta: (text: string) => void;
-  onDone: (finishReason: string) => void;
+  onDone: (finishReason?: string, model?: string) => void;
   onError: (message: string) => void;
 }
 
@@ -327,6 +327,16 @@ export function streamSessionChatCompletion(
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let detectedModel: string | undefined;
+    let finishReason: string | undefined;
+    let doneCalled = false;
+
+    const notifyDone = (reason?: string) => {
+      if (!doneCalled) {
+        doneCalled = true;
+        handlers.onDone(reason || finishReason || 'stop', detectedModel);
+      }
+    };
 
     try {
       while (true) {
@@ -342,7 +352,10 @@ export function streamSessionChatCompletion(
           const dataLine = rawEvent.split('\n').find((line) => line.startsWith('data:'));
           if (!dataLine) continue;
           const data = dataLine.slice(5).trim();
-          if (data === '[DONE]') return;
+          if (data === '[DONE]') {
+            notifyDone('stop');
+            return;
+          }
 
           let parsed: any;
           try {
@@ -356,16 +369,22 @@ export function streamSessionChatCompletion(
             return;
           }
 
+          if (parsed?.model && typeof parsed.model === 'string') {
+            detectedModel = parsed.model;
+          }
+
           const choice = parsed?.choices?.[0];
           const content = choice?.delta?.content;
           if (typeof content === 'string' && content.length > 0) {
             handlers.onDelta(content);
           }
-          if (typeof choice?.finish_reason === 'string') {
-            handlers.onDone(choice.finish_reason);
+          if (typeof choice?.finish_reason === 'string' && choice.finish_reason.length > 0) {
+            finishReason = choice.finish_reason;
+            notifyDone(choice.finish_reason);
           }
         }
       }
+      notifyDone(finishReason || 'stop');
     } catch (err) {
       if (controller.signal.aborted) return;
       handlers.onError(err instanceof Error ? err.message : String(err));

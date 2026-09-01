@@ -201,11 +201,81 @@ button:not(:disabled),
   background: transparent;
 }
 
+/* Hide scrollbar utility */
+.no-scrollbar,
+.scrollbar-none,
+[data-slot="dialog-content"] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar,
+[data-slot="dialog-content"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* Accessible focus */
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Enhanced Modal Action Buttons & Hovers */
+[data-slot="dialog-footer"] button,
+[data-slot="dialog-content"] button[type="submit"] {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+}
+
+[data-slot="dialog-footer"] button:hover,
+[data-slot="dialog-content"] button[type="submit"]:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.15);
+}
+
+[data-slot="dialog-footer"] button:active,
+[data-slot="dialog-content"] button[type="submit"]:active {
+  transform: translateY(0) scale(0.98);
+}
+
+[data-slot="dialog-footer"] button[type="submit"],
+[data-slot="dialog-content"] button[type="submit"] {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+}
+
+[data-slot="dialog-footer"] button[type="submit"]:hover,
+[data-slot="dialog-content"] button[type="submit"]:hover {
+  background-color: var(--primary-hover) !important;
+  filter: brightness(1.08);
+}
+
+[data-slot="dialog-footer"] button[data-variant="outline"],
+[data-slot="dialog-footer"] button[data-variant="secondary"] {
+  background-color: var(--secondary) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+}
+
+[data-slot="dialog-footer"] button[data-variant="outline"]:hover,
+[data-slot="dialog-footer"] button[data-variant="secondary"]:hover {
+  background-color: var(--accent) !important;
+  border-color: var(--primary) !important;
+  color: var(--foreground) !important;
+}
+
+[data-slot="dialog-footer"] button[data-variant="destructive"] {
+  background-color: var(--destructive) !important;
+  color: #ffffff !important;
+}
+
+[data-slot="dialog-footer"] button[data-variant="destructive"]:hover {
+  background-color: #b91c1c !important;
+  filter: brightness(1.1);
 }
 
 /*
@@ -1806,23 +1876,39 @@ select.input {
   max-height: 85vh !important;
   overflow-y: auto !important;
   z-index: 999999 !important;
-  background: var(--card) !important;
+  background:
+    radial-gradient(1100px 900px at 88% 4%, rgba(59, 130, 246, 0.08) 0%, transparent 60%),
+    radial-gradient(900px 700px at 8% 96%, rgba(139, 92, 246, 0.05) 0%, transparent 60%),
+    var(--bg) !important;
   color: var(--foreground) !important;
   border: 1.5px solid var(--border) !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 35px var(--primary-soft) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--border), 0 0 35px var(--primary-soft) !important;
 }
 
-/* Ensure dialog titles, headers, labels, and text are high-contrast dark slate on Pearl White modal */
+/* Dialog Header with subtle divider */
+[data-slot="dialog-header"] {
+  padding-bottom: 16px !important;
+  border-bottom: 1px solid var(--border) !important;
+  margin-bottom: 12px !important;
+}
+
+/* Ensure dialog titles, headers, labels, and text are high-contrast */
 [data-slot="dialog-content"] h1, [data-slot="dialog-content"] h2, [data-slot="dialog-content"] h3,
 [data-slot="dialog-content"] [class*="DialogTitle"],
 [data-slot="dialog-content"] [data-slot="dialog-title"] {
   color: var(--foreground) !important;
   font-weight: 800 !important;
+  letter-spacing: -0.015em !important;
 }
 
 [data-slot="dialog-content"] label {
-  color: var(--text) !important;
-  font-weight: 700 !important;
+  color: var(--foreground) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  opacity: 0.8 !important;
 }
 
 [data-slot="dialog-content"] p, [data-slot="dialog-content"] [class*="description"] {
@@ -1830,40 +1916,108 @@ select.input {
   font-weight: 500 !important;
 }
 
-/* Form Inputs & Select Triggers inside Dialogs */
+/* Form Inputs & Select Triggers inside Dialogs - crisp background with polished hover & focus rings */
 [data-slot="dialog-content"] input,
 [data-slot="dialog-content"] select,
 [data-slot="dialog-content"] button[role="combobox"],
 [data-slot="dialog-content"] [data-slot="select-trigger"] {
-  background-color: var(--panel-2) !important;
+  background-color: var(--card) !important;
   color: var(--foreground) !important;
   border: 1.5px solid var(--border) !important;
+  border-radius: 12px !important;
+  height: 42px !important;
   font-weight: 600 !important;
+  font-size: 13px !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+[data-slot="dialog-content"] input:hover,
+[data-slot="dialog-content"] select:hover,
+[data-slot="dialog-content"] button[role="combobox"]:hover,
+[data-slot="dialog-content"] [data-slot="select-trigger"]:hover {
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  background-color: var(--card) !important;
+}
+
+[data-slot="dialog-content"] input:focus,
+[data-slot="dialog-content"] select:focus,
+[data-slot="dialog-content"] button[role="combobox"]:focus,
+[data-slot="dialog-content"] [data-slot="select-trigger"]:focus {
+  border-color: var(--primary) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3.5px var(--primary-soft), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  background-color: var(--card) !important;
 }
 
 [data-slot="dialog-content"] input::placeholder {
   color: var(--muted) !important;
+  opacity: 0.65 !important;
+  font-weight: 400 !important;
 }
 
-/* Outline / Cancel Buttons inside Dialogs */
-[data-slot="dialog-content"] button[class*="border"],
-[data-slot="dialog-content"] button[variant="outline"] {
-  background-color: var(--panel-2) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
-  font-weight: 700 !important;
+/* Dialog Footer with subtle top divider */
+[data-slot="dialog-footer"] {
+  padding-top: 16px !important;
+  border-top: 1px solid var(--border) !important;
+  margin-top: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
 }
 
-[data-slot="dialog-content"] button[class*="border"]:hover,
-[data-slot="dialog-content"] button[variant="outline"]:hover {
+/* Sleek Dialog Close Button */
+[data-slot="dialog-close"] {
+  border-radius: 9999px !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+[data-slot="dialog-close"]:hover {
   background-color: var(--secondary) !important;
-  color: var(--foreground) !important;
+  transform: rotate(90deg) !important;
 }
 
-.sector-card button[class*="border"]:hover {
-  background-color: #334155 !important;
-  color: #ffffff !important;
-  border-color: #64748b !important;
+/* Button Borders & Contrast */
+.page > header button,
+.sector-header button,
+[data-slot="button"],
+.table-action-btn,
+button.table-action-btn {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+}
+
+[data-slot="button"][class*="bg-primary"],
+button[class*="bg-primary"] {
+  border-color: rgba(37, 99, 235, 0.4) !important;
+}
+
+[data-slot="button"][class*="bg-primary"]:hover,
+button[class*="bg-primary"]:hover {
+  border-color: rgba(37, 99, 235, 0.8) !important;
+}
+
+[data-slot="button"][class*="bg-secondary"],
+[data-slot="button"][class*="variant-outline"],
+button[class*="bg-secondary"] {
+  border-color: var(--border) !important;
+}
+
+[data-slot="button"][class*="bg-secondary"]:hover,
+button[class*="bg-secondary"]:hover {
+  border-color: var(--primary) !important;
+}
+
+.table-action-btn {
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.table-action-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* ==========================================================================

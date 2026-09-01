@@ -116,7 +116,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "relative z-[999999] pointer-events-auto w-full max-w-lg gap-4 rounded-2xl border border-border bg-card p-6 text-foreground shadow-2xl duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          "relative z-[999999] pointer-events-auto w-full max-w-lg max-h-[90vh] overflow-y-auto gap-4 rounded-2xl border border-border bg-card p-6 text-foreground shadow-2xl duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 no-scrollbar scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
           className
         )}
         style={{

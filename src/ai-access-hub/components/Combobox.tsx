@@ -44,18 +44,18 @@ export function Combobox({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            'flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 text-xs shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 cursor-pointer',
+            'flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-border bg-secondary/40 hover:bg-secondary/60 px-3.5 text-xs shadow-xs outline-none transition-all focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 cursor-pointer',
             selected ? 'text-foreground font-semibold' : 'text-muted-foreground',
             className
           )}
         >
           <span className="truncate">{selected ? selected.label : placeholder}</span>
-          <ChevronsUpDownIcon className="size-3.5 shrink-0 opacity-50" />
+          <ChevronsUpDownIcon className="size-3.5 shrink-0 opacity-60 text-muted-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} className="h-9 text-xs" />
+      <PopoverContent className="w-(--radix-popover-trigger-width) p-0 rounded-xl border border-border bg-card shadow-xl z-[999999]" align="start">
+        <Command className="rounded-xl bg-card text-foreground">
+          <CommandInput placeholder={searchPlaceholder} className="h-10 text-xs border-b border-border" />
           <CommandList>
             <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">{emptyText}</CommandEmpty>
             <CommandGroup>
