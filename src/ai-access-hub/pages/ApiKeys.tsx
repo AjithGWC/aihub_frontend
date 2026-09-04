@@ -16,6 +16,7 @@ import {
   X,
   ShieldAlert,
   ArrowLeft,
+  RefreshCw,
 } from 'lucide-react'
 import {
   createUserKey,
@@ -301,13 +302,18 @@ export default function ApiKeys() {
             variant="outline"
             size="sm"
             onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
-            className="border-border bg-secondary text-foreground hover:bg-secondary/80 font-extrabold shadow-sm cursor-pointer"
+            className="border-1.5 border-border bg-secondary text-foreground hover:bg-secondary/80 hover:border-primary/50 font-extrabold shadow-xs cursor-pointer rounded-xl px-3.5 h-9 text-xs transition-all"
           >
             <ArrowLeft className="size-3.5 mr-1" />
             All Sectors
           </Button>
 
-          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg shadow-sm">
+          <Button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            size="sm"
+            className="gap-2 text-xs font-extrabold bg-primary hover:bg-primary-hover text-primary-foreground border-1.5 border-primary/40 hover:border-primary rounded-xl h-9 px-4 shadow-sm hover:shadow-md cursor-pointer transition-all"
+          >
             <Plus className="size-3.5" />Issue API Key
           </Button>
         </div>
@@ -410,20 +416,32 @@ export default function ApiKeys() {
 
       {showCreate && (
         <Dialog open onOpenChange={(n) => !n && setShowCreate(false)}>
-          <DialogContent className="sm:max-w-lg border-t-4 border-t-primary shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="sm:max-w-lg shadow-2xl rounded-2xl bg-card p-6 sm:p-7 border border-border animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
-                <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-none">
-                  <KeyRound className="size-4 text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-none text-primary shadow-xs">
+                  <KeyRound className="size-5" />
                 </div>
-                Issue API Key
-              </DialogTitle>
+                <div>
+                  <DialogTitle className="text-lg font-black text-foreground tracking-tight">
+                    Issue API Key
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                    Generate a new gateway token with fine-grained model access.
+                  </p>
+                </div>
+              </div>
             </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4 py-2">
+            <form onSubmit={handleCreate} className="space-y-4 py-3">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Key Label</Label>
-                  <Input value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} placeholder="Production access" className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg" />
+                  <Input
+                    value={form.label}
+                    onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
+                    placeholder="Production access"
+                    className="h-10 px-3.5 rounded-xl border border-border bg-secondary/40 hover:bg-secondary/60 focus:bg-background text-foreground font-semibold text-xs shadow-2xs"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Assign To</Label>
@@ -455,17 +473,32 @@ export default function ApiKeys() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Rate Limit (req/min)</Label>
-                  <Input type="number" min={1} value={form.rateLimitRpm} onChange={(e) => setForm((f) => ({ ...f, rateLimitRpm: Number(e.target.value) || 1 }))} className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg" />
+                  <Input
+                    type="number"
+                    min={1}
+                    value={form.rateLimitRpm}
+                    onChange={(e) => setForm((f) => ({ ...f, rateLimitRpm: Number(e.target.value) || 1 }))}
+                    className="h-10 px-3.5 rounded-xl border border-border bg-secondary/40 hover:bg-secondary/60 focus:bg-background text-foreground font-semibold text-xs shadow-2xs"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Expires At</Label>
-                  <Input type="date" value={form.expiresAt} onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))} className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg" />
+                  <Input
+                    type="date"
+                    value={form.expiresAt}
+                    onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))}
+                    className="h-10 px-3.5 rounded-xl border border-border bg-secondary/40 hover:bg-secondary/60 focus:bg-background text-foreground font-semibold text-xs shadow-2xs"
+                  />
                 </div>
               </div>
-              <DialogFooter className="pt-3 gap-2">
-                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
-                <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer rounded-lg px-5 bg-primary hover:bg-primary-hover">
-                  {submitting ? undefined : <Lock className="size-3.5 mr-1.5" />}Issue Key
+              <DialogFooter className="pt-4 gap-2.5">
+                <DialogClose asChild>
+                  <Button variant="outline" size="sm" className="h-10 px-4 text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-xl shadow-2xs">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button type="submit" size="sm" disabled={submitting} className="h-10 px-6 text-xs font-extrabold text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-xl bg-primary hover:bg-primary-hover">
+                  {submitting ? <RefreshCw className="size-3.5 animate-spin mr-1.5" /> : <Lock className="size-3.5 mr-1.5" />}Issue Key
                 </Button>
               </DialogFooter>
             </form>
@@ -476,30 +509,39 @@ export default function ApiKeys() {
       {/* Raw key reveal — shown exactly once, right after creation */}
       {createdKey && (
         <Dialog open onOpenChange={(n) => !n && setCreatedKey(null)}>
-          <DialogContent className="sm:max-w-lg border-t-4 border-t-emerald-500 shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="sm:max-w-lg shadow-2xl rounded-2xl bg-card p-6 sm:p-7 border border-border animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
-                <div className="size-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-none">
-                  <KeyRound className="size-4 text-emerald-500" />
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-none text-emerald-500 shadow-xs">
+                  <KeyRound className="size-5" />
                 </div>
-                Key Issued
-              </DialogTitle>
+                <div>
+                  <DialogTitle className="text-lg font-black text-foreground tracking-tight">
+                    API Key Created
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                    Store this key in a secure location.
+                  </p>
+                </div>
+              </div>
             </DialogHeader>
-            <div className="space-y-3 py-2">
-              <p className="text-xs text-danger font-semibold flex items-center gap-1.5">
+            <div className="space-y-3 py-3">
+              <p className="text-xs text-danger font-bold flex items-center gap-1.5">
                 <AlertCircle className="size-3.5 flex-none" />
-                Copy this now — it won't be shown again.
+                Copy this key now — it will never be displayed again.
               </p>
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 font-mono text-xs bg-secondary/50 border border-border break-all">
-                <span className="flex-1">{createdKey.raw_key}</span>
-                <button onClick={handleCopyRaw} className="p-1 rounded hover:bg-secondary transition-colors cursor-pointer flex-none" title="Copy key">
+              <div className="flex items-center gap-2 rounded-xl p-3 font-mono text-xs bg-secondary/60 border border-border break-all">
+                <span className="flex-1 font-bold text-foreground select-all">{createdKey.raw_key}</span>
+                <button onClick={handleCopyRaw} className="p-1.5 rounded-lg hover:bg-secondary transition-colors cursor-pointer flex-none border border-border/70" title="Copy key">
                   {rawCopied ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4 text-muted-foreground" />}
                 </button>
               </div>
             </div>
             <DialogFooter className="pt-2">
               <DialogClose asChild>
-                <Button size="sm" className="text-xs font-extrabold text-primary-foreground bg-primary hover:bg-primary-hover cursor-pointer rounded-lg px-5">Done</Button>
+                <Button size="sm" className="h-10 px-6 text-xs font-extrabold text-primary-foreground bg-primary hover:bg-primary-hover cursor-pointer rounded-xl shadow-md">
+                  Done
+                </Button>
               </DialogClose>
             </DialogFooter>
           </DialogContent>
@@ -508,20 +550,33 @@ export default function ApiKeys() {
 
       {deleteKey && (
         <Dialog open onOpenChange={(n) => !n && setDeleteKey(null)}>
-          <DialogContent className="sm:max-w-md border-t-4 border-t-danger shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="sm:max-w-md shadow-2xl rounded-2xl bg-card p-6 sm:p-7 border border-border animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="text-base font-black text-danger flex items-center gap-2.5">
-                <div className="size-8 rounded-lg bg-danger/10 border border-danger/20 flex items-center justify-center flex-none">
-                  <Trash2 className="size-4 text-danger" />
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-danger/10 border border-danger/20 flex items-center justify-center flex-none text-danger shadow-xs">
+                  <Trash2 className="size-5" />
                 </div>
-                Revoke API Key
-              </DialogTitle>
+                <div>
+                  <DialogTitle className="text-lg font-black text-danger tracking-tight">
+                    Revoke API Key
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                    This action will immediately disable access.
+                  </p>
+                </div>
+              </div>
             </DialogHeader>
-            <p className="text-sm text-foreground py-2 font-medium">Permanently revoke <span className="font-extrabold">{deleteKey.label || deleteKey.keyPrefix}</span>? Applications using this key will immediately lose access.</p>
-            <DialogFooter className="mt-3 gap-2">
-              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
-              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleDelete(deleteKey)} className="text-xs font-extrabold cursor-pointer rounded-lg px-5 shadow-sm hover:shadow-md">
-                <Trash2 className="size-3.5 mr-1" />Revoke Key
+            <p className="text-sm text-foreground py-3 font-medium">
+              Permanently revoke <span className="font-extrabold">{deleteKey.label || deleteKey.keyPrefix}</span>? Applications using this key will immediately lose access.
+            </p>
+            <DialogFooter className="pt-2 gap-2.5">
+              <DialogClose asChild>
+                <Button variant="outline" size="sm" className="h-10 px-4 text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-xl shadow-2xs">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleDelete(deleteKey)} className="h-10 px-6 text-xs font-extrabold cursor-pointer rounded-xl shadow-md hover:shadow-lg">
+                <Trash2 className="size-3.5 mr-1.5" />Revoke Key
               </Button>
             </DialogFooter>
           </DialogContent>

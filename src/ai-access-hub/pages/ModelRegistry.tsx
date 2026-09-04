@@ -222,11 +222,16 @@ export default function ModelRegistry() {
   useEffect(() => { loadModels() }, [])
   useEffect(() => { setOffset(0) }, [query])
 
+  const [selectedBackend, setSelectedBackend] = useState<string>('all')
+
   const filteredModels = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return allModels
-    return allModels.filter((m) => m.name.toLowerCase().includes(q) || m.backend.toLowerCase().includes(q))
-  }, [allModels, query])
+    return allModels.filter((m) => {
+      const matchesQuery = !q || m.name.toLowerCase().includes(q) || m.backend.toLowerCase().includes(q)
+      const matchesBackend = selectedBackend === 'all' || (m.backend || '').toLowerCase() === selectedBackend.toLowerCase()
+      return matchesQuery && matchesBackend
+    })
+  }, [allModels, query, selectedBackend])
 
   const total = filteredModels.length
   const pagedModels = filteredModels.slice(offset, offset + PAGE_SIZE)
@@ -287,7 +292,10 @@ export default function ModelRegistry() {
   }
 
   const cloudCount = allModels.filter((m) => m.isCloud).length
-  const backendSet = new Set(allModels.map((m) => m.backend).filter(Boolean))
+  const backendList = useMemo(() => {
+    const list = Array.from(new Set(allModels.map((m) => (m.backend || '').toLowerCase()).filter(Boolean)))
+    return list.sort()
+  }, [allModels])
 
   return (
     <div className="page sector-amber space-y-6 animate-slide-up">
@@ -306,17 +314,30 @@ export default function ModelRegistry() {
             variant="outline"
             size="sm"
             onClick={() => window.dispatchEvent(new CustomEvent('hexagon-hub-back'))}
-            className="border-border bg-secondary text-foreground hover:bg-secondary/80 font-extrabold shadow-sm cursor-pointer"
+            className="border-border bg-secondary text-foreground hover:bg-secondary/80 font-extrabold shadow-xs cursor-pointer rounded-lg text-xs"
           >
             <ArrowLeft className="size-3.5 mr-1" />
             All Sectors
           </Button>
-          <Button onClick={handleSyncOllama} disabled={syncing} variant="outline" size="sm" className="gap-2 text-xs font-bold border-border">
-            {syncing ? <RefreshCw className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+          <Button
+            type="button"
+            onClick={handleSyncOllama}
+            disabled={syncing}
+            variant="outline"
+            size="sm"
+            className="gap-2 text-xs font-extrabold border-border bg-card text-foreground hover:bg-secondary hover:text-foreground shadow-xs cursor-pointer rounded-lg transition-colors"
+          >
+            {syncing ? <RefreshCw className="size-3.5 animate-spin text-amber-500" /> : <Download className="size-3.5 text-primary" />}
             Sync from Ollama
           </Button>
-          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 text-xs font-bold bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg shadow-sm">
-            <Plus className="size-3.5" />Register Model
+          <Button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            size="sm"
+            className="gap-2 text-xs font-extrabold bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg shadow-sm cursor-pointer"
+          >
+            <Plus className="size-3.5" />
+            Register Model
           </Button>
         </div>
       </header>
@@ -339,7 +360,7 @@ export default function ModelRegistry() {
         {[
           { label: 'Registered Models', value: allModels.length, icon: Boxes, color: '#f59e0b', chip: 'Registry' },
           { label: 'Cloud-Hosted Instances', value: cloudCount, icon: Cloud, color: '#3b82f6', chip: 'Cloud ML' },
-          { label: 'Inference Providers', value: backendSet.size, icon: Zap, color: '#8b5cf6', chip: 'Active Routers' },
+          { label: 'Inference Providers', value: backendList.length, icon: Zap, color: '#8b5cf6', chip: 'Active Routers' },
         ].map(({ label, value, icon: Icon, color, chip }, i) => (
           <div
             key={label}
@@ -369,12 +390,46 @@ export default function ModelRegistry() {
         ))}
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search models…" className="pl-9 bg-background border-border text-foreground font-semibold placeholder:text-muted-foreground text-sm shadow-xs rounded-lg" />
-        {query && <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"><X className="size-3.5 text-muted-foreground hover:text-foreground" /></button>}
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search models or providers…" className="pl-9 bg-background border-border text-foreground font-semibold placeholder:text-muted-foreground text-sm shadow-xs rounded-lg" />
+          {query && <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"><X className="size-3.5 text-muted-foreground hover:text-foreground" /></button>}
+        </div>
+
+        {/* Quick Backend Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <button
+            onClick={() => { setSelectedBackend('all'); setOffset(0); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer border ${
+              selectedBackend === 'all'
+                ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                : 'bg-card text-muted-foreground border-border hover:bg-secondary hover:text-foreground'
+            }`}
+          >
+            All
+          </button>
+          {backendList.map((backend) => {
+            const isSelected = selectedBackend === backend
+            return (
+              <button
+                key={backend}
+                onClick={() => { setSelectedBackend(backend); setOffset(0); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold capitalize transition-all cursor-pointer border whitespace-nowrap ${
+                  isSelected
+                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                    : 'bg-card text-muted-foreground border-border hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                {backend}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
+      {/* Model Table */}
       <div className="sector-card rounded-xl overflow-hidden shadow-sm border border-border bg-card">
         {loading ? (
           <div className="p-5 space-y-3">
@@ -382,7 +437,7 @@ export default function ModelRegistry() {
           </div>
         ) : pagedModels.length === 0 ? (
           <div className="py-16 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
-            <Boxes className="size-8 text-muted-foreground/30" />No models registered.
+            <Boxes className="size-8 text-muted-foreground/30" />No models match your query.
           </div>
         ) : (
           <div className="px-4">
@@ -407,72 +462,145 @@ export default function ModelRegistry() {
         <Pagination offset={offset} limit={PAGE_SIZE} total={total} onChange={setOffset} />
       </div>
 
+      {/* Register New Model Modal */}
       {showCreate && (
         <Dialog open onOpenChange={(n) => !n && setShowCreate(false)}>
-          <DialogContent className="sm:max-w-lg border-t-4 border-t-primary shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="sm:max-w-2xl shadow-2xl rounded-2xl bg-card p-6 sm:p-7 border border-border animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2.5 text-lg font-black text-foreground tracking-tight">
-                <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-none">
-                  <Boxes className="size-4 text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-none text-primary shadow-xs">
+                  <Boxes className="size-5" />
                 </div>
-                Register New Model
-              </DialogTitle>
+                <div>
+                  <DialogTitle className="text-lg font-black text-foreground tracking-tight">
+                    Register New Model
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                    Configure model provider, context window, and inference endpoint.
+                  </p>
+                </div>
+              </div>
             </DialogHeader>
+
             <form onSubmit={handleCreate} className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Model Name</Label>
-                  <Input value={createForm.name} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))} placeholder="gpt-4o" required className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs rounded-lg" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Version</Label>
-                  <Input value={createForm.version} onChange={(e) => setCreateForm((f) => ({ ...f, version: e.target.value }))} placeholder="2024-08-06" required className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs rounded-lg" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Backend Provider</Label>
-                  <Select value={createForm.backend} onValueChange={(v) => setCreateForm((f) => ({ ...f, backend: v, isCloud: CLOUD_BACKENDS.has(v) }))}>
-                    <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg"><SelectValue placeholder="Select provider" /></SelectTrigger>
-                    <SelectContent className="bg-card text-foreground border-border shadow-md rounded-lg">
-                      {['openai', 'anthropic', 'azure', 'google', 'cohere', 'mistral', 'ollama'].map((p) => (
-                        <SelectItem key={p} value={p} className="capitalize text-foreground font-medium cursor-pointer">{p}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Max Context Length</Label>
-                  <Input type="number" value={createForm.maxContextLength} onChange={(e) => setCreateForm((f) => ({ ...f, maxContextLength: e.target.value }))} placeholder="128000" className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs rounded-lg" />
-                </div>
-                <div className="space-y-1.5 col-span-2">
-                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Endpoint URL</Label>
-                  <Input value={createForm.endpoint} onChange={(e) => setCreateForm((f) => ({ ...f, endpoint: e.target.value }))} placeholder="https://api.openai.com/v1" required className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs rounded-lg" />
+              {/* Section 1: General Info */}
+              <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3">
+                <p className="text-[11px] font-black uppercase tracking-wider text-primary">Model Specification</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Model Name</Label>
+                    <Input
+                      value={createForm.name}
+                      onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                      placeholder="gpt-4o"
+                      required
+                      className="h-10 px-3.5 rounded-xl border border-border bg-background hover:border-primary/50 text-foreground font-semibold text-xs font-mono shadow-2xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Version</Label>
+                    <Input
+                      value={createForm.version}
+                      onChange={(e) => setCreateForm((f) => ({ ...f, version: e.target.value }))}
+                      placeholder="2024-08-06"
+                      required
+                      className="h-10 px-3.5 rounded-xl border border-border bg-background hover:border-primary/50 text-foreground font-semibold text-xs font-mono shadow-2xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Backend Provider</Label>
+                    <Select value={createForm.backend} onValueChange={(v) => setCreateForm((f) => ({ ...f, backend: v, isCloud: CLOUD_BACKENDS.has(v) }))}>
+                      <SelectTrigger className="w-full h-10 px-3.5 rounded-xl border border-border bg-background hover:border-primary/50 text-foreground font-semibold text-xs shadow-2xs">
+                        <SelectValue placeholder="Select provider" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card text-foreground border-border shadow-xl rounded-xl z-[999999]">
+                        {['openai', 'anthropic', 'azure', 'google', 'cohere', 'mistral', 'ollama'].map((p) => (
+                          <SelectItem key={p} value={p} className="capitalize text-foreground font-medium cursor-pointer">{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Max Context Length</Label>
+                    <Input
+                      type="number"
+                      value={createForm.maxContextLength}
+                      onChange={(e) => setCreateForm((f) => ({ ...f, maxContextLength: e.target.value }))}
+                      placeholder="128000"
+                      className="h-10 px-3.5 rounded-xl border border-border bg-background hover:border-primary/50 text-foreground font-semibold text-xs font-mono shadow-2xs"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Task Types (comma-separated)</Label>
-                <Input value={createForm.tasks} onChange={(e) => setCreateForm((f) => ({ ...f, tasks: e.target.value }))} placeholder="chat, code, reasoning" required className="bg-background border-border text-foreground font-semibold text-xs font-mono shadow-xs rounded-lg" />
-              </div>
-              {createForm.isCloud && (
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Provider API Key</Label>
-                  <Input type="password" value={createForm.apiKey} onChange={(e) => setCreateForm((f) => ({ ...f, apiKey: e.target.value }))} placeholder="sk-..." className="bg-background border-border text-foreground font-semibold font-mono text-xs shadow-xs rounded-lg" />
+
+              {/* Section 2: Endpoint & Tasks */}
+              <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3">
+                <p className="text-[11px] font-black uppercase tracking-wider text-primary">Routing & Endpoints</p>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Endpoint URL</Label>
+                    <Input
+                      value={createForm.endpoint}
+                      onChange={(e) => setCreateForm((f) => ({ ...f, endpoint: e.target.value }))}
+                      placeholder="https://api.openai.com/v1"
+                      required
+                      className="h-10 px-3.5 rounded-xl border border-border bg-background hover:border-primary/50 text-foreground font-semibold text-xs font-mono shadow-2xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Supported Task Types</Label>
+                    <Input
+                      value={createForm.tasks}
+                      onChange={(e) => setCreateForm((f) => ({ ...f, tasks: e.target.value }))}
+                      placeholder="chat, code, reasoning"
+                      required
+                      className="h-10 px-3.5 rounded-xl border border-border bg-background hover:border-primary/50 text-foreground font-semibold text-xs font-mono shadow-2xs"
+                    />
+                  </div>
                 </div>
-              )}
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Status</Label>
-                <Select value={createForm.status} onValueChange={(v) => setCreateForm((f) => ({ ...f, status: v as 'active' | 'staging' | 'retired' }))}>
-                  <SelectTrigger className="bg-background border-border text-foreground font-semibold text-xs shadow-xs rounded-lg"><SelectValue /></SelectTrigger>
-                  <SelectContent className="bg-card text-foreground border-border shadow-md rounded-lg">
-                    <SelectItem value="staging" className="text-foreground font-medium cursor-pointer">Staging</SelectItem>
-                    <SelectItem value="active" className="text-foreground font-medium cursor-pointer">Active</SelectItem>
-                    <SelectItem value="retired" className="text-foreground font-medium cursor-pointer">Retired</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
-              <DialogFooter className="pt-3 gap-2">
-                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
-                <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer rounded-lg px-5 bg-primary hover:bg-primary-hover">
-                  <ChevronRight className="size-3.5 mr-1" />Register Model
+
+              {/* Section 3: Credentials & Status */}
+              <div className="p-4 rounded-xl bg-secondary/30 border border-border space-y-3">
+                <p className="text-[11px] font-black uppercase tracking-wider text-primary">Authentication & Lifecycle</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {createForm.isCloud && (
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Provider API Key</Label>
+                      <Input
+                        type="password"
+                        value={createForm.apiKey}
+                        onChange={(e) => setCreateForm((f) => ({ ...f, apiKey: e.target.value }))}
+                        placeholder="sk-..."
+                        className="h-10 px-3.5 rounded-xl border border-border bg-background hover:border-primary/50 text-foreground font-semibold font-mono text-xs shadow-2xs"
+                      />
+                    </div>
+                  )}
+                  <div className={`space-y-1.5 ${!createForm.isCloud ? 'sm:col-span-2' : ''}`}>
+                    <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Status</Label>
+                    <Select value={createForm.status} onValueChange={(v) => setCreateForm((f) => ({ ...f, status: v as 'active' | 'staging' | 'retired' }))}>
+                      <SelectTrigger className="w-full h-10 px-3.5 rounded-xl border border-border bg-background hover:border-primary/50 text-foreground font-semibold text-xs shadow-2xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card text-foreground border-border shadow-xl rounded-xl z-[999999]">
+                        <SelectItem value="staging" className="text-foreground font-medium cursor-pointer">Staging</SelectItem>
+                        <SelectItem value="active" className="text-foreground font-medium cursor-pointer">Active</SelectItem>
+                        <SelectItem value="retired" className="text-foreground font-medium cursor-pointer">Retired</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-3 gap-2.5">
+                <DialogClose asChild>
+                  <Button variant="outline" size="sm" className="h-10 px-5 text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-xl shadow-xs transition-colors">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button type="submit" size="sm" disabled={submitting} className="h-10 px-6 text-xs font-extrabold text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer rounded-xl bg-primary hover:bg-primary-hover flex items-center gap-2">
+                  {submitting ? <RefreshCw className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
+                  Register Model
                 </Button>
               </DialogFooter>
             </form>
@@ -482,24 +610,43 @@ export default function ModelRegistry() {
 
       {setKeyModel && (
         <Dialog open onOpenChange={(n) => !n && setSetKeyModel(null)}>
-          <DialogContent className="sm:max-w-md border-t-4 border-t-primary shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="sm:max-w-md shadow-2xl rounded-2xl bg-card p-6 sm:p-7 border border-border animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2.5 text-base font-black text-foreground tracking-tight">
-                <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-none">
-                  <Lock className="size-4 text-primary" />
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-none text-primary shadow-xs">
+                  <Lock className="size-5" />
                 </div>
-                Assign API Key — {setKeyModel.name}
-              </DialogTitle>
+                <div>
+                  <DialogTitle className="text-lg font-black text-foreground tracking-tight">
+                    Assign API Key
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                    {setKeyModel.name}
+                  </p>
+                </div>
+              </div>
             </DialogHeader>
-            <form onSubmit={handleSetKey} className="space-y-4 py-2">
+            <form onSubmit={handleSetKey} className="space-y-4 py-3">
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">API Key Secret</Label>
-                <Input type="password" value={keyValue} onChange={(e) => setKeyValue(e.target.value)} placeholder="sk-..." required className="bg-background border-border text-foreground font-semibold font-mono text-xs shadow-xs rounded-lg" />
+                <Input
+                  type="password"
+                  value={keyValue}
+                  onChange={(e) => setKeyValue(e.target.value)}
+                  placeholder="sk-..."
+                  required
+                  className="h-10 px-3.5 rounded-xl border border-border bg-secondary/40 hover:bg-secondary/60 focus:bg-background text-foreground font-semibold font-mono text-xs shadow-2xs"
+                />
               </div>
-              <DialogFooter className="pt-3 gap-2">
-                <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
-                <Button type="submit" size="sm" disabled={submitting} className="text-xs font-extrabold text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer rounded-lg px-5 bg-primary hover:bg-primary-hover">
-                  <Key className="size-3.5 mr-1" />Save Key
+              <DialogFooter className="pt-4 gap-2.5">
+                <DialogClose asChild>
+                  <Button variant="outline" size="sm" className="h-10 px-5 text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-xl shadow-xs transition-colors">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button type="submit" size="sm" disabled={submitting} className="h-10 px-6 text-xs font-extrabold text-primary-foreground shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer rounded-xl bg-primary hover:bg-primary-hover flex items-center gap-2">
+                  {submitting ? <RefreshCw className="size-3.5 animate-spin" /> : <Key className="size-3.5" />}
+                  Save Key
                 </Button>
               </DialogFooter>
             </form>
@@ -509,23 +656,36 @@ export default function ModelRegistry() {
 
       {retireModel && (
         <Dialog open onOpenChange={(n) => !n && setRetireModel(null)}>
-          <DialogContent className="sm:max-w-md border-t-4 border-t-danger shadow-lg rounded-xl bg-card p-6 border-border animate-in fade-in-50 zoom-in-95 duration-200">
+          <DialogContent className="sm:max-w-md shadow-2xl rounded-2xl bg-card p-6 sm:p-7 border border-border animate-in fade-in-50 zoom-in-95 duration-200">
             <DialogHeader>
-              <DialogTitle className="text-base font-black text-danger flex items-center gap-2.5">
-                <div className="size-8 rounded-lg bg-danger/10 border border-danger/20 flex items-center justify-center flex-none">
-                  <Archive className="size-4 text-danger" />
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-danger/10 border border-danger/20 flex items-center justify-center flex-none text-danger shadow-xs">
+                  <Archive className="size-5" />
                 </div>
-                Retire Model
-              </DialogTitle>
+                <div>
+                  <DialogTitle className="text-lg font-black text-danger tracking-tight">
+                    Retire Model
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                    This will disable routing for this model.
+                  </p>
+                </div>
+              </div>
             </DialogHeader>
-            <p className="text-sm text-foreground py-2 font-medium">Retire <span className="font-extrabold">{retireModel.name}</span>?</p>
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-bold">
+            <p className="text-sm text-foreground py-3 font-medium">
+              Are you sure you want to retire <span className="font-extrabold">{retireModel.name}</span>?
+            </p>
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-bold">
               <AlertCircle className="size-4 flex-none" />Routes using this model will be immediately disabled.
             </div>
-            <DialogFooter className="mt-4 gap-2">
-              <DialogClose asChild><Button variant="outline" size="sm" className="text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-lg px-4">Cancel</Button></DialogClose>
-              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleRetire(retireModel)} className="text-xs font-extrabold cursor-pointer rounded-lg px-5 shadow-sm hover:shadow-md">
-                <Archive className="size-3.5 mr-1" />Retire Model
+            <DialogFooter className="mt-4 gap-2.5">
+              <DialogClose asChild>
+                <Button variant="outline" size="sm" className="h-10 px-4 text-xs font-extrabold bg-secondary text-foreground border-border hover:bg-secondary/80 cursor-pointer rounded-xl shadow-2xs">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button variant="destructive" size="sm" disabled={submitting} onClick={() => handleRetire(retireModel)} className="h-10 px-6 text-xs font-extrabold cursor-pointer rounded-xl shadow-md hover:shadow-lg">
+                <Archive className="size-3.5 mr-1.5" />Retire Model
               </Button>
             </DialogFooter>
           </DialogContent>

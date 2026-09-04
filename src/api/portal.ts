@@ -238,6 +238,163 @@ export const syncOllama = (body: { model?: string | null; tasks?: string[] } = {
   portalFetch<OllamaSyncResult>('POST', '/portal/models/sync-ollama', { body });
 
 // ---------------------------------------------------------------------------
+// Chat sessions (conversation history) — cookie-session auth, same as every
+// other portal route. The backend keeps each session's message history
+// server-side against `session_id`; a completion request only ever needs to
+// carry the new turn(s), not the full transcript.
+// ---------------------------------------------------------------------------
+
+export interface ChatTurnMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatSession {
+  session_id: string;
+  title: string | null;
+  model: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatSessionDetail extends ChatSession {
+  messages: ChatTurnMessage[];
+}
+
+export interface ChatSessionCompletionRequest {
+  model?: string;
+  messages: ChatTurnMessage[];
+  temperature?: number;
+}
+
+export interface ChatStreamHandlers {
+  onDelta: (text: string) => void;
+  onDone: (finishReason?: string, model?: string) => void;
+  onError: (message: string) => void;
+}
+
+export const createChatSession = (model?: string | null) =>
+  portalFetch<ChatSession>('POST', '/portal/chat/sessions', { body: { model: model || null } });
+
+export const listChatSessions = () =>
+  portalFetch<{ sessions: ChatSession[] }>('GET', '/portal/chat/sessions').then((res) => res.sessions);
+
+export const getChatSession = (sessionId: string) =>
+  portalFetch<ChatSessionDetail>('GET', `/portal/chat/sessions/${encodeURIComponent(sessionId)}`);
+
+export const deleteChatSession = (sessionId: string) =>
+  portalFetch<void>('DELETE', `/portal/chat/sessions/${encodeURIComponent(sessionId)}`);
+
+/**
+ * Streams one turn of a chat session as Server-Sent Events. `req.messages`
+ * should contain only the new turn(s) — the backend prepends the session's
+ * stored history itself. Returns an abort function.
+ */
+export function streamSessionChatCompletion(
+  sessionId: string,
+  req: ChatSessionCompletionRequest,
+  handlers: ChatStreamHandlers
+): () => void {
+  const controller = new AbortController();
+
+  (async () => {
+    let res: Response;
+    try {
+      res = await fetch(buildUrl(`/portal/chat/sessions/${encodeURIComponent(sessionId)}/completions`), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...req, stream: true }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      handlers.onError(err instanceof Error ? err.message : String(err));
+      return;
+    }
+
+    if (res.status === 401) {
+      redirectToLogin();
+      return;
+    }
+
+    if (!res.ok || !res.body) {
+      const data = await res.json().catch(() => undefined);
+      handlers.onError(extractErrorMessage(data, res.statusText || `Request failed (${res.status})`));
+      return;
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let detectedModel: string | undefined;
+    let finishReason: string | undefined;
+    let doneCalled = false;
+
+    const notifyDone = (reason?: string) => {
+      if (!doneCalled) {
+        doneCalled = true;
+        handlers.onDone(reason || finishReason || 'stop', detectedModel);
+      }
+    };
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let sepIndex: number;
+        while ((sepIndex = buffer.indexOf('\n\n')) !== -1) {
+          const rawEvent = buffer.slice(0, sepIndex);
+          buffer = buffer.slice(sepIndex + 2);
+
+          const dataLine = rawEvent.split('\n').find((line) => line.startsWith('data:'));
+          if (!dataLine) continue;
+          const data = dataLine.slice(5).trim();
+          if (data === '[DONE]') {
+            notifyDone('stop');
+            return;
+          }
+
+          let parsed: any;
+          try {
+            parsed = JSON.parse(data);
+          } catch {
+            continue;
+          }
+
+          if (parsed?.error) {
+            handlers.onError(parsed.error?.message || parsed.error?.code || 'Stream error');
+            return;
+          }
+
+          if (parsed?.model && typeof parsed.model === 'string') {
+            detectedModel = parsed.model;
+          }
+
+          const choice = parsed?.choices?.[0];
+          const content = choice?.delta?.content;
+          if (typeof content === 'string' && content.length > 0) {
+            handlers.onDelta(content);
+          }
+          if (typeof choice?.finish_reason === 'string' && choice.finish_reason.length > 0) {
+            finishReason = choice.finish_reason;
+            notifyDone(choice.finish_reason);
+          }
+        }
+      }
+      notifyDone(finishReason || 'stop');
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      handlers.onError(err instanceof Error ? err.message : String(err));
+    }
+  })();
+
+  return () => controller.abort();
+}
+
+// ---------------------------------------------------------------------------
 // Audit / governance / metrics
 // ---------------------------------------------------------------------------
 
