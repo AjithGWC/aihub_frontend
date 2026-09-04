@@ -18,6 +18,7 @@ import {
   Square,
   Loader2,
   Sparkles,
+  LayoutDashboard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -517,6 +518,18 @@ export default function Chatbot() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+          )}
+
+          {(user?.isAdmin || user?.role === "admin") && (
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-3.5 py-2 rounded-xl transition-all duration-200 border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-white cursor-pointer shadow-sm"
+              title="Return to AI Hub Landing Page"
+            >
+              <LayoutDashboard className="size-3.5" />
+              <span>Admin Hub</span>
+            </button>
           )}
 
           <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-border/70 bg-secondary/50">

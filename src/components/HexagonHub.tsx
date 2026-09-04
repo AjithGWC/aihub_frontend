@@ -17,8 +17,10 @@ import {
   Zap,
   Sun,
   Moon,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { COLOR, SECTOR_COLOR, FONT_HEADING, FONT_BODY, type SectorTone } from "./atlasTheme";
 import { useTheme } from "./AppNavbar";
 import AiHubLogo from "./AiHubLogo";
@@ -394,6 +396,7 @@ const HUB_RETURN_MS = 1200;
 
 export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: AtlasHubProps) {
   const { logout } = useSession();
+  const navigate = useNavigate();
   const [theme, toggleTheme] = useTheme();
   const fitRef = React.useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -1065,7 +1068,16 @@ export default function AtlasHub({ hubLabel = "AI HUB", animateTraces = true }: 
             </div>
           </div>
 
-          <div className="absolute z-10 flex items-center gap-2" style={{ right: 24, top: 48 }}>
+          <div className="absolute z-10 flex items-center gap-2.5" style={{ right: 24, top: 48 }}>
+            <button
+              onClick={() => navigate('/chat')}
+              className="flex items-center gap-2 px-4 py-[9px] rounded-full text-[12px] font-semibold uppercase transition-all duration-200 border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-white cursor-pointer shadow-sm"
+              style={{ letterSpacing: ".06em" }}
+              title="Open AI Chat"
+            >
+              <MessageSquare size={14} />
+              <span>AI Chat</span>
+            </button>
             <button
               onClick={toggleTheme}
               className="flex items-center justify-center size-9 rounded-full transition-colors border border-border bg-card text-muted-foreground hover:text-foreground cursor-pointer"
