@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/portal/:path*",
+      "destination": "http://103.82.209.186:8084/portal/:path*"
+    },
+    {
+      "source": "/v1/:path*",
+      "destination": "http://103.82.209.186:8080/v1/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "http://103.82.209.186:8084/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
